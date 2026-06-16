@@ -2074,6 +2074,7 @@
             <button class="btn btn-primary" onclick="undoChanges()">↩️ Undo</button>
             <button class="btn btn-danger" onclick="openResetModal()">🔄 Rivendos Default</button>
             <button class="btn btn-offline" onclick="exportAllData()">📎 Eksporto CSV</button>
+            <button class="btn btn-warning" onclick="openActiveHoursEditor()">⏱️ Orët sipas Aktiveve</button>
         </div>
         
         <div class="active-selector">
@@ -6597,6 +6598,216 @@ function printTranscriptSimple(studentId, classId) {
 // Ekspozimi global
 window.openArchivePanel = openArchivePanel;
 window.printTranscriptSimple = printTranscriptSimple;
+// ==================== MENAXHIMI I ORËVE SIPAS AKTIVEVE ====================
+function openActiveHoursEditor() {
+    let html = `
+    <div id="activeHoursModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:20px; width:95%; max-width:800px; max-height:90%; overflow:auto; padding:25px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#0b4b6e;">⏱️ Vendos Orët në Javë sipas Aktiveve</h2>
+                <button onclick="closeActiveHoursModal()" style="background:#c62828; color:white; border:none; border-radius:50%; width:35px; height:35px; font-size:20px; cursor:pointer;">✖</button>
+            </div>
+            <div style="background:#e8f5e9; padding:12px; border-radius:8px; margin-bottom:20px;">
+                <strong>📌 Vendosni orët për secilin aktiv.</strong><br>
+                <span style="font-size:13px; color:#555;">Orët do të aplikohen për TË GJITHA klasat e aktivit dhe do të sinkronizohen në cloud.</span>
+            </div>
+            
+            ${systemData.actives.sort((a,b)=>a.order-b.order).map(active => {
+                let classesInActive = systemData.classes.filter(c => c.activeId === active.id);
+                if (classesInActive.length === 0) return '';
+                
+                // Merr lëndët nga klasa e parë e aktivit
+                let firstClass = classesInActive[0];
+                let curriculum = systemData.curriculum[firstClass.id] || {};
+                
+                return `
+                <div style="margin-bottom:25px; border:1px solid #ddd; border-radius:12px; overflow:hidden;">
+                    <div style="background:#0b4b6e; color:white; padding:10px 15px; display:flex; justify-content:space-between; align-items:center;">
+                        <strong>${active.name} (${classesInActive.length} klasa)</strong>
+                        <button class="btn" onclick="setDefaultHoursForActive('${active.id}')" style="background:#ffa726; color:white; border:none; padding:4px 15px; border-radius:15px; font-size:12px; cursor:pointer;">📋 Vendos 2 për të gjitha</button>
+                    </div>
+                    <div style="padding:10px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f5f5f5;">
+                                    <th style="padding:8px; border:1px solid #ddd; text-align:left;">Lënda</th>
+                                    <th style="padding:8px; border:1px solid #ddd; text-align:center; width:120px;">Orë në javë</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${firstClass.subjectsOrder.map(sub => {
+                                    let hours = curriculum[sub.key]?.hoursPerWeek || 2;
+                                    return `
+                                    <tr>
+                                        <td style="padding:8px; border:1px solid #ddd;">${sub.name}</td>
+                                        <td style="padding:8px; border:1px solid #ddd; text-align:center;">
+                                            <input type="number" 
+                                                   class="active-hours-input" 
+                                                   data-active="${active.id}" 
+                                                   data-key="${sub.key}" 
+                                                   value="${hours}" 
+                                                   min="0" 
+                                                   max="40"
+                                                   style="width:70px; text-align:center; padding:6px; border:1px solid #ccc; border-radius:6px; font-size:14px;">
+                                        </td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        <div style="margin-top:8px; font-size:12px; color:#666; text-align:right;">
+                            <span id="totalHours_${active.id}">Totali: 0 orë</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('')}
+            
+            <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end; border-top:1px solid #ddd; padding-top:20px;">
+                <button class="btn btn-success" onclick="saveActiveHoursToCloud()" style="padding:10px 30px;">💾 Ruaj dhe Sinkronizo</button>
+                <button class="btn btn-warning" onclick="closeActiveHoursModal()" style="padding:10px 20px;">🔙 Kthehu</button>
+            </div>
+        </div>
+    </div>`;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Llogarit totalin për secilin aktiv
+    systemData.actives.forEach(active => {
+        updateTotalHours(active.id);
+    });
+    
+    // Shto event për ndryshim
+    document.querySelectorAll('.active-hours-input').forEach(input => {
+        input.addEventListener('change', function() {
+            let activeId = this.dataset.active;
+            updateTotalHours(activeId);
+        });
+        input.addEventListener('input', function() {
+            let activeId = this.dataset.active;
+            updateTotalHours(activeId);
+        });
+    });
+}
+
+function closeActiveHoursModal() {
+    let modal = document.getElementById('activeHoursModal');
+    if (modal) modal.remove();
+}
+
+function updateTotalHours(activeId) {
+    let inputs = document.querySelectorAll(`.active-hours-input[data-active="${activeId}"]`);
+    let total = 0;
+    inputs.forEach(input => {
+        total += parseInt(input.value) || 0;
+    });
+    let totalEl = document.getElementById(`totalHours_${activeId}`);
+    if (totalEl) {
+        totalEl.innerHTML = 'Totali: <strong>' + total + '</strong> orë/javë';
+        if (total === 30) totalEl.style.color = '#2e7d32';
+        else if (total > 30) totalEl.style.color = '#c62828';
+        else totalEl.style.color = '#ed6c02';
+    }
+}
+
+function setDefaultHoursForActive(activeId) {
+    let inputs = document.querySelectorAll(`.active-hours-input[data-active="${activeId}"]`);
+    inputs.forEach(input => {
+        input.value = 2;
+    });
+    updateTotalHours(activeId);
+    showNotification("📋 Të gjitha lëndët u vendosën në 2 orë");
+}
+
+function saveActiveHoursToCloud() {
+    // Mblidh të gjitha vlerat
+    let inputs = document.querySelectorAll('.active-hours-input');
+    let activeData = {};
+    
+    inputs.forEach(input => {
+        let activeId = input.dataset.active;
+        let key = input.dataset.key;
+        let value = parseInt(input.value) || 0;
+        
+        if (!activeData[activeId]) activeData[activeId] = {};
+        activeData[activeId][key] = value;
+    });
+    
+    // Apliko për të gjitha klasat e çdo aktivi
+    Object.keys(activeData).forEach(activeId => {
+        let classesInActive = systemData.classes.filter(c => c.activeId === activeId);
+        let hoursData = activeData[activeId];
+        
+        classesInActive.forEach(cls => {
+            if (!systemData.curriculum[cls.id]) systemData.curriculum[cls.id] = {};
+            
+            cls.subjectsOrder.forEach(sub => {
+                if (hoursData[sub.key] !== undefined) {
+                    if (!systemData.curriculum[cls.id][sub.key]) {
+                        systemData.curriculum[cls.id][sub.key] = {};
+                    }
+                    systemData.curriculum[cls.id][sub.key].hoursPerWeek = hoursData[sub.key];
+                }
+            });
+        });
+    });
+    
+    // Ruaj në localStorage
+    localStorage.setItem('schoolSystemFinalV4', JSON.stringify(systemData));
+    console.log("💾 Të dhënat u ruajtën lokalisht");
+    
+    // Sinkronizo në cloud
+    if (typeof db !== 'undefined' && db && isConnected) {
+        db.ref('schoolData/curriculum').set(systemData.curriculum)
+            .then(() => {
+                console.log("☁️✅ Curriculum u sinkronizua në cloud!");
+                showNotification("☁️✅ Të dhënat u sinkronizuan me cloud!");
+            })
+            .catch(err => {
+                console.error("❌ Gabim në sinkronizim:", err);
+                showNotification("⚠️ Ruajtur lokalisht, gabim në cloud!");
+            });
+        
+        // Sinkronizo të gjitha të dhënat
+        db.ref('schoolData').set(systemData)
+            .then(() => console.log("☁️✅ Të gjitha të dhënat u sinkronizuan!"))
+            .catch(err => console.error("❌ Gabim:", err));
+    } else {
+        showNotification("💾 Ruajtur lokalisht (offline mode)");
+    }
+    
+    closeActiveHoursModal();
+    showNotification("✅ Orët u ruajtën për të gjitha klasat!");
+    refreshDisplay();
+}
+
+function loadActiveHoursFromCloud() {
+    if (!db || !isConnected) {
+        console.log("Offline - përdor të dhëna lokale");
+        return;
+    }
+    
+    db.ref('schoolData/curriculum').once('value')
+        .then((snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                systemData.curriculum = data;
+                localStorage.setItem('schoolSystemFinalV4', JSON.stringify(systemData));
+                console.log("📥 Të dhënat u ngarkuan nga cloud!");
+                showNotification("📥 Të dhënat u përditësuan nga cloud");
+                refreshDisplay();
+            }
+        })
+        .catch(err => console.error("❌ Gabim:", err));
+}
+
+// Ekspozimi global
+window.openActiveHoursEditor = openActiveHoursEditor;
+window.closeActiveHoursModal = closeActiveHoursModal;
+window.saveActiveHoursToCloud = saveActiveHoursToCloud;
+window.setDefaultHoursForActive = setDefaultHoursForActive;
+window.updateTotalHours = updateTotalHours;
+window.loadActiveHoursFromCloud = loadActiveHoursFromCloud;
 </script>
 </body>
 </html>
