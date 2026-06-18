@@ -6808,6 +6808,229 @@ window.saveActiveHoursToCloud = saveActiveHoursToCloud;
 window.setDefaultHoursForActive = setDefaultHoursForActive;
 window.updateTotalHours = updateTotalHours;
 window.loadActiveHoursFromCloud = loadActiveHoursFromCloud;
+    // ============ ZGJIDHJA PËR PUNË TË PAVARUR DHE SHUMË PJESËMARRËS ============
+// Ky kod mundëson që shumë përdorues të punojnë njëkohësisht pa u penguar
+
+// 1. VARIABLAT GLOBALE
+var _currentListeningClass = null;
+var _listeningRef = null;
+
+// 2. KONTROLLI IAKSESIT - Secili sheh vetëm klasën e vet
+function canUserAccessClass(classId) {
+    // Admini ka akses në të gjitha
+    if (window.currentUser && window.currentUser.role === 'admin') return true;
+    
+    // Kujdestari sheh vetëm klasën e vet
+    if (window.currentUser && window.currentUser.role === 'teacher') {
+        // Kontrollo nëse kujdestari është i lidhur me këtë klasë
+        var teacher = systemData.teachers.find(function(t) { return t.id === window.currentUser.id; });
+        if (teacher && teacher.classId === classId) return true;
+        
+        // Kontrollo nëse klasa ka këtë kujdestar
+        var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+        if (classObj && classObj.teacherId === window.currentUser.id) return true;
+    }
+    return false;
+}
+
+// 3. HAPJA E PLANIT ME KONTROLL AKSE SI
+function openClassCurriculumModalSecure(classId) {
+    console.log("🔐 Kontrollo aksesin për klasën:", classId);
+    
+    // Kontrollo nëse përdoruesi ka të drejtë
+    if (!canUserAccessClass(classId)) {
+        alert("⚠️ Ju nuk keni të drejtë të shihni këtë klasë!");
+        return;
+    }
+    
+    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+    if (!classObj) {
+        alert("Klasa nuk u gjet!");
+        return;
+    }
+    
+    console.log("✅ Aksesi i lejuar për klasën:", classObj.className);
+    
+    // Ndalo dëgjimin e vjetër
+    if (window._currentListeningClass) {
+        stopListeningToCurriculum(window._currentListeningClass);
+    }
+    window._currentListeningClass = classId;
+    
+    // Hap planin (funksioni origjinal)
+    openClassCurriculumModalOriginal(classId);
+    
+    // Fillo dëgjimin për ndryshime
+    listenToSpecificClass(classId);
+}
+
+// 4. DËGJIMI I NDRYSHIMEVE NË KO HË REALE
+function listenToSpecificClass(classId) {
+    if (!db || !isConnected) {
+        console.log("⚠️ Offline - nuk mund të dëgjojmë ndryshime");
+        return;
+    }
+    
+    console.log("👂 Duke dëgjuar vetëm për klasën:", classId);
+    
+    var classRef = db.ref('schoolData/curriculum/' + classId);
+    
+    // Hiq dëgjuesit e vjetër
+    if (_listeningRef) {
+        _listeningRef.off();
+    }
+    _listeningRef = classRef;
+    
+    // Dëgjo ndryshimet
+    classRef.on('value', function(snapshot) {
+        var data = snapshot.val();
+        if (!data) return;
+        
+        console.log("🔄 Ndryshime në klasën " + classId + " nga përdorues tjetër");
+        
+        // Përditëso të dhënat lokale
+        if (!systemData.curriculum) systemData.curriculum = {};
+        systemData.curriculum[classId] = data;
+        
+        // Ruaj në localStorage
+        localStorage.setItem('schoolSystemFinalV4', JSON.stringify(systemData));
+        
+        // Rifresko UI nëse modal-i është i hapur
+        var modal = document.getElementById('curriculumModal');
+        if (modal && modal.style.display !== 'none') {
+            // Rihap tabelën me të dhënat e reja
+            if (typeof renderCurriculumTableWithTotal === 'function') {
+                renderCurriculumTableWithTotal(classId);
+            } else if (typeof renderCurriculumTable === 'function') {
+                renderCurriculumTable(classId);
+            }
+            showNotification("🔄 Të dhënat u përditësuan nga një përdorues tjetër!");
+        }
+    });
+}
+
+// 5. NDALO DËGJIMIN
+function stopListeningToCurriculum() {
+    if (_listeningRef) {
+        _listeningRef.off();
+        _listeningRef = null;
+        console.log("👂 Dëgjimi u ndalua");
+    }
+}
+
+// 6. RUAJTJA E TË DHËNAVE PA MBISHKRIM (MERGE)
+function saveCurriculumMerged(classId) {
+    console.log("💾 Duke ruajtur planin (merged) për:", classId);
+    
+    // Mblidh të dhënat nga inputet
+    var inputs = document.querySelectorAll('.hours-per-week, .hours-done1, .hours-done2');
+    var localData = {};
+    var count = 0;
+    
+    inputs.forEach(function(input) {
+        var key = input.dataset.key;
+        var value = parseInt(input.value) || 0;
+        if (!localData[key]) localData[key] = {};
+        
+        if (input.classList.contains('hours-per-week')) {
+            localData[key].hoursPerWeek = value;
+            count++;
+        } else if (input.classList.contains('hours-done1')) {
+            localData[key].hoursDoneSem1 = value;
+            count++;
+        } else if (input.classList.contains('hours-done2')) {
+            localData[key].hoursDoneSem2 = value;
+            count++;
+        }
+    });
+    
+    // Ruaj në systemData lokale
+    if (!systemData.curriculum[classId]) systemData.curriculum[classId] = {};
+    Object.keys(localData).forEach(function(key) {
+        if (!systemData.curriculum[classId][key]) systemData.curriculum[classId][key] = {};
+        if (localData[key].hoursPerWeek !== undefined) {
+            systemData.curriculum[classId][key].hoursPerWeek = localData[key].hoursPerWeek;
+        }
+        if (localData[key].hoursDoneSem1 !== undefined) {
+            systemData.curriculum[classId][key].hoursDoneSem1 = localData[key].hoursDoneSem1;
+        }
+        if (localData[key].hoursDoneSem2 !== undefined) {
+            systemData.curriculum[classId][key].hoursDoneSem2 = localData[key].hoursDoneSem2;
+        }
+    });
+    
+    // Ruaj në localStorage
+    localStorage.setItem('schoolSystemFinalV4', JSON.stringify(systemData));
+    console.log("💾 Ruajtur në localStorage (" + count + " vlera)");
+    
+    // Sinkronizo në cloud - MERGE (bashko) në vend të mbishkrimit
+    if (db && isConnected) {
+        var classRef = db.ref('schoolData/curriculum/' + classId);
+        
+        // Lexo të dhënat aktuale nga cloud
+        classRef.once('value')
+            .then(function(snapshot) {
+                var cloudData = snapshot.val() || {};
+                console.log("📖 Të dhënat nga cloud:", cloudData);
+                
+                // Bashko të dhënat (merge)
+                Object.keys(localData).forEach(function(key) {
+                    if (!cloudData[key]) cloudData[key] = {};
+                    if (localData[key].hoursPerWeek !== undefined) {
+                        cloudData[key].hoursPerWeek = localData[key].hoursPerWeek;
+                    }
+                    if (localData[key].hoursDoneSem1 !== undefined) {
+                        cloudData[key].hoursDoneSem1 = localData[key].hoursDoneSem1;
+                    }
+                    if (localData[key].hoursDoneSem2 !== undefined) {
+                        cloudData[key].hoursDoneSem2 = localData[key].hoursDoneSem2;
+                    }
+                });
+                
+                // Ruaj të dhënat e bashkuara në cloud
+                return classRef.set(cloudData);
+            })
+            .then(function() {
+                console.log("☁️✅ Ruajtja e bashkuar u krye!");
+                showNotification("✅ Ndryshimet u ruajtën dhe u bashkuan me cloud!");
+                var modal = document.getElementById('curriculumModal');
+                if (modal) modal.remove();
+            })
+            .catch(function(err) {
+                console.error("❌ Gabim në ruajtje:", err);
+                showNotification("⚠️ Ruajtur lokalisht, gabim në cloud!");
+                var modal = document.getElementById('curriculumModal');
+                if (modal) modal.remove();
+            });
+    } else {
+        console.log("💾 Offline - ruajtur lokalisht");
+        showNotification("💾 Ruajtur lokalisht (offline)");
+        var modal = document.getElementById('curriculumModal');
+        if (modal) modal.remove();
+    }
+}
+
+// 7. ZËVENDËSO FUNKSIONET EKZISTUESE
+// Ruaj funksionin origjinal
+if (typeof openClassCurriculumModal === 'function' && !window._originalOpenPlan) {
+    window._originalOpenPlan = openClassCurriculumModal;
+}
+
+// Zëvendëso me versionin e ri
+window.openClassCurriculumModal = openClassCurriculumModalSecure;
+window.saveCurriculumPlan = saveCurriculumMerged;
+
+// Ekspozo funksionet
+window.canUserAccessClass = canUserAccessClass;
+window.listenToSpecificClass = listenToSpecificClass;
+window.stopListeningToCurriculum = stopListeningToCurriculum;
+window.saveCurriculumMerged = saveCurriculumMerged;
+window.openClassCurriculumModalSecure = openClassCurriculumModalSecure;
+
+console.log("✅ ZGJIDHJA PËR PUNË TË PAVARUR DHE SHUMË PJESËMARRËS U AKTIVIZUA!");
+console.log("📝 Tani secili përdorues punon në klasën e vet pa ndërhyrje.");
+console.log("👥 Ndryshimet nga përdoruesit e tjerë shfaqen në kohë reale.");
+console.log("🔄 Të dhënat bashkohen (merge) në vend që të mbishkruhen.");
 </script>
 </body>
 </html>
