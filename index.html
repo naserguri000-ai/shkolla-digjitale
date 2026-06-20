@@ -6816,13 +6816,12 @@ var _currentListeningClass = null;
 var _listeningRef = null;
 
 // 2. KONTROLLI IAKSESIT - Secili sheh vetëm klasën e vet
+// ============ KONTROLLI I AKSEIT - GJITHMONË I LEJUAR ============
 function canUserAccessClass(classId) {
-    // Admini ka akses në të gjitha
-    if (window.currentUser && window.currentUser.role === 'admin') return true;
-    
-    // Kujdestari sheh vetëm klasën e vet
-    if (window.currentUser && window.currentUser.role === 'teacher') {
-        // Kontrollo nëse kujdestari është i lidhur me këtë klasë
+    // LEJO TË GJITHA - PËR TESTIM
+    console.log("🔓 Aksesi i lejuar për klasën:", classId);
+    return true;
+}        // Kontrollo nëse kujdestari është i lidhur me këtë klasë
         var teacher = systemData.teachers.find(function(t) { return t.id === window.currentUser.id; });
         if (teacher && teacher.classId === classId) return true;
         
