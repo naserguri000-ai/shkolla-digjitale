@@ -7868,53 +7868,51 @@
 
         // ==================== FUNKSIONET E LOGIN ====================
         function performLogin() {
-            console.log("🔐 Funksioni performLogin u thirr!");
-            
-            var usernameEl = document.getElementById('username');
-            var passwordEl = document.getElementById('password');
-            
-            if (!usernameEl || !passwordEl) {
-                console.error("❌ Elementet e login nuk u gjetën!");
-                alert("Gabim në sistem! Rifreskoni faqen.");
-                return;
-            }
-            
-            var u = usernameEl.value.trim();
-            var p = passwordEl.value.trim();
-            
-            console.log("👤 Përdoruesi:", u);
-            
-            if (!u || !p) {
-                alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
-                return;
-            }
+    console.log("🔐 Funksioni performLogin u thirr!");
+    
+    var usernameEl = document.getElementById('username');
+    var passwordEl = document.getElementById('password');
+    
+    if (!usernameEl || !passwordEl) {
+        console.error("❌ Elementet e login nuk u gjetën!");
+        alert("Gabim në sistem! Rifreskoni faqen.");
+        return;
+    }
+    
+    var u = usernameEl.value.trim();
+    var p = passwordEl.value.trim();
+    
+    console.log("👤 Përdoruesi:", u);
+    
+    if (!u || !p) {
+        alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
+        return;
+    }
 
-            // Kontrollo administratorin
-            if (u === 'admin' && p === systemData.adminPassword) {
-                console.log("✅ Hyrje si Administrator");
-                currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
-                showMainApp();
-                return;
-            }
+    // Kontrollo administratorin
+    if (u === 'admin' && p === systemData.adminPassword) {
+        console.log("✅ Hyrje si Administrator");
+        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
+        showMainApp();
+        return;
+    }
 
-            // Kontrollo kujdestarët
-            var teacher = systemData.teachers.find(function(t) { return t.username === u && t.password === p; });
-            if (teacher) {
-                console.log("✅ Hyrje si Kujdestar:", teacher.name);
-                currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
-                showMainApp();
-                return;
-            }
+    // Kontrollo kujdestarët
+    var teacher = systemData.teachers.find(function(t) { return t.username === u && t.password === p; });
+    if (teacher) {
+        console.log("✅ Hyrje si Kujdestar:", teacher.name);
+        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+        showMainApp();
+        return;
+    }
 
-            console.log("❌ Përdoruesi ose fjalëkalimi i gabuar!");
-            alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
-                  "👑 Administratori: admin / admin123\n" +
-                  "👨‍🏫 Kujdestarët:\n" +
-                  "  • arbesa / arbesa123\n" +
-                  "  • fatos / fatos123\n" +
-                  "  • gjylije / gjylije123\n" +
-                  "  • luljeta / luljeta123");
-        }
+    console.log("❌ Përdoruesi ose fjalëkalimi i gabuar!");
+    alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
+          "📌 Sigurohuni që:\n" +
+          "• Emri i përdoruesit është i saktë\n" +
+          "• Fjalëkalimi është i saktë (kujdes për shkronjat e mëdha/vogla)\n" +
+          "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
+}
 
         function showAdminLogin() {
             document.getElementById('username').value = 'admin';
