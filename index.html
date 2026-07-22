@@ -1008,6 +1008,80 @@
             gap: 10px;
         }
         .admin-view-warning .icon { font-size: 20px; }
+
+        /* Stilet për fletëkalimet e përmirësuara */
+        .grade-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .grade-desc {
+            font-size: 8px;
+            color: #555;
+            margin-left: 2px;
+            white-space: nowrap;
+        }
+        .transcript-student-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .transcript-student-row:hover {
+            background: #e3f2fd !important;
+        }
+        .transcript-student-row.selected {
+            background: #bbdefb !important;
+            border-left: 3px solid #d4af37;
+        }
+        .student-selector-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10004;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .student-selector-modal .modal-box {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow: hidden;
+            padding: 25px;
+            position: relative;
+        }
+        .student-selector-modal .modal-box .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #666;
+        }
+        .student-selector-modal .modal-box .close-btn:hover { color: #c62828; }
+        .student-selector-modal .student-option {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .student-selector-modal .student-option:hover { background: #e3f2fd; }
+        .student-selector-modal .student-option .name { font-weight: 600; color: #0b4b6e; }
+        .student-selector-modal .student-option .class { font-size: 12px; color: #666; }
+        .student-selector-modal .student-list-scroll {
+            max-height: 350px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -1318,22 +1392,23 @@
             <div id="archiveViewContent"></div>
         </div>
     </div>
-<!-- Modal për fletëkalimet me të gjitha vitet -->
-<div id="transcriptEditorModal" class="modal">
-    <div class="modal-content" style="max-width:1200px;">
-        <button class="modal-close" onclick="closeTranscriptEditor()">×</button>
-        <h2 style="color:#0b4b6e; margin-bottom:10px;">📜 Fletëkalimi - <span id="transcriptEditorTitle">Klasa</span></h2>
-        <div id="transcriptEditorContent"></div>
-        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-            <button class="btn btn-success" onclick="saveTranscriptData()">💾 Ruaj Ndryshimet</button>
-            <button class="btn btn-primary" onclick="printFullTranscripts()">🖨️ Printo Fletëkalimet</button>
-            <button class="btn btn-warning" onclick="closeTranscriptEditor()">Anulo</button>
+
+    <!-- Modal për fletëkalimet me të gjitha vitet -->
+    <div id="transcriptEditorModal" class="modal">
+        <div class="modal-content" style="max-width:1200px;">
+            <button class="modal-close" onclick="closeTranscriptEditor()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📜 Fletëkalimi - <span id="transcriptEditorTitle">Klasa</span></h2>
+            <div id="transcriptEditorContent"></div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                <button class="btn btn-success" onclick="saveTranscriptData()">💾 Ruaj Ndryshimet</button>
+                <button class="btn btn-primary" onclick="printFullTranscripts()">🖨️ Printo Fletëkalimet</button>
+                <button class="btn btn-warning" onclick="closeTranscriptEditor()">Anulo</button>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Modal për fletëkalim manual - VETËM ADMIN -->
-        <div id="manualTranscriptModal" class="modal">
+    <div id="manualTranscriptModal" class="modal">
         <div class="modal-content" style="max-width:900px;">
             <button class="modal-close" onclick="closeManualTranscriptModal()">×</button>
             <h2 style="color:#0b4b6e; margin-bottom:15px;">📜 Fletëkalimi Manual - Menaxhimi i të Dhënave</h2>
@@ -1477,7 +1552,8 @@
             appVersion: APP_VERSION,
             archivedYears: [],
             manualTranscripts: {},
-            undoState: null
+            undoState: null,
+            transcriptManualData: {}
         };
 
         var currentUser = null;
@@ -1498,6 +1574,16 @@
 
         var isTableTyping = false;
         var tableTypingTimer = null;
+
+        // Variabla për fletëkalimet
+        var transcriptEditorClassId = null;
+        var transcriptCurrentClass = null;
+        var transcriptSearchTerm = '';
+        var transcriptFilteredStudents = [];
+        var transcriptSearchTimeout = null;
+        var transcriptAllStudents = [];
+        var transcriptAllArchivedStudents = [];
+        var transcriptSelectedStudentForPrint = null;
 
         // ==================== FUNKSIONET E KONFIGURIMIT TË VITIT ====================
         function getCurrentSchoolYear() {
@@ -1631,6 +1717,7 @@
                         year: "2025-2026", principal: "DIANA REKA" };
                     if (!systemData.archivedYears) systemData.archivedYears = [];
                     if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
+                    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
                     systemData.appVersion = APP_VERSION;
                     return true;
                 } catch (e) {
@@ -1668,6 +1755,7 @@
                         year: "2025-2026", principal: "DIANA REKA" };
                     if (!systemData.archivedYears) systemData.archivedYears = [];
                     if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
+                    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
                     systemData.appVersion = APP_VERSION;
                     localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
                     console.log("📥 Të dhënat u përditësuan nga cloud");
@@ -2356,6 +2444,10 @@
                                 '<button class="btn btn-admin" onclick="openManualTranscriptModal()">📜 Fletëkalim Manual</button>' :
                                 ''
                             ) +
+                            (isAdmin() ? 
+                                '<button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha)</button>' :
+                                ''
+                            ) +
                         '</div>' +
                     '</div>' +
                     '<div class="teacher-stats-container">' +
@@ -2421,7 +2513,9 @@
                                 'data-student-id="' + s.id + '" ' +
                                 'data-subject-key="' + sub.key + '" ' +
                                 'data-row-index="' + idx + '" ' +
-                                'data-col-index="' + subIdx + '"></td>';
+                                'data-col-index="' + subIdx + '">' +
+                                (gradeVal > 0 ? '<span class="grade-desc">' + getGradeDescription(gradeVal) + '</span>' : '') +
+                            '</td>';
                 });
 
                 html += '<td class="student-avg"><strong>' + avg + '</strong></td>' +
@@ -2697,7 +2791,7 @@
                         <button class="btn btn-info" onclick="openTabelariModal()">📊 Tabelari i Mungesave ☁️</button>
                         <button class="btn btn-warning" onclick="printDirectorReport()">📄 Raporti i Drejtorisë</button>
                         <button class="btn btn-admin" onclick="showAllClassesHoursSummary()">📊 Përmbledhja e Orëve</button>
-'        '<button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha Vitet)</button>''
+                        <button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha Vitet)</button>
                     </div>
                     
                     ${renderArchiveSection()}
@@ -3330,10 +3424,8 @@
                 chk.addEventListener('change', function(e) {
                     var idx = parseInt(chk.dataset.idx);
                     if (!isNaN(idx) && systemData.holidays[idx]) {
-                        if (chk.classList.contains('holiday-sem1')) systemData.holidays[idx].semester1 =
-                            chk.checked;
-                        if (chk.classList.contains('holiday-sem2')) systemData.holidays[idx].semester2 =
-                            chk.checked;
+                        if (chk.classList.contains('holiday-sem1')) systemData.holidays[idx].semester1 = chk.checked;
+                        if (chk.classList.contains('holiday-sem2')) systemData.holidays[idx].semester2 = chk.checked;
                         renderHolidaysList();
                         saveToLocal();
                     }
@@ -3544,6 +3636,7 @@
                             year: "2025-2026", principal: "DIANA REKA" };
                         if (!systemData.archivedYears) systemData.archivedYears = [];
                         if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
+                        if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
                         systemData.appVersion = APP_VERSION;
                         saveToLocal();
                         showNotification("Restaurimi u krye! Faqja po rifreskohet...");
@@ -3620,6 +3713,7 @@
                 appVersion: APP_VERSION,
                 archivedYears: [],
                 manualTranscripts: {},
+                transcriptManualData: {},
                 undoState: null
             };
             initializeDemoData();
@@ -7868,51 +7962,51 @@
 
         // ==================== FUNKSIONET E LOGIN ====================
         function performLogin() {
-    console.log("🔐 Funksioni performLogin u thirr!");
-    
-    var usernameEl = document.getElementById('username');
-    var passwordEl = document.getElementById('password');
-    
-    if (!usernameEl || !passwordEl) {
-        console.error("❌ Elementet e login nuk u gjetën!");
-        alert("Gabim në sistem! Rifreskoni faqen.");
-        return;
-    }
-    
-    var u = usernameEl.value.trim();
-    var p = passwordEl.value.trim();
-    
-    console.log("👤 Përdoruesi:", u);
-    
-    if (!u || !p) {
-        alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
-        return;
-    }
+            console.log("🔐 Funksioni performLogin u thirr!");
+            
+            var usernameEl = document.getElementById('username');
+            var passwordEl = document.getElementById('password');
+            
+            if (!usernameEl || !passwordEl) {
+                console.error("❌ Elementet e login nuk u gjetën!");
+                alert("Gabim në sistem! Rifreskoni faqen.");
+                return;
+            }
+            
+            var u = usernameEl.value.trim();
+            var p = passwordEl.value.trim();
+            
+            console.log("👤 Përdoruesi:", u);
+            
+            if (!u || !p) {
+                alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
+                return;
+            }
 
-    // Kontrollo administratorin
-    if (u === 'admin' && p === systemData.adminPassword) {
-        console.log("✅ Hyrje si Administrator");
-        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
-        showMainApp();
-        return;
-    }
+            // Kontrollo administratorin
+            if (u === 'admin' && p === systemData.adminPassword) {
+                console.log("✅ Hyrje si Administrator");
+                currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
+                showMainApp();
+                return;
+            }
 
-    // Kontrollo kujdestarët
-    var teacher = systemData.teachers.find(function(t) { return t.username === u && t.password === p; });
-    if (teacher) {
-        console.log("✅ Hyrje si Kujdestar:", teacher.name);
-        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
-        showMainApp();
-        return;
-    }
+            // Kontrollo kujdestarët
+            var teacher = systemData.teachers.find(function(t) { return t.username === u && t.password === p; });
+            if (teacher) {
+                console.log("✅ Hyrje si Kujdestar:", teacher.name);
+                currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+                showMainApp();
+                return;
+            }
 
-    console.log("❌ Përdoruesi ose fjalëkalimi i gabuar!");
-    alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
-          "📌 Sigurohuni që:\n" +
-          "• Emri i përdoruesit është i saktë\n" +
-          "• Fjalëkalimi është i saktë (kujdes për shkronjat e mëdha/vogla)\n" +
-          "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
-}
+            console.log("❌ Përdoruesi ose fjalëkalimi i gabuar!");
+            alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
+                  "📌 Sigurohuni që:\n" +
+                  "• Emri i përdoruesit është i saktë\n" +
+                  "• Fjalëkalimi është i saktë (kujdes për shkronjat e mëdha/vogla)\n" +
+                  "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
+        }
 
         function showAdminLogin() {
             document.getElementById('username').value = 'admin';
@@ -8278,7 +8372,1429 @@
 
         document.addEventListener('DOMContentLoaded', init);
         
-        // Ekspozo funksionet globalisht
+        // ==================== FUNKSIONET PËR FLETËKALIME ====================
+        // Variabla globale për fletëkalimet
+        var transcriptEditorClassId = null;
+        var transcriptCurrentClass = null;
+        var transcriptSearchTerm = '';
+        var transcriptFilteredStudents = [];
+        var transcriptSearchTimeout = null;
+        var transcriptAllStudents = [];
+        var transcriptAllArchivedStudents = [];
+        
+        /**
+         * Përshkrimi i notës (pa simbole)
+         */
+        function getGradeDescription(grade) {
+            var g = parseInt(grade);
+            if (g === 5) return 'Shkëlqyeshëm';
+            if (g === 4) return 'Shumë mirë';
+            if (g === 3) return 'Mirë';
+            if (g === 2) return 'Mjaftueshëm';
+            if (g === 1) return 'Pamjaftueshëm';
+            return '';
+        }
+
+        /**
+         * Llogarit suksesin nga mesatarja
+         */
+        function calculateSuccess(avg) {
+            var num = parseFloat(avg);
+            if (num >= 4.5) return 'Shkëlqyeshëm';
+            if (num >= 3.5) return 'Shumë i mirë';
+            if (num >= 2.5) return 'I mirë';
+            if (num >= 1.5) return 'Mjaftueshëm';
+            if (num > 0) return 'Pamjaftueshëm';
+            return 'I panotuar';
+        }
+
+        /**
+         * Përcakton vitet e frekuentuara
+         */
+        function getStudentYears(classObj) {
+            var currentYear = systemData.schoolInfo.year;
+            var currentYearNum = parseInt(currentYear.split('-')[0]);
+            
+            var classPrefix = classObj.className.match(/^[IVX]+/i)?.[0].toUpperCase() || "IX";
+            var yearCount = 4;
+            
+            if (classPrefix === "IX") yearCount = 4;
+            else if (classPrefix === "VIII") yearCount = 3;
+            else if (classPrefix === "VII") yearCount = 2;
+            else if (classPrefix === "VI") yearCount = 1;
+            else yearCount = 1;
+            
+            var years = [];
+            for (var i = yearCount - 1; i >= 0; i--) {
+                var yearStart = currentYearNum - i;
+                years.push(yearStart + '-' + (yearStart + 1));
+            }
+            return years;
+        }
+
+        /**
+         * Gjen të dhënat e arkivuara
+         */
+        function findArchivedStudentData(studentId, className, year) {
+            if (!systemData.archivedYears || systemData.archivedYears.length === 0) return null;
+            
+            var archivedYear = systemData.archivedYears.find(function(a) { return a.year === year; });
+            if (!archivedYear || !archivedYear.classes) return null;
+            
+            var archivedClass = archivedYear.classes.find(function(c) { 
+                return c.className === className; 
+            });
+            if (!archivedClass || !archivedClass.students) return null;
+            
+            return archivedClass.students.find(function(s) { 
+                return s.id === studentId; 
+            });
+        }
+
+        /**
+         * Hap zgjedhësin e klasës
+         */
+        function openTranscriptForCurrentClass() {
+            console.log("📜 openTranscriptForCurrentClass u thirr!");
+            
+            if (!requireAdmin()) {
+                showNotification("Kjo veprim kërkon të drejta Administratori!");
+                return;
+            }
+            
+            // Mbledh të gjithë nxënësit
+            collectAllStudents();
+            
+            // Krijo modal-in e zgjedhjes
+            var modalHtml = `
+                <div id="classSelectorModal" class="modal" style="display:block; z-index:10002; background:rgba(0,0,0,0.6);">
+                    <div class="modal-content" style="max-width:600px; padding:30px;">
+                        <button class="modal-close" onclick="closeClassSelector()" style="font-size:28px; cursor:pointer; float:right; background:none; border:none;">×</button>
+                        <h2 style="color:#0b4b6e; margin-bottom:15px;">📜 Fletëkalimet</h2>
+                        
+                        <div style="margin-bottom:15px; background:#e3f2fd; padding:12px; border-radius:8px;">
+                            <label style="font-weight:bold; display:block; margin-bottom:5px;">Kërko nxënës në të gjitha klasat:</label>
+                            <input type="text" id="globalSearchInput" 
+                                placeholder="Shkruani emrin ose ID-në e nxënësit..." 
+                                style="width:100%; padding:10px 14px; border:2px solid #0b4b6e; border-radius:8px; font-size:15px;"
+                                oninput="searchAllStudentsFromDialog()"
+                                autocomplete="off">
+                            <div id="globalSearchResults" style="margin-top:8px; max-height:250px; overflow-y:auto; display:none;"></div>
+                        </div>
+                        
+                        <hr style="margin:15px 0;">
+                        
+                        <p style="margin-bottom:15px; color:#555;">Ose zgjidhni një klasë për të parë fletëkalimet:</p>
+                        <select id="classSelectorSelect" style="width:100%; padding:12px; border:2px solid #ddd; border-radius:12px; font-size:16px; margin-bottom:20px;">
+                            <option value="">-- Zgjidhni një klasë --</option>
+                            ${systemData.classes.map(function(c) {
+                                var active = systemData.actives.find(function(a) { return a.id === c.activeId; });
+                                var activeName = active ? active.name : 'Pa aktiv';
+                                return '<option value="' + c.id + '">' + c.className + ' (' + activeName + ') - ' + c.students.length + ' nxënës</option>';
+                            }).join('')}
+                        </select>
+                        <div style="display:flex; gap:10px; justify-content:flex-end;">
+                            <button class="btn btn-primary" onclick="openTranscriptEditorFromSelector()" style="padding:10px 30px;">Hap Fletëkalimet</button>
+                            <button class="btn btn-warning" onclick="closeClassSelector()">Anulo</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            var existingModal = document.getElementById('classSelectorModal');
+            if (existingModal) existingModal.remove();
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('classSelectorModal').classList.add('show');
+        }
+
+        /**
+         * Mbyll zgjedhësin e klasës
+         */
+        function closeClassSelector() {
+            var modal = document.getElementById('classSelectorModal');
+            if (modal) {
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                setTimeout(function() { modal.remove(); }, 300);
+            }
+        }
+
+        /**
+         * Hap redaktorin nga zgjedhësi
+         */
+        function openTranscriptEditorFromSelector() {
+            var select = document.getElementById('classSelectorSelect');
+            if (!select) return;
+            var classId = select.value;
+            if (!classId) {
+                showNotification("Ju lutemi zgjidhni një klasë!");
+                return;
+            }
+            closeClassSelector();
+            openTranscriptEditor(classId);
+        }
+
+        /**
+         * Mbledh të gjithë nxënësit nga të gjitha klasat dhe arkivat
+         */
+        function collectAllStudents() {
+            transcriptAllStudents = [];
+            transcriptAllArchivedStudents = [];
+            
+            systemData.classes.forEach(function(cls) {
+                cls.students.forEach(function(s) {
+                    transcriptAllStudents.push({
+                        ...s,
+                        className: cls.className,
+                        classId: cls.id,
+                        isArchived: false
+                    });
+                });
+            });
+            
+            if (systemData.archivedYears) {
+                systemData.archivedYears.forEach(function(yearData) {
+                    if (yearData.classes) {
+                        yearData.classes.forEach(function(cls) {
+                            if (cls.students) {
+                                cls.students.forEach(function(s) {
+                                    transcriptAllArchivedStudents.push({
+                                        ...s,
+                                        className: cls.className,
+                                        year: yearData.year,
+                                        isArchived: true,
+                                        archivedYear: yearData.year
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        /**
+         * Kërkon nxënës në të gjithë sistemin
+         */
+        function searchAllStudents(searchTerm) {
+            if (!searchTerm || searchTerm.trim() === '') {
+                return [];
+            }
+            var term = searchTerm.trim().toLowerCase();
+            var results = [];
+            
+            transcriptAllStudents.forEach(function(s) {
+                if (s.name.toLowerCase().includes(term) || s.id.toString().includes(term)) {
+                    results.push({
+                        ...s,
+                        source: 'Aktual',
+                        sourceInfo: s.className
+                    });
+                }
+            });
+            
+            transcriptAllArchivedStudents.forEach(function(s) {
+                if (s.name.toLowerCase().includes(term) || s.id.toString().includes(term)) {
+                    results.push({
+                        ...s,
+                        source: 'Arkivuar',
+                        sourceInfo: s.className + ' (' + s.archivedYear + ')'
+                    });
+                }
+            });
+            
+            return results;
+        }
+
+        /**
+         * Kërkon nxënës nga dialogu
+         */
+        function searchAllStudentsFromDialog() {
+            var input = document.getElementById('globalSearchInput');
+            if (!input) return;
+            var term = input.value.trim();
+            var resultsContainer = document.getElementById('globalSearchResults');
+            if (!resultsContainer) return;
+            
+            if (!term) {
+                resultsContainer.style.display = 'none';
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            
+            var results = searchAllStudents(term);
+            
+            if (results.length === 0) {
+                resultsContainer.style.display = 'block';
+                resultsContainer.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Nuk u gjet asnjë nxënës</div>';
+                return;
+            }
+            
+            resultsContainer.style.display = 'block';
+            var html = '<div style="border:1px solid #ddd; border-radius:8px; background:white;">';
+            results.forEach(function(s, idx) {
+                var bg = idx % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                html += '<div style="padding:8px 12px; border-bottom:1px solid #eee; background:' + bg + '; display:flex; justify-content:space-between; align-items:center;" data-class-id="' + s.classId + '">' +
+                    '<div><strong>' + s.name + '</strong> <span style="color:#666; font-size:12px;">(' + s.className + (s.isArchived ? ' - Arkivuar' : '') + ')</span></div>' +
+                    '<div>' +
+                        (s.isArchived ? 
+                            '<span style="color:#999; font-size:11px;">Arkivuar</span>' : 
+                            '<button class="btn btn-primary" style="font-size:11px; padding:4px 12px;" data-class-id="' + s.classId + '">Shiko</button>'
+                        ) +
+                    '</div>' +
+                '</div>';
+            });
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+            
+            // Shto event listener për butonat "Shiko"
+            document.querySelectorAll('#globalSearchResults .btn-primary').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var classId = this.dataset.classId;
+                    if (classId) {
+                        closeClassSelector();
+                        openTranscriptEditor(classId);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Hap redaktorin e fletëkalimeve për një klasë
+         */
+        function openTranscriptEditor(classId) {
+            console.log("📜 openTranscriptEditor u thirr për:", classId);
+            
+            if (!requireAdmin()) return;
+            
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) {
+                showNotification("Klasa nuk u gjet!");
+                return;
+            }
+            
+            transcriptEditorClassId = classId;
+            transcriptCurrentClass = classObj;
+            transcriptSearchTerm = '';
+            transcriptFilteredStudents = [];
+            
+            document.getElementById('transcriptEditorTitle').textContent = classObj.className + ' - ' + classObj.students.length + ' nxënës';
+            
+            renderFullTranscriptEditor(classObj);
+            showModal('transcriptEditorModal');
+        }
+
+        /**
+         * Renders the full transcript editor
+         */
+        function renderFullTranscriptEditor(classObj) {
+            console.log("📜 renderFullTranscriptEditor u thirr për:", classObj?.className);
+            
+            var container = document.getElementById('transcriptEditorContent');
+            if (!container) {
+                console.error("transcriptEditorContent nuk u gjet!");
+                return;
+            }
+            
+            if (!classObj) {
+                container.innerHTML = '<p style="color:red;">⚠️ Klasa nuk u gjet!</p>';
+                return;
+            }
+            
+            var years = getStudentYears(classObj);
+            var students = classObj.students || [];
+            var allSubjects = classObj.subjectsOrder || [];
+            
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            if (!systemData.transcriptManualData[classObj.id]) systemData.transcriptManualData[classObj.id] = {};
+            
+            // Filtro nxënësit
+            var filteredStudents = students;
+            if (transcriptSearchTerm && transcriptSearchTerm.trim() !== '') {
+                var term = transcriptSearchTerm.trim().toLowerCase();
+                filteredStudents = students.filter(function(s) {
+                    return s.name.toLowerCase().includes(term) || 
+                           s.id.toString().includes(term);
+                });
+            }
+            transcriptFilteredStudents = filteredStudents;
+            
+            var totalStudents = students.length;
+            var filteredCount = filteredStudents.length;
+            
+            if (years.length === 0) {
+                container.innerHTML = '<p style="color:orange;">⚠️ Nuk mund të përcaktohen vitet për këtë klasë!</p>';
+                return;
+            }
+            
+            var html = `
+                <div style="margin-bottom:10px; padding:8px 12px; background:#e3f2fd; border-radius:8px; display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center;">
+                    <div><strong>${classObj.className}</strong> - ${years.length} vite | ${totalStudents} nxënës</div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <span style="font-size:11px; color:#666;">Sistemi | Manual | Arkiva</span>
+                        <button class="btn btn-primary" onclick="saveTranscriptData()" style="font-size:11px; padding:4px 12px;">Ruaj</button>
+                        <button class="btn btn-warning" onclick="printSelectedStudentFromTable()" style="font-size:11px; padding:4px 12px;">Printo</button>
+                        <button class="btn btn-info" onclick="exportTranscriptData()" style="font-size:11px; padding:4px 12px;">Eksporto</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#f5f5f5; padding:8px 12px; border-radius:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:250px;">
+                        <span style="font-size:12px; font-weight:bold;">Kërko:</span>
+                        <input type="text" id="transcriptSearchInput" 
+                            placeholder="Emri ose ID e nxënësit..." 
+                            value="${transcriptSearchTerm}"
+                            style="flex:1; padding:8px 14px; border:2px solid #0b4b6e; border-radius:8px; font-size:14px; min-width:200px; background:white;"
+                            oninput="filterTranscriptStudentsDelayed()"
+                            autocomplete="off">
+                        <span style="font-size:12px; color:#666; white-space:nowrap; font-weight:bold;">${filteredCount}/${totalStudents}</span>
+                        ${transcriptSearchTerm ? '<button class="btn btn-sm btn-warning" onclick="clearTranscriptSearch()" style="padding:2px 12px; font-size:12px;">✖</button>' : ''}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:12px; font-weight:bold;">Nr.amë:</span>
+                        <input type="text" id="transcriptAmzaInput" 
+                            placeholder="Numri në amë..."
+                            style="width:120px; padding:6px 10px; border:2px solid #ddd; border-radius:8px; font-size:13px;"
+                            onchange="applyAmzaToSelected()">
+                        <button class="btn btn-sm btn-success" onclick="applyAmzaToSelected()" style="padding:2px 12px; font-size:12px;">Apliko</button>
+                    </div>
+                </div>
+                
+                <div style="max-height:550px; overflow-y:auto; border:1px solid #ddd; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:10px; min-width:1000px;">`;
+            
+            html += `<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;">`;
+            html += `<th style="min-width:200px; padding:8px 10px; text-align:left; font-size:11px; position:sticky; left:0; z-index:11; background:#0b4b6e;">Lënda / Nxënësi</th>`;
+            
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                html += `<th style="min-width:120px; padding:8px 4px; text-align:center; font-size:10px; background:${isCurrentYear ? '#1a5d7e' : '#0b4b6e'}; ${isCurrentYear ? 'border-bottom:3px solid #ffd700;' : ''}">${yearLabel}${isCurrentYear ? ' *' : ''}</th>`;
+            }
+            html += `<th style="min-width:55px; padding:8px 4px; text-align:center; font-size:10px; background:#1a5d7e;">Mes.</th>`;
+            html += `<th style="min-width:55px; padding:8px 4px; text-align:center; font-size:10px; background:#1a5d7e;">Mung.</th>`;
+            html += `<th style="min-width:90px; padding:8px 4px; text-align:center; font-size:10px; background:#1a5d7e;">Sjellja</th>`;
+            html += `<th style="min-width:120px; padding:8px 4px; text-align:center; font-size:10px; background:#1a5d7e;">Suksesi</th>`;
+            html += `</tr></thead><tbody>`;
+            
+            if (filteredStudents.length === 0) {
+                html += `<tr><td colspan="${years.length + 5}" style="padding:40px; text-align:center; color:#999; font-size:16px;">Nuk u gjet asnjë nxënës për kërkimin "${transcriptSearchTerm}"</td></tr>`;
+            }
+            
+            filteredStudents.forEach(function(student, idx) {
+                var studentData = systemData.transcriptManualData[classObj.id][student.id] || {};
+                var rowBg = idx % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                var amza = studentData.amza || '';
+                
+                var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
+                var successDesc = calculateSuccess(totalAvg);
+                var successColor = parseFloat(totalAvg) >= 4.5 ? '#e8f5e9' : 
+                                  parseFloat(totalAvg) >= 3.5 ? '#e3f2fd' : 
+                                  parseFloat(totalAvg) >= 2.5 ? '#fff3e0' : 
+                                  parseFloat(totalAvg) >= 1.5 ? '#ffebee' : '#ffcdd2';
+                var totalAbs = getTotalAbsences(student, 'final');
+                var currentBehavior = student.behavior || 'Shembullore';
+                
+                html += `<tr style="border-top:1px solid #ddd; background:${rowBg}; cursor:pointer;" onclick="printSingleStudent(${idx})" class="transcript-student-row">`;
+                html += `<td style="position:sticky; left:0; z-index:5; background:${rowBg}; text-align:left; padding:6px 8px; min-width:200px; border-right:1px solid #ddd;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <strong style="font-size:12px;">${(idx+1)}. ${student.name}</strong>
+                        <input type="text" class="amza-input" data-student="${student.id}" 
+                            value="${amza}" placeholder="Nr.amë" 
+                            style="width:70px; padding:1px 4px; border:1px solid #ccc; border-radius:4px; font-size:10px; text-align:center;"
+                            onchange="updateStudentAmza(${student.id}, this.value)" onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); printSingleStudent(${idx})" style="font-size:10px; padding:2px 8px;">🖨️</button>
+                    </div>
+                    <div style="font-size:9px; color:#999; margin-top:1px;">ID: ${student.id} | ${student.gender === 'M' ? 'M' : 'F'}</div>
+                </td>`;
+                
+                for (var y = 0; y < years.length; y++) {
+                    var yearLabel = years[y];
+                    var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                    
+                    html += `<td style="padding:3px 4px; vertical-align:top; min-width:120px; border:1px solid #eee;">`;
+                    html += `<div style="display:flex; flex-direction:column; gap:1px;">`;
+                    
+                    allSubjects.forEach(function(sub) {
+                        var gradeVal = '-';
+                        var isManual = false;
+                        var bgColor = 'transparent';
+                        var isArchived = false;
+                        
+                        if (isCurrentYear) {
+                            var grade = getFinalGrade(student, sub.key);
+                            if (grade > 0) {
+                                gradeVal = grade;
+                                if (grade == 5) bgColor = '#e8f5e9';
+                                else if (grade == 4) bgColor = '#e3f2fd';
+                                else if (grade == 3) bgColor = '#fff3e0';
+                                else if (grade == 2) bgColor = '#ffebee';
+                                else if (grade == 1) bgColor = '#ffcdd2';
+                            }
+                        } else {
+                            var manualKey = 'year_' + yearLabel + '_' + sub.key;
+                            if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
+                                gradeVal = studentData[manualKey];
+                                isManual = true;
+                                bgColor = '#fff3e0';
+                            } else {
+                                var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                                if (archivedStudent) {
+                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
+                                    if (g > 0) {
+                                        gradeVal = g;
+                                        isArchived = true;
+                                        if (g == 5) bgColor = '#e8f5e9';
+                                        else if (g == 4) bgColor = '#e3f2fd';
+                                        else if (g == 3) bgColor = '#fff3e0';
+                                        else if (g == 2) bgColor = '#ffebee';
+                                        else if (g == 1) bgColor = '#ffcdd2';
+                                    }
+                                }
+                            }
+                        }
+                        
+                        var gradeDesc = getGradeDescription(gradeVal);
+                        var displayDesc = (gradeVal !== '-' && gradeVal !== '') ? gradeDesc : '';
+                        
+                        html += `<div style="display:flex; align-items:center; gap:2px; font-size:9px; padding:1px 0; flex-wrap:wrap;">`;
+                        html += `<span style="width:18px; font-size:7px; color:#888; text-align:right;">${sub.code}:</span>`;
+                        html += `<input type="text" 
+                                    data-student="${student.id}" 
+                                    data-year="${yearLabel}" 
+                                    data-subject="${sub.key}" 
+                                    value="${gradeVal !== '-' ? gradeVal : ''}" 
+                                    placeholder="-" 
+                                    style="width:24px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:9px; background:${bgColor};" 
+                                    onchange="onTranscriptGradeChangeFull(this, ${idx})" onclick="event.stopPropagation();">`;
+                        if (displayDesc) {
+                            html += `<span style="font-size:8px; color:#555; margin-left:2px; white-space:nowrap;">${displayDesc}</span>`;
+                        }
+                        if (isManual) html += `<span style="font-size:6px; color:#ed6c02;" title="Manual">M</span>`;
+                        else if (isArchived) html += `<span style="font-size:6px; color:#2e7d32;" title="Nga arkiva">A</span>`;
+                        html += `</div>`;
+                    });
+                    
+                    var avgVal = '-';
+                    var hasAvgData = false;
+                    var absVal = '-';
+                    var hasAbsData = false;
+                    var behVal = '-';
+                    var hasBehData = false;
+                    
+                    if (isCurrentYear) {
+                        var sum = 0, count = 0;
+                        allSubjects.forEach(function(sub) {
+                            var grade = getFinalGrade(student, sub.key);
+                            if (grade > 0) { sum += grade; count++; }
+                        });
+                        if (count > 0) {
+                            avgVal = (sum / count).toFixed(2);
+                            hasAvgData = true;
+                        }
+                        var abs = getTotalAbsences(student, 'final');
+                        if (abs.total > 0) {
+                            absVal = abs.total;
+                            hasAbsData = true;
+                        }
+                        behVal = student.behavior || 'Shembullore';
+                        hasBehData = true;
+                    } else {
+                        var manualAvgKey = 'year_' + yearLabel + '_avg';
+                        if (studentData[manualAvgKey] !== undefined && studentData[manualAvgKey] !== '-' && studentData[manualAvgKey] !== '') {
+                            avgVal = studentData[manualAvgKey];
+                            hasAvgData = true;
+                        } else {
+                            var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                            if (archivedStudent) {
+                                var aSum = 0, aCount = 0;
+                                allSubjects.forEach(function(sub) {
+                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
+                                    if (g > 0) { aSum += g; aCount++; }
+                                });
+                                if (aCount > 0) {
+                                    avgVal = (aSum / aCount).toFixed(2);
+                                    hasAvgData = true;
+                                }
+                            }
+                        }
+                        
+                        var manualAbsKey = 'year_' + yearLabel + '_abs';
+                        if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-' && studentData[manualAbsKey] !== '') {
+                            absVal = studentData[manualAbsKey];
+                            hasAbsData = true;
+                        } else {
+                            var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                            if (archivedStudent) {
+                                var absTotal = (archivedStudent.absencesWithReason || 0) + 
+                                              (archivedStudent.absencesWithoutReason || 0);
+                                if (absTotal > 0) {
+                                    absVal = absTotal;
+                                    hasAbsData = true;
+                                }
+                            }
+                        }
+                        
+                        var manualBehKey = 'year_' + yearLabel + '_behavior';
+                        if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-' && studentData[manualBehKey] !== '') {
+                            behVal = studentData[manualBehKey];
+                            hasBehData = true;
+                        } else {
+                            var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                            if (archivedStudent && archivedStudent.behavior) {
+                                behVal = archivedStudent.behavior;
+                                hasBehData = true;
+                            }
+                        }
+                    }
+                    
+                    html += `<div style="margin-top:2px; border-top:1px dashed #ddd; padding-top:2px; display:flex; flex-direction:column; gap:1px; font-size:8px;">`;
+                    html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
+                                <span style="color:#666;">Mes:</span> 
+                                <input type="text" 
+                                    data-student="${student.id}" 
+                                    data-year="${yearLabel}" 
+                                    value="${avgVal !== '-' ? avgVal : ''}" 
+                                    placeholder="-" 
+                                    style="width:36px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:8px; ${hasAvgData ? 'background:#e8f5e9;' : 'background:#f5f5f5;'}" 
+                                    onchange="onTranscriptAvgChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                            </div>`;
+                    html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
+                                <span style="color:#666;">Mung:</span> 
+                                <input type="number" 
+                                    data-student="${student.id}" 
+                                    data-year="${yearLabel}" 
+                                    value="${absVal !== '-' ? absVal : ''}" 
+                                    placeholder="-" 
+                                    style="width:36px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:8px; ${hasAbsData ? 'background:#fff3e0;' : 'background:#f5f5f5;'}" 
+                                    min="0" onchange="onTranscriptAbsChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                            </div>`;
+                    html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
+                                <span style="color:#666;">Sjell:</span> 
+                                <select 
+                                    data-student="${student.id}" 
+                                    data-year="${yearLabel}" 
+                                    style="font-size:8px; padding:0 2px; border:1px solid #ccc; border-radius:3px; max-width:60px; ${hasBehData ? 'background:#e8f5e9;' : 'background:#f5f5f5;'}" 
+                                    onchange="onTranscriptBehaviorChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                                    <option value="Shembullore" ${behVal === 'Shembullore' ? 'selected' : ''}>Shembullore</option>
+                                    <option value="Shume mire" ${behVal === 'Shume mire' ? 'selected' : ''}>Shumë mirë</option>
+                                    <option value="Mire" ${behVal === 'Mire' ? 'selected' : ''}>Mirë</option>
+                                    <option value="Mjaftueshme" ${behVal === 'Mjaftueshme' ? 'selected' : ''}>Mjaftueshme</option>
+                                    <option value="Keq" ${behVal === 'Keq' ? 'selected' : ''}>Keq</option>
+                                </select>
+                            </div>`;
+                    html += `</div>`;
+                    html += `</div></td>`;
+                }
+                
+                // Kolonat përfundimtare
+                html += `<td style="text-align:center; font-weight:bold; background:#e8f5e9; padding:6px 4px; font-size:12px; border:1px solid #eee;">${totalAvg}</td>`;
+                html += `<td style="text-align:center; background:#fff3e0; padding:6px 4px; font-size:11px; border:1px solid #eee;">${totalAbs.total}</td>`;
+                html += `<td style="text-align:center; background:#e3f2fd; padding:6px 4px; font-size:10px; border:1px solid #eee;">${currentBehavior}</td>`;
+                html += `<td style="text-align:center; background:${successColor}; padding:6px 4px; font-size:11px; font-weight:bold; border:1px solid #eee;">${successDesc}</td>`;
+                
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            html += `
+                <div style="margin-top:10px; padding:8px 12px; background:#f5f5f5; border-radius:8px; display:flex; justify-content:space-between; flex-wrap:wrap; font-size:11px; color:#555;">
+                    <div><strong>${filteredCount}</strong> nxënës të shfaqur nga <strong>${totalStudents}</strong></div>
+                    <div><strong>${years.length}</strong> vite | <strong>${allSubjects.length}</strong> lëndë</div>
+                    <div>Sistemi | Manual | Arkiva</div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        /**
+         * Printo nxënësin e zgjedhur nga tabela
+         */
+        function printSelectedStudentFromTable() {
+            if (!transcriptFilteredStudents || transcriptFilteredStudents.length === 0) {
+                showNotification("Nuk ka nxënës për të printuar!");
+                return;
+            }
+            
+            if (transcriptFilteredStudents.length === 1) {
+                printSingleStudent(0);
+                return;
+            }
+            
+            // Krijo modal për zgjedhje
+            var optionsHtml = transcriptFilteredStudents.map(function(s, i) {
+                return '<div class="student-option" onclick="printSelectedStudentDirect(' + i + ');">' +
+                    '<span class="name">' + (i+1) + '. ' + s.name + '</span>' +
+                    '<span class="class">(ID: ' + s.id + ')</span>' +
+                    '<span style="color:#0b4b6e; font-size:13px;">📄 Printo</span>' +
+                '</div>';
+            }).join('');
+            
+            var modalHtml = `
+                <div id="studentSelectModal" class="student-selector-modal">
+                    <div class="modal-box">
+                        <button class="close-btn" onclick="closeStudentSelectModal()">×</button>
+                        <h2 style="color:#0b4b6e; margin-bottom:15px;">Zgjidhni nxënësin për printim</h2>
+                        <p style="margin-bottom:15px; color:#555;">Klikoni mbi nxënësin për të printuar fletëkalimin:</p>
+                        <div class="student-list-scroll">
+                            ${optionsHtml}
+                        </div>
+                        <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+                            <button class="btn btn-warning" onclick="closeStudentSelectModal()">Anulo</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            var existingModal = document.getElementById('studentSelectModal');
+            if (existingModal) existingModal.remove();
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function closeStudentSelectModal() {
+            var modal = document.getElementById('studentSelectModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        /**
+         * Printo një nxënës specifik direkt
+         */
+        function printSelectedStudentDirect(index) {
+            var students = transcriptFilteredStudents;
+            if (!students || !students[index]) {
+                showNotification("Nxënësi nuk u gjet!");
+                return;
+            }
+            
+            closeStudentSelectModal();
+            printSingleStudent(index);
+        }
+
+        /**
+         * Printo një nxënës specifik
+         */
+        function printSingleStudent(index) {
+            var students = transcriptFilteredStudents;
+            if (!students || !students[index]) {
+                showNotification("Nxënësi nuk u gjet!");
+                return;
+            }
+            
+            var student = students[index];
+            var classObj = transcriptCurrentClass;
+            if (!classObj) {
+                showNotification("Klasa nuk u gjet!");
+                return;
+            }
+            
+            printTranscriptForStudent(classObj, student);
+        }
+
+                        /**
+         * Printo fletëkalim për një nxënës specifik
+         */
+        function printTranscriptForStudent(classObj, student) {
+            var years = getStudentYears(classObj);
+            var allSubjects = classObj.subjectsOrder || [];
+            var teacher = systemData.teachers.find(function(t) { return t.classId === classObj.id; });
+            var teacherName = teacher ? teacher.name : '__________________';
+            var principalName = systemData.schoolInfo.principal || 'Drejtoresha';
+            var date = formatDate();
+            var studentData = systemData.transcriptManualData && systemData.transcriptManualData[classObj.id] ? 
+                systemData.transcriptManualData[classObj.id][student.id] || {} : {};
+            var amza = studentData.amza || '';
+
+            // Totali përfundimtar (për header)
+            var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
+            var successDesc = calculateSuccess(totalAvg);
+            var totalAbs = getTotalAbsences(student, 'final');
+            var currentBehavior = student.behavior || 'Shembullore';
+
+            // Krijo header-et (kolonat e viteve)
+            var headers = '<th style="border:1px solid #000; padding:5px 8px; background:#0b4b6e; color:white; font-size:11px; text-align:left; min-width:120px;">Lënda</th>';
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                headers += '<th style="border:1px solid #000; padding:5px 6px; background:' + (isCurrentYear ? '#1a5d7e' : '#0b4b6e') + '; color:white; font-size:10px; text-align:center; min-width:100px;">' + 
+                           yearLabel + (isCurrentYear ? ' *' : '') + '</th>';
+            }
+
+            // Krijo rreshtat e lëndëve
+            var rowsHtml = '';
+            allSubjects.forEach(function(sub) {
+                rowsHtml += '<tr><td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px; font-weight:500;">' + sub.name + '</td>';
+                
+                for (var y = 0; y < years.length; y++) {
+                    var yearLabel = years[y];
+                    var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                    var grade = '-';
+                    var gradeDesc = '';
+                    var bgColor = '#f9f9f9';
+                    
+                    if (isCurrentYear) {
+                        var g = getFinalGrade(student, sub.key);
+                        if (g > 0) {
+                            grade = g;
+                            gradeDesc = getGradeDescription(g);
+                            bgColor = '#e8f5e9';
+                        }
+                    } else {
+                        // Kontrollo të dhënat manuale
+                        var manualKey = 'year_' + yearLabel + '_' + sub.key;
+                        if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
+                            grade = studentData[manualKey];
+                            gradeDesc = getGradeDescription(grade);
+                            bgColor = '#fff3e0';
+                        } else {
+                            // Kontrollo arkivën
+                            var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                            if (archivedStudent) {
+                                var g = getArchivedStudentGrade(archivedStudent, sub.key);
+                                if (g > 0) {
+                                    grade = g;
+                                    gradeDesc = getGradeDescription(g);
+                                    bgColor = '#e8f5e9';
+                                }
+                            }
+                        }
+                    }
+                    
+                    rowsHtml += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; background:' + bgColor + '; font-size:11px; font-weight:bold;">' + 
+                                grade + '<br><span style="font-size:8px; font-weight:normal; color:#555;">' + gradeDesc + '</span></td>';
+                }
+                rowsHtml += '</tr>';
+            });
+
+            // ============================================================
+            // FIX: Rreshti i Mesatares - llogaritet automatikisht nga notat
+            // ============================================================
+            var avgRow = '<tr style="background:#e8eaf6; font-weight:bold;">';
+            avgRow += '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Mesatarja</td>';
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                var avgVal = '-';
+                
+                if (isCurrentYear) {
+                    avgVal = getStudentAvg(student, classObj.subjectsOrder, 'final');
+                } else {
+                    // Llogarit mesataren nga notat manuale për këtë vit
+                    var sum = 0, count = 0;
+                    allSubjects.forEach(function(sub) {
+                        var manualKey = 'year_' + yearLabel + '_' + sub.key;
+                        if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
+                            var grade = parseFloat(studentData[manualKey]);
+                            if (!isNaN(grade) && grade >= 1 && grade <= 5) {
+                                sum += grade;
+                                count++;
+                            }
+                        }
+                    });
+                    
+                    if (count > 0) {
+                        avgVal = (sum / count).toFixed(2);
+                    } else {
+                        // Nëse nuk ka të dhëna manuale, kontrollo arkivën
+                        var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                        if (archivedStudent) {
+                            var aSum = 0, aCount = 0;
+                            allSubjects.forEach(function(sub) {
+                                var g = getArchivedStudentGrade(archivedStudent, sub.key);
+                                if (g > 0) { aSum += g; aCount++; }
+                            });
+                            if (aCount > 0) avgVal = (aSum / aCount).toFixed(2);
+                        }
+                    }
+                }
+                avgRow += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:11px; font-weight:bold;">' + avgVal + '</td>';
+            }
+            avgRow += '</tr>';
+
+            // ============================================================
+            // FIX: Rreshti i Suksesit - llogaritet nga mesatarja
+            // ============================================================
+            var successRow = '<tr style="background:#e3f2fd; font-weight:bold;">';
+            successRow += '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Suksesi</td>';
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                var statusVal = '-';
+                
+                // Llogarit mesataren për këtë vit (njësoj si më lart)
+                var avgNum = 0;
+                var hasData = false;
+                
+                if (isCurrentYear) {
+                    var avg = parseFloat(getStudentAvg(student, classObj.subjectsOrder, 'final'));
+                    if (avg > 0) {
+                        avgNum = avg;
+                        hasData = true;
+                    }
+                } else {
+                    // Llogarit nga notat manuale
+                    var sum = 0, count = 0;
+                    allSubjects.forEach(function(sub) {
+                        var manualKey = 'year_' + yearLabel + '_' + sub.key;
+                        if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
+                            var grade = parseFloat(studentData[manualKey]);
+                            if (!isNaN(grade) && grade >= 1 && grade <= 5) {
+                                sum += grade;
+                                count++;
+                            }
+                        }
+                    });
+                    
+                    if (count > 0) {
+                        avgNum = sum / count;
+                        hasData = true;
+                    } else {
+                        // Kontrollo arkivën
+                        var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                        if (archivedStudent) {
+                            var aSum = 0, aCount = 0;
+                            allSubjects.forEach(function(sub) {
+                                var g = getArchivedStudentGrade(archivedStudent, sub.key);
+                                if (g > 0) { aSum += g; aCount++; }
+                            });
+                            if (aCount > 0) {
+                                avgNum = aSum / aCount;
+                                hasData = true;
+                            }
+                        }
+                    }
+                }
+                
+                if (hasData) {
+                    statusVal = avgNum >= 4.5 ? "Shkëlqyeshëm" : 
+                               avgNum >= 3.5 ? "Shumë i mirë" : 
+                               avgNum >= 2.5 ? "I mirë" : 
+                               avgNum >= 1.5 ? "Mjaftueshëm" : 
+                               "Pamjaftueshëm";
+                }
+                
+                successRow += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' + statusVal + '</td>';
+            }
+            successRow += '</tr>';
+
+            // ============================================================
+            // FIX: Rreshti i Mungesave
+            // ============================================================
+            var absRow = '<tr style="background:#fff3e0;">';
+            absRow += '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Mungesat</td>';
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                var absVal = '-';
+                
+                if (isCurrentYear) {
+                    var abs = getTotalAbsences(student, 'final');
+                    absVal = abs.total;
+                } else {
+                    var manualAbsKey = 'year_' + yearLabel + '_abs';
+                    if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-' && studentData[manualAbsKey] !== '') {
+                        absVal = studentData[manualAbsKey];
+                    } else {
+                        var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                        if (archivedStudent) {
+                            var absTotal = (archivedStudent.absencesWithReason || 0) + 
+                                          (archivedStudent.absencesWithoutReason || 0);
+                            if (absTotal > 0) absVal = absTotal;
+                        }
+                    }
+                }
+                absRow += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' + absVal + '</td>';
+            }
+            absRow += '</tr>';
+
+            // ============================================================
+            // FIX: Rreshti i Sjelljes
+            // ============================================================
+            var behRow = '<tr style="background:#e8f5e9;">';
+            behRow += '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Sjellja</td>';
+            for (var y = 0; y < years.length; y++) {
+                var yearLabel = years[y];
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                var behVal = '-';
+                
+                if (isCurrentYear) {
+                    behVal = student.behavior || 'Shembullore';
+                } else {
+                    var manualBehKey = 'year_' + yearLabel + '_behavior';
+                    if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-' && studentData[manualBehKey] !== '') {
+                        behVal = studentData[manualBehKey];
+                    } else {
+                        var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                        if (archivedStudent && archivedStudent.behavior) {
+                            behVal = archivedStudent.behavior;
+                        } else {
+                            // Nëse nuk ka të dhëna, vendos vlerën "Shembullore"
+                            behVal = 'Shembullore';
+                        }
+                    }
+                }
+                behRow += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' + behVal + '</td>';
+            }
+            behRow += '</tr>';
+
+            // Krijo HTML-në për printim
+            var printHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Fletëkalimi - ${student.name}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 10mm; }
+                    body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }
+                    .certificate { max-width: 210mm; margin: 0 auto; padding: 5mm 8mm; border: 2px solid #d4af37; background: white; box-sizing: border-box; }
+                    .header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 4mm; margin-bottom: 4mm; }
+                    .header h1 { color: #d4af37; font-size: 24px; margin: 3px 0; letter-spacing: 2px; }
+                    .header .school { font-size: 14px; font-weight: bold; color: #0b4b6e; }
+                    .student-name { font-size: 18px; font-weight: bold; text-align: center; margin: 3mm 0; padding: 3mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }
+                    .student-name .amza { font-size: 13px; color: #666; font-weight: normal; margin-left: 10px; }
+                    .info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 12px; }
+                    table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 11px; }
+                    th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }
+                    th { background: #0b4b6e; color: white; font-weight: bold; }
+                    .signatures { display: flex; justify-content: space-between; margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #000; }
+                    .signature { text-align: center; width: 130px; }
+                    .signature-line { border-top: 1px solid #000; margin-top: 5mm; padding-top: 2mm; }
+                    @media print { body { margin: 0; padding: 0; } .certificate { border: 2px solid #d4af37; } }
+                </style>
+            </head>
+            <body>
+                <div class="certificate">
+                    <div class="header">
+                        <div class="school">REPUBLIKA E KOSOVËS</div>
+                        <div class="school">${systemData.schoolInfo.name}</div>
+                        <h1>FLETËKALIMI</h1>
+                        <div style="font-size:14px; font-weight:bold; color:#0b4b6e;">PËRFUNDIMTAR</div>
+                        <div style="font-size:12px; color:#333;">${systemData.schoolInfo.year}</div>
+                    </div>
+                    <div class="student-name">
+                        ${student.name}
+                        ${amza ? '<span class="amza">Nr.amë: ' + amza + '</span>' : ''}
+                    </div>
+                    <div class="info">
+                        <div><strong>Klasa:</strong> ${classObj.className}</div>
+                        <div><strong>Data:</strong> ${date}</div>
+                        <div><strong>Mesatarja:</strong> ${totalAvg}</div>
+                        <div><strong>Suksesi:</strong> ${successDesc}</div>
+                        <div><strong>Mungesat:</strong> ${totalAbs.total}</div>
+                        <div><strong>Sjellja:</strong> ${currentBehavior}</div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead><tr>${headers}</tr></thead>
+                            <tbody>
+                                ${rowsHtml}
+                                ${avgRow}
+                                ${successRow}
+                                ${absRow}
+                                ${behRow}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="signatures">
+                        <div class="signature">
+                            <div class="signature-line">Kujdestari</div>
+                            <div style="margin-top:2mm; font-size:12px;">${teacherName}</div>
+                        </div>
+                        <div class="signature">
+                            <div class="signature-line">Drejtoresha</div>
+                            <div style="margin-top:2mm; font-size:12px;">${principalName}</div>
+                        </div>
+                        <div class="signature">
+                            <div class="signature-line">Vula e shkollës</div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() { window.print(); };
+                <\/script>
+            </body>
+            </html>`;
+            
+            var win = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+            if (!win) {
+                showNotification("Ju lutemi lejoni dritaret kërcyese (popups)!");
+                showNotification("Klikoni në ikonën e bllokimit të popups në shiritin e adresës dhe lejoni!");
+                return;
+            }
+            win.document.write(printHtml);
+            win.document.close();
+        }
+
+        /**
+         * Ruaj të dhënat
+         */
+        function saveTranscriptData() {
+            console.log("💾 saveTranscriptData u thirr!");
+            if (!requireAdmin()) return;
+            saveToLocal();
+            showNotification("Të dhënat e fletëkalimeve u ruajtën!");
+            updateManualStatus(true);
+        }
+
+        /**
+         * Eksporton të dhënat
+         */
+        function exportTranscriptData() {
+            if (!requireAdmin()) return;
+            
+            var classId = transcriptEditorClassId;
+            if (!classId) {
+                showNotification("Nuk ka klasë të zgjedhur!");
+                return;
+            }
+            
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) {
+                showNotification("Klasa nuk u gjet!");
+                return;
+            }
+            
+            var exportData = {
+                className: classObj.className,
+                classId: classObj.id,
+                year: systemData.schoolInfo.year,
+                exportedAt: new Date().toISOString(),
+                students: classObj.students.map(function(s) {
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        gender: s.gender,
+                        behavior: s.behavior,
+                        grades: s.grades,
+                        gradesSemester2: s.gradesSemester2,
+                        absencesWithReason: s.absencesWithReason,
+                        absencesWithoutReason: s.absencesWithoutReason,
+                        absencesWithReasonSemester2: s.absencesWithReasonSemester2,
+                        absencesWithoutReasonSemester2: s.absencesWithoutReasonSemester2
+                    };
+                }),
+                subjectsOrder: classObj.subjectsOrder,
+                manualData: systemData.transcriptManualData[classId] || {}
+            };
+            
+            var dataStr = JSON.stringify(exportData, null, 2);
+            var dataBlob = new Blob([dataStr], { type: "application/json" });
+            var url = URL.createObjectURL(dataBlob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'fletekalimet_' + classObj.className + '_' + new Date().toISOString().slice(0,10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+            showNotification("Të dhënat u eksportuan!");
+        }
+
+        /**
+         * Mbyll redaktorin
+         */
+        function closeTranscriptEditor() {
+            console.log("📜 closeTranscriptEditor u thirr!");
+            hideModal('transcriptEditorModal');
+            transcriptEditorClassId = null;
+            transcriptCurrentClass = null;
+            transcriptSearchTerm = '';
+            transcriptFilteredStudents = [];
+            if (transcriptSearchTimeout) {
+                clearTimeout(transcriptSearchTimeout);
+                transcriptSearchTimeout = null;
+            }
+        }
+
+        /**
+         * Filtro nxënësit me vonesë
+         */
+        function filterTranscriptStudentsDelayed() {
+            if (transcriptSearchTimeout) {
+                clearTimeout(transcriptSearchTimeout);
+            }
+            transcriptSearchTimeout = setTimeout(function() {
+                var input = document.getElementById('transcriptSearchInput');
+                if (!input) return;
+                transcriptSearchTerm = input.value;
+                var classObj = transcriptCurrentClass;
+                if (classObj) {
+                    renderFullTranscriptEditor(classObj);
+                }
+                transcriptSearchTimeout = null;
+            }, 200);
+        }
+
+        /**
+         * Pastro kërkimin
+         */
+        function clearTranscriptSearch() {
+            transcriptSearchTerm = '';
+            var input = document.getElementById('transcriptSearchInput');
+            if (input) input.value = '';
+            var classObj = transcriptCurrentClass;
+            if (classObj) {
+                renderFullTranscriptEditor(classObj);
+            }
+        }
+
+        /**
+         * Apliko numrin në amë për nxënësin e zgjedhur
+         */
+        function applyAmzaToSelected() {
+            var input = document.getElementById('transcriptAmzaInput');
+            if (!input) return;
+            var value = input.value.trim();
+            
+            if (transcriptFilteredStudents.length > 0) {
+                var student = transcriptFilteredStudents[0];
+                updateStudentAmza(student.id, value);
+                renderFullTranscriptEditor(transcriptCurrentClass);
+                showNotification("Numri në amë u aplikua për " + student.name);
+            } else {
+                showNotification("Nuk ka nxënës të zgjedhur!");
+            }
+        }
+
+        /**
+         * Përditëso numrin në amë për një nxënës
+         */
+        function updateStudentAmza(studentId, value) {
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            var classId = transcriptEditorClassId;
+            if (!classId) return;
+            if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
+            if (!systemData.transcriptManualData[classId][studentId]) {
+                systemData.transcriptManualData[classId][studentId] = {};
+            }
+            
+            systemData.transcriptManualData[classId][studentId].amza = value;
+            saveToLocal();
+            updateManualStatus(false);
+        }
+
+        /**
+         * Funksionet për ruajtjen e të dhënave manuale - NOTA
+         */
+        function onTranscriptGradeChangeFull(input, rowIndex) {
+            var studentId = parseInt(input.dataset.student);
+            var year = input.dataset.year;
+            var subjectKey = input.dataset.subject;
+            var value = input.value.trim();
+            
+            if (value === '' || value === '-') {
+                value = '-';
+            } else {
+                var num = parseInt(value);
+                if (isNaN(num) || num < 0 || num > 5) {
+                    showNotification("Nota duhet të jetë nga 1 deri në 5!");
+                    input.value = '';
+                    return;
+                }
+                if (num === 0) value = '-';
+            }
+            
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            var classId = transcriptEditorClassId;
+            if (!classId) return;
+            if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
+            if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
+            
+            var key = 'year_' + year + '_' + subjectKey;
+            systemData.transcriptManualData[classId][studentId][key] = value;
+            
+            if (value !== '-') {
+                var num = parseInt(value);
+                if (num == 5) input.style.background = '#e8f5e9';
+                else if (num == 4) input.style.background = '#e3f2fd';
+                else if (num == 3) input.style.background = '#fff3e0';
+                else if (num == 2) input.style.background = '#ffebee';
+                else if (num == 1) input.style.background = '#ffcdd2';
+            } else {
+                input.style.background = 'transparent';
+            }
+            
+            // Përditëso përshkrimin pranë notës
+            var parentDiv = input.parentElement;
+            var descSpan = parentDiv.querySelector('span:not([class])');
+            if (descSpan && value !== '-' && value !== '') {
+                var desc = getGradeDescription(value);
+                descSpan.textContent = desc;
+            } else if (descSpan) {
+                descSpan.textContent = '';
+            }
+            
+            // Përditëso mesataren dhe suksesin për këtë nxënës
+            var classObj = transcriptCurrentClass;
+            if (classObj && classObj.students) {
+                var student = classObj.students.find(function(s) { return s.id === studentId; });
+                if (student) {
+                    var newAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
+                    var newSuccess = calculateSuccess(newAvg);
+                    
+                    // Përditëso qelizën e suksesit në tabelë
+                    var row = input.closest('tr');
+                    if (row) {
+                        var successCell = row.querySelector('td:last-child');
+                        if (successCell) {
+                            var avgNum = parseFloat(newAvg);
+                            var bgColor = avgNum >= 4.5 ? '#e8f5e9' : 
+                                         avgNum >= 3.5 ? '#e3f2fd' : 
+                                         avgNum >= 2.5 ? '#fff3e0' : 
+                                         avgNum >= 1.5 ? '#ffebee' : '#ffcdd2';
+                            successCell.style.background = bgColor;
+                            successCell.textContent = newSuccess;
+                        }
+                    }
+                }
+            }
+            
+            saveToLocal();
+            updateManualStatus(false);
+        }
+
+        /**
+         * Funksioni për MESATAREN
+         */
+        function onTranscriptAvgChangeFull(input, rowIndex) {
+            var studentId = parseInt(input.dataset.student);
+            var year = input.dataset.year;
+            var value = input.value.trim();
+            
+            if (value === '' || value === '-') {
+                value = '-';
+            }
+            
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            var classId = transcriptEditorClassId;
+            if (!classId) return;
+            if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
+            if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
+            
+            var key = 'year_' + year + '_avg';
+            systemData.transcriptManualData[classId][studentId][key] = value;
+            
+            // Përditëso suksesin për këtë nxënës
+            var classObj = transcriptCurrentClass;
+            if (classObj && classObj.students) {
+                var student = classObj.students.find(function(s) { return s.id === studentId; });
+                if (student) {
+                    var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
+                    var newSuccess = calculateSuccess(totalAvg);
+                    
+                    var row = input.closest('tr');
+                    if (row) {
+                        var successCell = row.querySelector('td:last-child');
+                        if (successCell) {
+                            var avgNum = parseFloat(totalAvg);
+                            var bgColor = avgNum >= 4.5 ? '#e8f5e9' : 
+                                         avgNum >= 3.5 ? '#e3f2fd' : 
+                                         avgNum >= 2.5 ? '#fff3e0' : 
+                                         avgNum >= 1.5 ? '#ffebee' : '#ffcdd2';
+                            successCell.style.background = bgColor;
+                            successCell.textContent = newSuccess;
+                        }
+                    }
+                }
+            }
+            
+            saveToLocal();
+            updateManualStatus(false);
+        }
+
+        /**
+         * Funksioni për MUNGESAT
+         */
+        function onTranscriptAbsChangeFull(input, rowIndex) {
+            var studentId = parseInt(input.dataset.student);
+            var year = input.dataset.year;
+            var value = input.value.trim();
+            
+            if (value === '' || value === '-') {
+                value = '-';
+            }
+            
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            var classId = transcriptEditorClassId;
+            if (!classId) return;
+            if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
+            if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
+            
+            var key = 'year_' + year + '_abs';
+            systemData.transcriptManualData[classId][studentId][key] = value;
+            
+            saveToLocal();
+            updateManualStatus(false);
+        }
+
+        /**
+         * Funksioni për SJELLJEN
+         */
+        function onTranscriptBehaviorChangeFull(select, rowIndex) {
+            var studentId = parseInt(select.dataset.student);
+            var year = select.dataset.year;
+            var value = select.value;
+            
+            if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+            var classId = transcriptEditorClassId;
+            if (!classId) return;
+            if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
+            if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
+            
+            var key = 'year_' + year + '_behavior';
+            systemData.transcriptManualData[classId][studentId][key] = value;
+            
+            saveToLocal();
+            updateManualStatus(false);
+        }
+
+        /**
+         * Funksion për të marrë notën nga arkiva
+         */
+        function getArchivedStudentGrade(student, subKey) {
+            if (!student) return 0;
+            var g1 = parseInt(student.grades?.[subKey]) || 0;
+            var g2 = parseInt(student.gradesSemester2?.[subKey]) || 0;
+            if (g1 === 0 && g2 === 0) return 0;
+            if (g1 === 0) return g2;
+            if (g2 === 0) return g1;
+            return Math.round((g1 + g2) / 2);
+        }
+
+        /**
+         * Printo të gjitha fletëkalimet
+         */
+        function printFullTranscripts() {
+            if (!transcriptCurrentClass) {
+                showNotification("Nuk ka klasë të zgjedhur!");
+                return;
+            }
+            
+            var classObj = transcriptCurrentClass;
+            var students = transcriptFilteredStudents.length > 0 ? transcriptFilteredStudents : classObj.students;
+            
+            if (students.length === 0) {
+                showNotification("Nuk ka nxënës për të printuar!");
+                return;
+            }
+            
+            showNotification("🖨️ Duke printuar " + students.length + " fletëkalime...");
+            
+            // Printo çdo nxënës veç e veç me vonesë
+            students.forEach(function(student, idx) {
+                setTimeout(function() {
+                    printTranscriptForStudent(classObj, student);
+                }, idx * 500);
+            });
+        }
+
+        // ==================== EKSPOZO FUNKSIONET GLOBALISHT ====================
         window.performLogin = performLogin;
         window.showAdminLogin = showAdminLogin;
         window.logout = logout;
@@ -8415,972 +9931,300 @@
         window.isTeacher = isTeacher;
         window.canEdit = canEdit;
         window.isAdminViewingTeacherPanel = isAdminViewingTeacherPanel;
+        
+        // Funksionet e fletëkalimeve
+        window.openTranscriptForCurrentClass = openTranscriptForCurrentClass;
         window.openTranscriptEditor = openTranscriptEditor;
         window.closeTranscriptEditor = closeTranscriptEditor;
+        window.closeClassSelector = closeClassSelector;
+        window.openTranscriptEditorFromSelector = openTranscriptEditorFromSelector;
         window.saveTranscriptData = saveTranscriptData;
-        window.printFullTranscripts = printFullTranscripts;
+        window.printSingleStudent = printSingleStudent;
+        window.printSelectedStudentFromTable = printSelectedStudentFromTable;
+        window.closeStudentSelectModal = closeStudentSelectModal;
+        window.exportTranscriptData = exportTranscriptData;
+        window.filterTranscriptStudentsDelayed = filterTranscriptStudentsDelayed;
+        window.clearTranscriptSearch = clearTranscriptSearch;
+        window.searchAllStudentsFromDialog = searchAllStudentsFromDialog;
+        window.updateStudentAmza = updateStudentAmza;
+        window.applyAmzaToSelected = applyAmzaToSelected;
         window.onTranscriptGradeChangeFull = onTranscriptGradeChangeFull;
         window.onTranscriptAvgChangeFull = onTranscriptAvgChangeFull;
         window.onTranscriptAbsChangeFull = onTranscriptAbsChangeFull;
         window.onTranscriptBehaviorChangeFull = onTranscriptBehaviorChangeFull;
+        window.getArchivedStudentGrade = getArchivedStudentGrade;
+        window.renderFullTranscriptEditor = renderFullTranscriptEditor;
+        window.getStudentYears = getStudentYears;
+        window.findArchivedStudentData = findArchivedStudentData;
+        window.printTranscriptForStudent = printTranscriptForStudent;
+        window.getGradeDescription = getGradeDescription;
+        window.calculateSuccess = calculateSuccess;
+        window.collectAllStudents = collectAllStudents;
+        window.searchAllStudents = searchAllStudents;
+        window.printFullTranscripts = printFullTranscripts;
+        window.printSelectedStudentDirect = printSelectedStudentDirect;
 
         setTimeout(function() {
             setupTableNavigation();
         }, 500);
 
         console.log("🚀 Sistemi Shkollor v5.4 Secure është inicializuar!");
+        console.log("📜 Funksionet e fletëkalimeve janë aktive!");
 // ============================================================
-// FUNKSIONET PËR FLETËKALIMET ME TË GJITHA VITET
+//  FIX: Hap fletëkalimin e nxënësit të kërkuar direkt
 // ============================================================
 
-/**
- * Hap redaktorin e fletëkalimeve për një klasë të caktuar
- */
-function openTranscriptEditor(classId) {
-    if (!requireAdmin()) return;
-    
-    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-    if (!classObj) {
-        showNotification("Klasa nuk u gjet!");
-        return;
-    }
-    
-    transcriptEditorClassId = classId;
-    document.getElementById('transcriptEditorTitle').textContent = classObj.className;
-    
-    renderFullTranscriptEditor(classObj);
-    showModal('transcriptEditorModal');
-}
+// Ruaj nxënësin e kërkuar globalisht
+var searchedStudent = null;
 
-/**
- * Përcakton të gjitha vitet që nxënësit e një klase kanë frekuentuar
- */
-function getStudentYears(classObj) {
-    var currentYear = systemData.schoolInfo.year;
-    var currentYearNum = parseInt(currentYear.split('-')[0]);
+// Funksioni i ri për të hapur fletëkalimin e nxënësit nga kërkimi
+function openTranscriptFromSearchDirect(studentId, classId) {
+    console.log("🔍 Hap fletëkalimin për nxënësin:", studentId, "në klasën:", classId);
     
-    var classPrefix = classObj.className.match(/^[IVX]+/i)?.[0].toUpperCase() || "IX";
-    var yearCount = 4;
-    
-    if (classPrefix === "IX") yearCount = 4;
-    else if (classPrefix === "VIII") yearCount = 3;
-    else if (classPrefix === "VII") yearCount = 2;
-    else if (classPrefix === "VI") yearCount = 1;
-    else yearCount = 1;
-    
-    var years = [];
-    for (var i = yearCount - 1; i >= 0; i--) {
-        var yearStart = currentYearNum - i;
-        years.push(yearStart + '-' + (yearStart + 1));
-    }
-    return years;
-}
-
-/**
- * Renders the full transcript editor with all years
- */
-function renderFullTranscriptEditor(classObj) {
-    var container = document.getElementById('transcriptEditorContent');
-    if (!container) {
-        console.error("transcriptEditorContent nuk u gjet!");
-        return;
-    }
-    
-    var years = getStudentYears(classObj);
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    if (!systemData.transcriptManualData[classObj.id]) systemData.transcriptManualData[classObj.id] = {};
-    
-    var html = '<div style="margin-bottom:10px; padding:8px 12px; background:#e3f2fd; border-radius:8px; font-size:12px;">' +
-        '📚 <strong>' + classObj.className + '</strong> - ' + years.length + ' vite shkollore të frekuentuara' +
-        '<span style="margin-left:15px; color:#666;">🟢 Sistemi | 🟠 Manual | ⬜ Plotësoni</span>' +
-        '</div>' +
-        '<div style="max-height:500px; overflow-y:auto; border:1px solid #ddd; border-radius:8px;">' +
-        '<table style="width:100%; border-collapse:collapse; font-size:11px;">';
-    
-    // Koka e tabelës
-    html += '<thead><tr><th style="min-width:140px; position:sticky; left:0; z-index:11; background:#0b4b6e; color:white; padding:8px;">Lënda / Nxënësi</th>';
-    for (var y = 0; y < years.length; y++) {
-        var yearLabel = years[y];
-        var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-        html += '<th style="min-width:85px; position:sticky; top:0; z-index:5; background:#0b4b6e; color:white; padding:8px; ' + 
-                (isCurrentYear ? 'background:#1a5d7e;' : '') + '">' + yearLabel + 
-                (isCurrentYear ? ' 📌' : '') + '</th>';
-    }
-    html += '<th style="min-width:70px; background:#1a5d7e; color:white; padding:8px;">📊 Mes.</th>';
-    html += '<th style="min-width:70px; background:#1a5d7e; color:white; padding:8px;">📅 Mung.</th>';
-    html += '<th style="min-width:100px; background:#1a5d7e; color:white; padding:8px;">✨ Sjellja</th>';
-    html += '</tr></thead><tbody>';
-    
-    // Për çdo nxënës
-    classObj.students.forEach(function(student, idx) {
-        var studentData = systemData.transcriptManualData[classObj.id][student.id] || {};
-        
-        html += '<tr style="border-top:1px solid #ddd;">';
-        html += '<td style="position:sticky; left:0; z-index:5; background:white; text-align:left; font-weight:bold; padding:4px 8px; min-width:140px; border-right:1px solid #ddd;">' + 
-                (idx+1) + '. ' + student.name + 
-                '<div style="font-size:8px; color:#999;">ID: ' + student.id + '</div></td>';
-        
-        // Për çdo vit
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            
-            html += '<td style="padding:2px; vertical-align:top; min-width:85px; border:1px solid #eee;">';
-            html += '<div style="display:flex; flex-direction:column; gap:1px;">';
-            
-            // Për çdo lëndë
-            classObj.subjectsOrder.forEach(function(sub) {
-                var gradeVal = '-';
-                var isManual = false;
-                var hasData = false;
-                var bgColor = 'white';
-                
-                if (isCurrentYear) {
-                    var grade = getFinalGrade(student, sub.key);
-                    if (grade > 0) {
-                        gradeVal = grade;
-                        hasData = true;
-                        if (grade == 5) bgColor = '#e8f5e9';
-                        else if (grade == 4) bgColor = '#e3f2fd';
-                        else if (grade == 3) bgColor = '#fff3e0';
-                        else if (grade == 2) bgColor = '#ffebee';
-                        else if (grade == 1) bgColor = '#ffcdd2';
-                    }
-                } else {
-                    var manualKey = 'year_' + yearLabel + '_' + sub.key;
-                    if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-') {
-                        gradeVal = studentData[manualKey];
-                        isManual = true;
-                        hasData = true;
-                        bgColor = '#fff3e0';
-                    } else {
-                        var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                        if (archivedYear && archivedYear.classes) {
-                            var archivedClass = archivedYear.classes.find(function(c) { 
-                                return c.className === classObj.className; 
-                            });
-                            if (archivedClass) {
-                                var archivedStudent = archivedClass.students.find(function(s) { 
-                                    return s.id === student.id; 
-                                });
-                                if (archivedStudent) {
-                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                                    if (g > 0) {
-                                        gradeVal = g;
-                                        hasData = true;
-                                        if (g == 5) bgColor = '#e8f5e9';
-                                        else if (g == 4) bgColor = '#e3f2fd';
-                                        else if (g == 3) bgColor = '#fff3e0';
-                                        else if (g == 2) bgColor = '#ffebee';
-                                        else if (g == 1) bgColor = '#ffcdd2';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                html += '<div style="display:flex; align-items:center; gap:2px; font-size:10px;">';
-                html += '<span style="width:25px; font-size:7px; color:#888;">' + sub.code + ':</span>';
-                html += '<input type="text" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'data-subject="' + sub.key + '" ' +
-                            'value="' + (gradeVal !== '-' ? gradeVal : '') + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:32px; text-align:center; padding:1px 2px; border:1px solid #ccc; border-radius:3px; font-size:10px; background:' + bgColor + ';" ' +
-                            'onchange="onTranscriptGradeChangeFull(this)">';
-                if (isManual) html += '<span style="font-size:8px; color:#ed6c02;">✎</span>';
-                html += '</div>';
-            });
-            
-            // Mesatarja, mungesat, sjellja
-            var avgVal = '-';
-            var absVal = '-';
-            var behVal = '-';
-            var hasAvgData = false;
-            var hasAbsData = false;
-            var hasBehData = false;
-            
-            if (isCurrentYear) {
-                var sum = 0, count = 0;
-                classObj.subjectsOrder.forEach(function(sub) {
-                    var grade = getFinalGrade(student, sub.key);
-                    if (grade > 0) { sum += grade; count++; }
-                });
-                if (count > 0) {
-                    avgVal = (sum / count).toFixed(2);
-                    hasAvgData = true;
-                }
-                var abs = getTotalAbsences(student, 'final');
-                if (abs.total > 0) {
-                    absVal = abs.total;
-                    hasAbsData = true;
-                }
-                behVal = student.behavior || 'Shembullore';
-                hasBehData = true;
-            } else {
-                var manualAvgKey = 'year_' + yearLabel + '_avg';
-                if (studentData[manualAvgKey] !== undefined && studentData[manualAvgKey] !== '-') {
-                    avgVal = studentData[manualAvgKey];
-                    hasAvgData = true;
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent) {
-                                var aSum = 0, aCount = 0;
-                                classObj.subjectsOrder.forEach(function(sub) {
-                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                                    if (g > 0) { aSum += g; aCount++; }
-                                });
-                                if (aCount > 0) {
-                                    avgVal = (aSum / aCount).toFixed(2);
-                                    hasAvgData = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                var manualAbsKey = 'year_' + yearLabel + '_abs';
-                if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-') {
-                    absVal = studentData[manualAbsKey];
-                    hasAbsData = true;
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent) {
-                                var absTotal = (archivedStudent.absencesWithReason || 0) + 
-                                              (archivedStudent.absencesWithoutReason || 0);
-                                if (absTotal > 0) {
-                                    absVal = absTotal;
-                                    hasAbsData = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                var manualBehKey = 'year_' + yearLabel + '_behavior';
-                if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-') {
-                    behVal = studentData[manualBehKey];
-                    hasBehData = true;
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent && archivedStudent.behavior) {
-                                behVal = archivedStudent.behavior;
-                                hasBehData = true;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            html += '<div style="margin-top:2px; border-top:1px dashed #ddd; padding-top:2px; display:flex; flex-direction:column; gap:1px; font-size:9px;">';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:8px;">Mes:</span> ' +
-                        '<input type="text" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'value="' + avgVal + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:40px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:9px; ' + 
-                            (hasAvgData ? 'background:#e8f5e9;' : 'background:#fff3e0;') + '" ' +
-                            'onchange="onTranscriptAvgChangeFull(this)">' +
-                    '</div>';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:8px;">Mung:</span> ' +
-                        '<input type="number" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'value="' + (absVal !== '-' ? absVal : '') + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:40px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:9px; ' + 
-                            (hasAbsData ? 'background:#e8f5e9;' : 'background:#fff3e0;') + '" ' +
-                            'min="0" onchange="onTranscriptAbsChangeFull(this)">' +
-                    '</div>';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:8px;">Sjell:</span> ' +
-                        '<select ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'style="font-size:8px; padding:0 2px; border:1px solid #ccc; border-radius:3px; max-width:70px; ' +
-                            (hasBehData ? 'background:#e8f5e9;' : 'background:#fff3e0;') + '" ' +
-                            'onchange="onTranscriptBehaviorChangeFull(this)">' +
-                            '<option value="Shembullore" ' + (behVal === 'Shembullore' ? 'selected' : '') + '>Shembullore</option>' +
-                            '<option value="Shume mire" ' + (behVal === 'Shume mire' ? 'selected' : '') + '>Shumë mirë</option>' +
-                            '<option value="Mire" ' + (behVal === 'Mire' ? 'selected' : '') + '>Mirë</option>' +
-                            '<option value="Mjaftueshme" ' + (behVal === 'Mjaftueshme' ? 'selected' : '') + '>Mjaftueshme</option>' +
-                            '<option value="Keq" ' + (behVal === 'Keq' ? 'selected' : '') + '>Keq</option>' +
-                        '</select>' +
-                    '</div>';
-            html += '</div>';
-            
-            html += '</div></td>';
-        }
-        
-        // Kolona përmbledhëse
-        var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
-        var totalAbs = getTotalAbsences(student, 'final');
-        var currentBehavior = student.behavior || 'Shembullore';
-        
-        html += '<td style="text-align:center; font-weight:bold; background:#e8f5e9; padding:2px; font-size:12px; border:1px solid #eee;">' + totalAvg + '</td>';
-        html += '<td style="text-align:center; background:#fff3e0; padding:2px; font-size:12px; border:1px solid #eee;">' + totalAbs.total + '</td>';
-        html += '<td style="text-align:center; background:#e3f2fd; padding:2px; font-size:10px; border:1px solid #eee;">' + currentBehavior + '</td>';
-        
-        html += '</tr>';
-    });
-    
-    html += '</tbody></table></div>';
-    
-    container.innerHTML = html;
-}
-
-/**
- * Funksionet për ruajtjen e të dhënave manuale
- */
-function onTranscriptGradeChangeFull(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var subjectKey = input.dataset.subject;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
-    } else {
-        var num = parseInt(value);
-        if (isNaN(num) || num < 0 || num > 5) {
-            showNotification("⚠️ Nota duhet të jetë nga 1 deri në 5!");
-            input.value = '';
-            return;
-        }
-        if (num === 0) value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_' + subjectKey;
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    if (value !== '-') {
-        input.classList.add('manual');
-        var num = parseInt(value);
-        if (num == 5) input.style.background = '#e8f5e9';
-        else if (num == 4) input.style.background = '#e3f2fd';
-        else if (num == 3) input.style.background = '#fff3e0';
-        else if (num == 2) input.style.background = '#ffebee';
-        else if (num == 1) input.style.background = '#ffcdd2';
-    } else {
-        input.classList.remove('manual');
-        input.style.background = 'white';
-    }
-    
-    saveToLocal();
-    updateManualStatus(false);
-    showNotification("💾 Të dhënat u ruajtën për " + year);
-}
-
-function onTranscriptAvgChangeFull(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_avg';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-}
-
-function onTranscriptAbsChangeFull(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_abs';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-}
-
-function onTranscriptBehaviorChangeFull(select) {
-    var studentId = parseInt(select.dataset.student);
-    var year = select.dataset.year;
-    var value = select.value;
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_behavior';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-}
-
-/**
- * Printon të gjitha fletëkalimet për klasën e zgjedhur
- */
-function printFullTranscripts() {
-    if (!requireAdmin()) return;
-    
-    var classId = transcriptEditorClassId;
     if (!classId) {
-        showNotification("Nuk ka klasë të zgjedhur!");
+        showNotification("Klasa nuk u gjet!");
         return;
     }
     
+    // Gjej klasën
     var classObj = systemData.classes.find(function(c) { return c.id === classId; });
     if (!classObj) {
         showNotification("Klasa nuk u gjet!");
         return;
     }
     
-    saveTranscriptData();
-    
-    var years = getStudentYears(classObj);
-    var teacher = systemData.teachers.find(function(t) { return t.classId === classObj.id; });
-    var teacherName = teacher ? teacher.name : '__________________';
-    var principalName = systemData.schoolInfo.principal || 'Drejtoresha';
-    var date = formatDate();
-    
-    var win = window.open('', '_blank');
-    if (!win) {
-        showNotification("⚠️ Ju lutemi lejoni dritaret kërcyese (popups)!");
+    // Gjej nxënësin
+    var student = classObj.students.find(function(s) { return s.id == studentId; });
+    if (!student) {
+        showNotification("Nxënësi nuk u gjet në klasë!");
         return;
     }
     
-    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fletëkalimet - ' + classObj.className + '</title>');
-    win.document.write('<style>' +
-        '@page { size: A4 portrait; margin: 10mm; }' +
-        'body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }' +
-        '.certificate { max-width: 210mm; margin: 0 auto; padding: 5mm 8mm; border: 2px solid #d4af37; page-break-after: always; background: white; }' +
-        '.certificate:last-child { page-break-after: auto; }' +
-        '.header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 4mm; margin-bottom: 4mm; }' +
-        '.header h1 { color: #d4af37; font-size: 22px; margin: 3px 0; }' +
-        '.header .school { font-size: 13px; font-weight: bold; color: #0b4b6e; }' +
-        '.header .subtitle { font-size: 14px; font-weight: bold; color: #0b4b6e; }' +
-        '.student-name { font-size: 16px; font-weight: bold; text-align: center; margin: 3mm 0; padding: 3mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }' +
-        '.info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 11px; }' +
-        'table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 10px; }' +
-        'th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }' +
-        'th { background: #0b4b6e; color: white; font-weight: bold; }' +
-        '.avg-box { background: #e8f5e9; padding: 2mm; text-align: center; border-radius: 4px; margin: 3mm 0; }' +
-        '.avg-value { font-size: 18px; font-weight: bold; color: #2e7d32; }' +
-        '.abs-box { background: #fff3e0; padding: 2mm; margin: 3mm 0; border-radius: 4px; display: flex; justify-content: space-around; flex-wrap: wrap; font-size: 11px; }' +
-        '.signatures { display: flex; justify-content: space-between; margin-top: 5mm; padding-top: 3mm; border-top: 1px solid #000; }' +
-        '.signature { text-align: center; width: 120px; }' +
-        '.signature-line { border-top: 1px solid #000; margin-top: 4mm; padding-top: 2mm; }' +
-        '@media print { body { margin: 0; padding: 0; } }' +
-    '</style></head><body>');
-    
-    classObj.students.forEach(function(student, idx) {
-        var studentData = systemData.transcriptManualData && systemData.transcriptManualData[classObj.id] ? 
-            systemData.transcriptManualData[classObj.id][student.id] || {} : {};
-        
-        var headers = '<th style="border:1px solid #000; padding:5px; background:#0b4b6e; color:white; min-width:120px;">Lënda</th>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            headers += '<th style="border:1px solid #000; padding:5px; background:#0b4b6e; color:white; min-width:70px;">' + 
-                       yearLabel + (isCurrentYear ? ' 📌' : '') + '</th>';
-        }
-        
-        var rowsHtml = '';
-        classObj.subjectsOrder.forEach(function(sub) {
-            rowsHtml += '<tr><td style="border:1px solid #000; padding:4px; text-align:left; font-weight:500;">' + sub.name + '</td>';
-            
-            for (var y = 0; y < years.length; y++) {
-                var yearLabel = years[y];
-                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-                var grade = '-';
-                var bgColor = '#f5f5f5';
-                var isManual = false;
-                
-                if (isCurrentYear) {
-                    var g = getFinalGrade(student, sub.key);
-                    if (g > 0) {
-                        grade = g;
-                        bgColor = '#e8f5e9';
-                    }
-                } else {
-                    var manualKey = 'year_' + yearLabel + '_' + sub.key;
-                    if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-') {
-                        grade = studentData[manualKey];
-                        bgColor = '#fff3e0';
-                        isManual = true;
-                    } else {
-                        var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                        if (archivedYear && archivedYear.classes) {
-                            var archivedClass = archivedYear.classes.find(function(c) { 
-                                return c.className === classObj.className; 
-                            });
-                            if (archivedClass) {
-                                var archivedStudent = archivedClass.students.find(function(s) { 
-                                    return s.id === student.id; 
-                                });
-                                if (archivedStudent) {
-                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                                    if (g > 0) {
-                                        grade = g;
-                                        bgColor = '#e8f5e9';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                rowsHtml += '<td style="border:1px solid #000; padding:4px; text-align:center; background:' + bgColor + ';">' + 
-                            '<strong>' + grade + '</strong>' +
-                            (isManual ? ' <span style="font-size:8px; color:#ed6c02;">✎</span>' : '') +
-                            '</td>';
-            }
-            rowsHtml += '</tr>';
-        });
-        
-        // Rreshti i mesatares
-        var avgRow = '<tr style="background:#e8eaf6;"><td style="border:1px solid #000; padding:4px; text-align:left;"><strong>📊 Mesatarja</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var avgVal = '-';
-            
-            if (isCurrentYear) {
-                avgVal = getStudentAvg(student, classObj.subjectsOrder, 'final');
-            } else {
-                var manualAvgKey = 'year_' + yearLabel + '_avg';
-                if (studentData[manualAvgKey] !== undefined && studentData[manualAvgKey] !== '-') {
-                    avgVal = studentData[manualAvgKey];
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent) {
-                                var aSum = 0, aCount = 0;
-                                classObj.subjectsOrder.forEach(function(sub) {
-                                    var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                                    if (g > 0) { aSum += g; aCount++; }
-                                });
-                                if (aCount > 0) avgVal = (aSum / aCount).toFixed(2);
-                            }
-                        }
-                    }
-                }
-            }
-            avgRow += '<td style="border:1px solid #000; padding:4px; text-align:center;"><strong>' + avgVal + '</strong></td>';
-        }
-        avgRow += '</tr>';
-        
-        // Rreshti i statusit
-        var statusRow = '<tr style="background:#e8eaf6;"><td style="border:1px solid #000; padding:4px; text-align:left;"><strong>🏷️ Statusi</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var statusVal = '-';
-            if (isCurrentYear) {
-                var avgNum = parseFloat(getStudentAvg(student, classObj.subjectsOrder, 'final'));
-                statusVal = avgNum >= 4.5 ? "Shkëlqyeshëm" : 
-                           avgNum >= 3.5 ? "Shumë i mirë" : 
-                           avgNum >= 2.5 ? "I mirë" : 
-                           avgNum >= 1.5 ? "Mjaftueshëm" : 
-                           "Pamjaftueshëm";
-            }
-            statusRow += '<td style="border:1px solid #000; padding:4px; text-align:center;">' + statusVal + '</td>';
-        }
-        statusRow += '</tr>';
-        
-        // Rreshti i mungesave
-        var absRow = '<tr style="background:#fff3e0;"><td style="border:1px solid #000; padding:4px; text-align:left;"><strong>📅 Mungesat</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var absVal = '-';
-            if (isCurrentYear) {
-                var abs = getTotalAbsences(student, 'final');
-                absVal = abs.total;
-            } else {
-                var manualAbsKey = 'year_' + yearLabel + '_abs';
-                if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-') {
-                    absVal = studentData[manualAbsKey];
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent) {
-                                var absTotal = (archivedStudent.absencesWithReason || 0) + 
-                                              (archivedStudent.absencesWithoutReason || 0);
-                                if (absTotal > 0) absVal = absTotal;
-                            }
-                        }
-                    }
-                }
-            }
-            absRow += '<td style="border:1px solid #000; padding:4px; text-align:center;">' + absVal + '</td>';
-        }
-        absRow += '</tr>';
-        
-        // Rreshti i sjelljes
-        var behRow = '<tr style="background:#e3f2fd;"><td style="border:1px solid #000; padding:4px; text-align:left;"><strong>✨ Sjellja</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var behVal = '-';
-            if (isCurrentYear) {
-                behVal = student.behavior || 'Shembullore';
-            } else {
-                var manualBehKey = 'year_' + yearLabel + '_behavior';
-                if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-') {
-                    behVal = studentData[manualBehKey];
-                } else {
-                    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === yearLabel; });
-                    if (archivedYear && archivedYear.classes) {
-                        var archivedClass = archivedYear.classes.find(function(c) { 
-                            return c.className === classObj.className; 
-                        });
-                        if (archivedClass) {
-                            var archivedStudent = archivedClass.students.find(function(s) { 
-                                return s.id === student.id; 
-                            });
-                            if (archivedStudent && archivedStudent.behavior) {
-                                behVal = archivedStudent.behavior;
-                            }
-                        }
-                    }
-                }
-            }
-            behRow += '<td style="border:1px solid #000; padding:4px; text-align:center;">' + behVal + '</td>';
-        }
-        behRow += '</tr>';
-        
-        if (idx > 0) {
-            win.document.write('<div style="page-break-after: always;"></div>');
-        }
-        
-        win.document.write('<div class="certificate">' +
-            '<div class="header">' +
-                '<div class="school">REPUBLIKA E KOSOVËS</div>' +
-                '<div class="school">' + systemData.schoolInfo.name + '</div>' +
-                '<h1>FLETËKALIMI</h1>' +
-                '<div style="font-size:13px; font-weight:bold; color:#0b4b6e;">PËRFUNDIMTAR</div>' +
-                '<div style="font-size:11px; color:#333;">' + systemData.schoolInfo.year + '</div>' +
-            '</div>' +
-            '<div class="student-name">' + student.name + '</div>' +
-            '<div class="info">' +
-                '<div><strong>Klasa:</strong> ' + classObj.className + '</div>' +
-                '<div><strong>Data:</strong> ' + date + '</div>' +
-                '<div style="font-size:9px; color:#999;">📌 <span style="background:#e8f5e9; padding:0 4px;">Sistemi</span> | <span style="background:#fff3e0; padding:0 4px;">✎ Manual</span></div>' +
-            '</div>' +
-            '<div style="overflow-x:auto;"><table>' +
-                '<thead><tr>' + headers + '</tr></thead>' +
-                '<tbody>' + rowsHtml + avgRow + statusRow + absRow + behRow + '</tbody>' +
-            '</table></div>' +
-            '<div class="signatures">' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Kujdestari</div>' +
-                    '<div style="margin-top:2mm; font-size:11px;">' + teacherName + '</div>' +
-                '</div>' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Drejtoresha</div>' +
-                    '<div style="margin-top:2mm; font-size:11px;">' + principalName + '</div>' +
-                '</div>' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Vula e shkollës</div>' +
-                '</div>' +
-            '</div>' +
-        '</div>');
-    });
-    
-    win.document.write('<script>window.print();<\/script></body></html>');
-    win.document.close();
-}
-
-/**
- * Ruaj të gjitha të dhënat manuale të fletëkalimit
- */
-function saveTranscriptData() {
-    if (!requireAdmin()) return;
-    saveToLocal();
-    showNotification("💾 Të dhënat e fletëkalimeve u ruajtën!");
-    updateManualStatus(true);
-}
-
-/**
- * Mbyll redaktorin e fletëkalimeve
- */
-function closeTranscriptEditor() {
-    hideModal('transcriptEditorModal');
-    transcriptEditorClassId = null;
-}
-
-// Ekspozo funksionet globalisht
-window.openTranscriptEditor = openTranscriptEditor;
-window.closeTranscriptEditor = closeTranscriptEditor;
-window.saveTranscriptData = saveTranscriptData;
-window.printFullTranscripts = printFullTranscripts;
-window.onTranscriptGradeChangeFull = onTranscriptGradeChangeFull;
-window.onTranscriptAvgChangeFull = onTranscriptAvgChangeFull;
-window.onTranscriptAbsChangeFull = onTranscriptAbsChangeFull;
-// ============================================================
-// FUNKSIONET E UNIFIKUARA PËR FLETËKALIMET DHE ARKIVËN
-// ============================================================
-
-// Variabla globale
-var transcriptEditorClassId = null;
-var transcriptCurrentClass = null;
-
-/**
- * Hap redaktorin e fletëkalimeve për të gjithë nxënësit e një klase
- * Përdor të dhënat nga arkiva për vitet e mëparshme dhe lejon plotësim manual
- */
-window.openTranscriptEditor = function(classId) {
-    if (!requireAdmin()) return;
-    
-    // Nëse nuk është dhënë classId, merr klasën e parë nga filtri aktiv
-    if (!classId) {
-        if (selectedActiveFilter) {
-            var filtered = systemData.classes.filter(function(c) { return c.activeId === selectedActiveFilter; });
-            if (filtered.length > 0) {
-                classId = filtered[0].id;
-            }
-        }
-        if (!classId && systemData.classes.length > 0) {
-            classId = systemData.classes[0].id;
-        }
-        if (!classId) {
-            showNotification("⚠️ Nuk ka klasa në sistem!");
-            return;
-        }
+    // Mbyll modal-in e kërkimit
+    var modal = document.getElementById('classSelectorModal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        setTimeout(function() { modal.remove(); }, 300);
     }
     
-    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-    if (!classObj) {
-        showNotification("Klasa nuk u gjet!");
-        return;
-    }
-    
+    // Hap redaktorin e fletëkalimeve
     transcriptEditorClassId = classId;
     transcriptCurrentClass = classObj;
+    transcriptSearchTerm = '';
+    transcriptFilteredStudents = classObj.students;
+    
     document.getElementById('transcriptEditorTitle').textContent = classObj.className + ' - ' + classObj.students.length + ' nxënës';
     
     renderFullTranscriptEditor(classObj);
     showModal('transcriptEditorModal');
+    
+    // Pasi të hapet, printo direkt fletëkalimin e nxënësit
+    setTimeout(function() {
+        // Gjej indeksin e nxënësit në listën e filtruar
+        var index = transcriptFilteredStudents.indexOf(student);
+        if (index !== -1) {
+            printSingleStudent(index);
+            showNotification("📜 Fletëkalimi për " + student.name + " po printohet...");
+        } else {
+            // Nëse nuk gjendet në listën e filtruar, printo direkt
+            printTranscriptForStudent(classObj, student);
+        }
+    }, 500);
+}
+
+// Zëvendëso funksionin e kërkimit për të përdorur funksionin e ri
+var originalSearchAllStudentsFromDialog = window.searchAllStudentsFromDialog || function() {};
+
+window.searchAllStudentsFromDialog = function() {
+    var input = document.getElementById('globalSearchInput');
+    if (!input) return;
+    var term = input.value.trim();
+    var resultsContainer = document.getElementById('globalSearchResults');
+    if (!resultsContainer) return;
+    
+    if (!term) {
+        resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    var results = searchAllStudents(term);
+    
+    if (results.length === 0) {
+        resultsContainer.style.display = 'block';
+        resultsContainer.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Nuk u gjet asnjë nxënës</div>';
+        return;
+    }
+    
+    resultsContainer.style.display = 'block';
+    var html = '<div style="border:1px solid #ddd; border-radius:8px; background:white;">';
+    results.forEach(function(s, idx) {
+        var bg = idx % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        // Përdor studentId dhe classId për të identifikuar saktë nxënësin
+        var studentId = s.id;
+        var classId = s.classId;
+        html += '<div style="padding:8px 12px; border-bottom:1px solid #eee; background:' + bg + '; display:flex; justify-content:space-between; align-items:center;">' +
+            '<div><strong>' + s.name + '</strong> <span style="color:#666; font-size:12px;">(' + s.className + (s.isArchived ? ' - Arkivuar' : '') + ')</span></div>' +
+            '<div>' +
+                (s.isArchived ? 
+                    '<span style="color:#999; font-size:11px;">Arkivuar</span>' : 
+                    '<button class="btn btn-primary" style="font-size:11px; padding:4px 12px;" onclick="openTranscriptFromSearchDirect(' + studentId + ', \'' + classId + '\')">Shiko</button>'
+                ) +
+            '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    resultsContainer.innerHTML = html;
 };
 
-/**
- * Përcakton të gjitha vitet që nxënësit e një klase kanë frekuentuar
- * Bazuar në klasën aktuale (VI, VII, VIII, IX)
- */
-function getStudentYears(classObj) {
-    var currentYear = systemData.schoolInfo.year;
-    var currentYearNum = parseInt(currentYear.split('-')[0]);
-    
-    var classPrefix = classObj.className.match(/^[IVX]+/i)?.[0].toUpperCase() || "IX";
-    var yearCount = 4;
-    
-    if (classPrefix === "IX") yearCount = 4;
-    else if (classPrefix === "VIII") yearCount = 3;
-    else if (classPrefix === "VII") yearCount = 2;
-    else if (classPrefix === "VI") yearCount = 1;
-    else yearCount = 1;
-    
-    var years = [];
-    for (var i = yearCount - 1; i >= 0; i--) {
-        var yearStart = currentYearNum - i;
-        years.push(yearStart + '-' + (yearStart + 1));
-    }
-    return years;
-}
+console.log("✅ Fix-i për kërkimin e nxënësve u aplikua!");
+// ============================================================
+//  FIX: PËRMIRËSIMI I TABELAVE TË PLOTËSIMIT MANUAL
+// ============================================================
 
-/**
- * Gjen të dhënat e arkivuara për një student në një vit të caktuar
- */
-function findArchivedStudentData(studentId, className, year) {
-    if (!systemData.archivedYears || systemData.archivedYears.length === 0) return null;
-    
-    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === year; });
-    if (!archivedYear || !archivedYear.classes) return null;
-    
-    var archivedClass = archivedYear.classes.find(function(c) { 
-        return c.className === className; 
-    });
-    if (!archivedClass || !archivedClass.students) return null;
-    
-    return archivedClass.students.find(function(s) { 
-        return s.id === studentId; 
-    });
-}
+// Funksioni i ri për të renderuar tabelën me font më të madh dhe Suksesin
+var originalRenderFullTranscriptEditor = window.renderFullTranscriptEditor || function() {};
 
-/**
- * Gjen të dhënat e arkivuara për një klasë në një vit të caktuar
- */
-function findArchivedClassData(className, year) {
-    if (!systemData.archivedYears || systemData.archivedYears.length === 0) return null;
+window.renderFullTranscriptEditor = function(classObj) {
+    console.log("📜 renderFullTranscriptEditor i përmirësuar u thirr për:", classObj?.className);
     
-    var archivedYear = systemData.archivedYears.find(function(a) { return a.year === year; });
-    if (!archivedYear || !archivedYear.classes) return null;
-    
-    return archivedYear.classes.find(function(c) { 
-        return c.className === className; 
-    });
-}
-
-/**
- * Renders the full transcript editor with all years - TË GJITHË NXËNËSIT
- */
-function renderFullTranscriptEditor(classObj) {
     var container = document.getElementById('transcriptEditorContent');
     if (!container) {
         console.error("transcriptEditorContent nuk u gjet!");
         return;
     }
     
+    if (!classObj) {
+        container.innerHTML = '<p style="color:red;">⚠️ Klasa nuk u gjet!</p>';
+        return;
+    }
+    
     var years = getStudentYears(classObj);
+    var students = classObj.students || [];
+    var allSubjects = classObj.subjectsOrder || [];
     
     if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
     if (!systemData.transcriptManualData[classObj.id]) systemData.transcriptManualData[classObj.id] = {};
     
-    var totalStudents = classObj.students.length;
-    
-    var archivedYearsInfo = [];
-    years.forEach(function(year) {
-        var archivedClass = findArchivedClassData(classObj.className, year);
-        archivedYearsInfo.push({
-            year: year,
-            hasArchive: archivedClass !== null,
-            studentCount: archivedClass ? archivedClass.students.length : 0
+    // Filtro nxënësit
+    var filteredStudents = students;
+    if (transcriptSearchTerm && transcriptSearchTerm.trim() !== '') {
+        var term = transcriptSearchTerm.trim().toLowerCase();
+        filteredStudents = students.filter(function(s) {
+            return s.name.toLowerCase().includes(term) || 
+                   s.id.toString().includes(term);
         });
-    });
+    }
+    transcriptFilteredStudents = filteredStudents;
     
-    var html = '<div style="margin-bottom:10px; padding:8px 12px; background:#e3f2fd; border-radius:8px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center;">' +
-        '<div>📚 <strong>' + classObj.className + '</strong> - ' + years.length + ' vite shkollore | 👨‍🎓 ' + totalStudents + ' nxënës</div>' +
-        '<div style="display:flex; gap:10px; align-items:center;">' +
-            '<span style="font-size:11px; color:#666;">🟢 Sistemi | 🟠 Manual | ⬜ Plotësoni | 📚 Arkiva</span>' +
-            '<button class="btn btn-primary" onclick="exportTranscriptData()" style="font-size:11px; padding:4px 12px;">💾 Eksporto</button>' +
-            '<button class="btn btn-info" onclick="importTranscriptData()" style="font-size:11px; padding:4px 12px;">📂 Importo</button>' +
-        '</div>' +
-        '</div>' +
-        '<div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:8px;">';
+    var totalStudents = students.length;
+    var filteredCount = filteredStudents.length;
     
-    archivedYearsInfo.forEach(function(info) {
-        var statusColor = info.hasArchive ? '#e8f5e9' : '#fff3e0';
-        var statusText = info.hasArchive ? '✅ ' + info.studentCount + ' nxënës' : '⚠️ Pa të dhëna';
-        html += '<span style="background:' + statusColor + '; padding:4px 12px; border-radius:12px; font-size:11px; border:1px solid #ddd;">' +
-            '📅 ' + info.year + ' - ' + statusText +
-        '</span>';
-    });
+    if (years.length === 0) {
+        container.innerHTML = '<p style="color:orange;">⚠️ Nuk mund të përcaktohen vitet për këtë klasë!</p>';
+        return;
+    }
     
-    html += '</div>' +
-        '<div style="max-height:550px; overflow-y:auto; border:1px solid #ddd; border-radius:8px;">' +
-        '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+    // Font më i madh për tabelë
+    var html = `
+        <div style="margin-bottom:10px; padding:8px 12px; background:#e3f2fd; border-radius:8px; display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; font-size:14px;">
+            <div><strong>${classObj.className}</strong> - ${years.length} vite | ${totalStudents} nxënës</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:13px; color:#666;">Sistemi | Manual | Arkiva</span>
+                <button class="btn btn-primary" onclick="saveTranscriptData()" style="font-size:13px; padding:6px 16px;">Ruaj</button>
+                <button class="btn btn-warning" onclick="printSelectedStudentFromTable()" style="font-size:13px; padding:6px 16px;">Printo</button>
+                <button class="btn btn-info" onclick="exportTranscriptData()" style="font-size:13px; padding:6px 16px;">Eksporto</button>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#f5f5f5; padding:10px 15px; border-radius:8px; font-size:14px;">
+            <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:250px;">
+                <span style="font-size:14px; font-weight:bold;">Kërko:</span>
+                <input type="text" id="transcriptSearchInput" 
+                    placeholder="Emri ose ID e nxënësit..." 
+                    value="${transcriptSearchTerm}"
+                    style="flex:1; padding:10px 16px; border:2px solid #0b4b6e; border-radius:8px; font-size:16px; min-width:200px; background:white;"
+                    oninput="filterTranscriptStudentsDelayed()"
+                    autocomplete="off">
+                <span style="font-size:14px; color:#666; white-space:nowrap; font-weight:bold;">${filteredCount}/${totalStudents}</span>
+                ${transcriptSearchTerm ? '<button class="btn btn-sm btn-warning" onclick="clearTranscriptSearch()" style="padding:4px 14px; font-size:13px;">✖</button>' : ''}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:14px; font-weight:bold;">Nr.amë:</span>
+                <input type="text" id="transcriptAmzaInput" 
+                    placeholder="Numri në amë..."
+                    style="width:140px; padding:8px 12px; border:2px solid #ddd; border-radius:8px; font-size:14px;"
+                    onchange="applyAmzaToSelected()">
+                <button class="btn btn-sm btn-success" onclick="applyAmzaToSelected()" style="padding:4px 14px; font-size:13px;">Apliko</button>
+            </div>
+        </div>
+        
+        <div style="max-height:600px; overflow-y:auto; border:2px solid #0b4b6e; border-radius:12px;">
+        <table style="width:100%; border-collapse:collapse; font-size:14px; min-width:1200px;">`;
     
-    html += '<thead><tr><th style="min-width:160px; position:sticky; left:0; z-index:11; background:#0b4b6e; color:white; padding:8px 10px; font-size:13px;">Lënda / Nxënësi</th>';
+    html += `<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;">`;
+    html += `<th style="min-width:220px; padding:12px 12px; text-align:left; font-size:15px; position:sticky; left:0; z-index:11; background:#0b4b6e;">Lënda / Nxënësi</th>`;
+    
     for (var y = 0; y < years.length; y++) {
         var yearLabel = years[y];
         var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-        var hasArchive = archivedYearsInfo[y] ? archivedYearsInfo[y].hasArchive : false;
-        html += '<th style="min-width:95px; position:sticky; top:0; z-index:5; background:#0b4b6e; color:white; padding:8px 6px; font-size:12px; ' + 
-                (isCurrentYear ? 'background:#1a5d7e;' : '') + '">' + yearLabel + 
-                (isCurrentYear ? ' 📌' : '') +
-                (hasArchive && !isCurrentYear ? ' 📚' : '') +
-                '</th>';
+        html += `<th style="min-width:150px; padding:12px 8px; text-align:center; font-size:14px; background:${isCurrentYear ? '#1a5d7e' : '#0b4b6e'}; ${isCurrentYear ? 'border-bottom:4px solid #ffd700;' : ''}">${yearLabel}${isCurrentYear ? ' *' : ''}</th>`;
     }
-    html += '<th style="min-width:70px; background:#1a5d7e; color:white; padding:8px 6px; font-size:12px;">📊 Mes.</th>';
-    html += '<th style="min-width:70px; background:#1a5d7e; color:white; padding:8px 6px; font-size:12px;">📅 Mung.</th>';
-    html += '<th style="min-width:110px; background:#1a5d7e; color:white; padding:8px 6px; font-size:12px;">✨ Sjellja</th>';
-    html += '</tr></thead><tbody>';
+    html += `<th style="min-width:70px; padding:12px 8px; text-align:center; font-size:14px; background:#1a5d7e;">Mes.</th>`;
+    html += `<th style="min-width:70px; padding:12px 8px; text-align:center; font-size:14px; background:#1a5d7e;">Mung.</th>`;
+    html += `<th style="min-width:120px; padding:12px 8px; text-align:center; font-size:14px; background:#1a5d7e;">Sjellja</th>`;
+    html += `<th style="min-width:140px; padding:12px 8px; text-align:center; font-size:14px; background:#1a5d7e;">Suksesi</th>`;
+    html += `</tr></thead><tbody>`;
     
-    classObj.students.forEach(function(student, idx) {
+    if (filteredStudents.length === 0) {
+        html += `<tr><td colspan="${years.length + 5}" style="padding:40px; text-align:center; color:#999; font-size:18px;">Nuk u gjet asnjë nxënës për kërkimin "${transcriptSearchTerm}"</td></tr>`;
+    }
+    
+    filteredStudents.forEach(function(student, idx) {
         var studentData = systemData.transcriptManualData[classObj.id][student.id] || {};
         var rowBg = idx % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        var amza = studentData.amza || '';
         
-        html += '<tr style="border-top:1px solid #ddd; background:' + rowBg + ';">';
-        html += '<td style="position:sticky; left:0; z-index:5; background:' + rowBg + '; text-align:left; font-weight:bold; padding:4px 8px; min-width:160px; border-right:1px solid #ddd; font-size:12px;">' + 
-                (idx+1) + '. ' + student.name + 
-                '<div style="font-size:9px; color:#999;">ID: ' + student.id + ' | ' + (student.gender === 'M' ? '🧑' : '👩') + '</div></td>';
+        var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
+        var successDesc = calculateSuccess(totalAvg);
+        var successColor = parseFloat(totalAvg) >= 4.5 ? '#e8f5e9' : 
+                          parseFloat(totalAvg) >= 3.5 ? '#e3f2fd' : 
+                          parseFloat(totalAvg) >= 2.5 ? '#fff3e0' : 
+                          parseFloat(totalAvg) >= 1.5 ? '#ffebee' : '#ffcdd2';
+        var totalAbs = getTotalAbsences(student, 'final');
+        var currentBehavior = student.behavior || 'Shembullore';
+        
+        html += `<tr style="border-top:2px solid #ddd; background:${rowBg}; cursor:pointer;" onclick="printSingleStudent(${idx})" class="transcript-student-row">`;
+        html += `<td style="position:sticky; left:0; z-index:5; background:${rowBg}; text-align:left; padding:10px 12px; min-width:220px; border-right:2px solid #ddd; font-size:15px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="font-size:16px;">${(idx+1)}. ${student.name}</strong>
+                <input type="text" class="amza-input" data-student="${student.id}" 
+                    value="${amza}" placeholder="Nr.amë" 
+                    style="width:80px; padding:4px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px; text-align:center;"
+                    onchange="updateStudentAmza(${student.id}, this.value)" onclick="event.stopPropagation();">
+                <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); printSingleStudent(${idx})" style="font-size:13px; padding:4px 14px;">🖨️</button>
+            </div>
+            <div style="font-size:13px; color:#999; margin-top:3px;">ID: ${student.id} | ${student.gender === 'M' ? 'M' : 'F'}</div>
+        </td>`;
         
         for (var y = 0; y < years.length; y++) {
             var yearLabel = years[y];
             var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
             
-            html += '<td style="padding:3px; vertical-align:top; min-width:95px; border:1px solid #eee;">';
-            html += '<div style="display:flex; flex-direction:column; gap:1px;">';
+            html += `<td style="padding:6px 8px; vertical-align:top; min-width:150px; border:1px solid #eee;">`;
+            html += `<div style="display:flex; flex-direction:column; gap:2px;">`;
             
-            classObj.subjectsOrder.forEach(function(sub) {
+            allSubjects.forEach(function(sub) {
                 var gradeVal = '-';
                 var isManual = false;
-                var hasData = false;
-                var bgColor = 'white';
+                var bgColor = 'transparent';
                 var isArchived = false;
                 
                 if (isCurrentYear) {
                     var grade = getFinalGrade(student, sub.key);
                     if (grade > 0) {
                         gradeVal = grade;
-                        hasData = true;
                         if (grade == 5) bgColor = '#e8f5e9';
                         else if (grade == 4) bgColor = '#e3f2fd';
                         else if (grade == 3) bgColor = '#fff3e0';
@@ -9392,7 +10236,6 @@ function renderFullTranscriptEditor(classObj) {
                     if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
                         gradeVal = studentData[manualKey];
                         isManual = true;
-                        hasData = true;
                         bgColor = '#fff3e0';
                     } else {
                         var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
@@ -9400,7 +10243,6 @@ function renderFullTranscriptEditor(classObj) {
                             var g = getArchivedStudentGrade(archivedStudent, sub.key);
                             if (g > 0) {
                                 gradeVal = g;
-                                hasData = true;
                                 isArchived = true;
                                 if (g == 5) bgColor = '#e8f5e9';
                                 else if (g == 4) bgColor = '#e3f2fd';
@@ -9412,37 +10254,34 @@ function renderFullTranscriptEditor(classObj) {
                     }
                 }
                 
-                html += '<div style="display:flex; align-items:center; gap:2px; font-size:11px;">';
-                html += '<span style="width:28px; font-size:9px; color:#888;">' + sub.code + ':</span>';
-                html += '<input type="text" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'data-subject="' + sub.key + '" ' +
-                            'value="' + (gradeVal !== '-' ? gradeVal : '') + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:32px; text-align:center; padding:1px 2px; border:1px solid #ccc; border-radius:3px; font-size:11px; background:' + bgColor + ';" ' +
-                            'onchange="onTranscriptGradeChangeFull(this)">';
-                if (isManual) html += '<span style="font-size:8px; color:#ed6c02;" title="Manual">✎</span>';
-                else if (isArchived) html += '<span style="font-size:8px; color:#2e7d32;" title="Nga arkiva">📚</span>';
-                html += '</div>';
+                var gradeDesc = getGradeDescription(gradeVal);
+                var displayDesc = (gradeVal !== '-' && gradeVal !== '') ? gradeDesc : '';
+                
+                html += `<div style="display:flex; align-items:center; gap:4px; font-size:13px; padding:2px 0; flex-wrap:wrap;">`;
+                html += `<span style="width:28px; font-size:11px; color:#888; text-align:right; font-weight:bold;">${sub.code}:</span>`;
+                html += `<input type="text" 
+                            data-student="${student.id}" 
+                            data-year="${yearLabel}" 
+                            data-subject="${sub.key}" 
+                            value="${gradeVal !== '-' ? gradeVal : ''}" 
+                            placeholder="-" 
+                            style="width:32px; text-align:center; padding:2px 4px; border:2px solid #ccc; border-radius:6px; font-size:14px; font-weight:bold; background:${bgColor};" 
+                            onchange="onTranscriptGradeChangeFull(this, ${idx})" onclick="event.stopPropagation();">`;
+                if (displayDesc) {
+                    html += `<span style="font-size:12px; color:#555; margin-left:4px; white-space:nowrap; font-weight:500;">${displayDesc}</span>`;
+                }
+                if (isManual) html += `<span style="font-size:10px; color:#ed6c02; font-weight:bold;" title="Manual">M</span>`;
+                else if (isArchived) html += `<span style="font-size:10px; color:#2e7d32; font-weight:bold;" title="Nga arkiva">A</span>`;
+                html += `</div>`;
             });
             
+            // Llogarit mesataren për këtë vit
             var avgVal = '-';
-            var absVal = '-';
-            var behVal = '-';
             var hasAvgData = false;
-            var hasAbsData = false;
-            var hasBehData = false;
-            var isAvgManual = false;
-            var isAbsManual = false;
-            var isBehManual = false;
-            var isAvgArchived = false;
-            var isAbsArchived = false;
-            var isBehArchived = false;
             
             if (isCurrentYear) {
                 var sum = 0, count = 0;
-                classObj.subjectsOrder.forEach(function(sub) {
+                allSubjects.forEach(function(sub) {
                     var grade = getFinalGrade(student, sub.key);
                     if (grade > 0) { sum += grade; count++; }
                 });
@@ -9450,668 +10289,145 @@ function renderFullTranscriptEditor(classObj) {
                     avgVal = (sum / count).toFixed(2);
                     hasAvgData = true;
                 }
-                var abs = getTotalAbsences(student, 'final');
-                if (abs.total > 0) {
-                    absVal = abs.total;
-                    hasAbsData = true;
-                }
-                behVal = student.behavior || 'Shembullore';
-                hasBehData = true;
             } else {
                 var manualAvgKey = 'year_' + yearLabel + '_avg';
                 if (studentData[manualAvgKey] !== undefined && studentData[manualAvgKey] !== '-' && studentData[manualAvgKey] !== '') {
                     avgVal = studentData[manualAvgKey];
                     hasAvgData = true;
-                    isAvgManual = true;
                 } else {
                     var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
                     if (archivedStudent) {
                         var aSum = 0, aCount = 0;
-                        classObj.subjectsOrder.forEach(function(sub) {
+                        allSubjects.forEach(function(sub) {
                             var g = getArchivedStudentGrade(archivedStudent, sub.key);
                             if (g > 0) { aSum += g; aCount++; }
                         });
                         if (aCount > 0) {
                             avgVal = (aSum / aCount).toFixed(2);
                             hasAvgData = true;
-                            isAvgArchived = true;
                         }
-                    }
-                }
-                
-                var manualAbsKey = 'year_' + yearLabel + '_abs';
-                if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-' && studentData[manualAbsKey] !== '') {
-                    absVal = studentData[manualAbsKey];
-                    hasAbsData = true;
-                    isAbsManual = true;
-                } else {
-                    var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                    if (archivedStudent) {
-                        var absTotal = (archivedStudent.absencesWithReason || 0) + 
-                                      (archivedStudent.absencesWithoutReason || 0);
-                        if (absTotal > 0) {
-                            absVal = absTotal;
-                            hasAbsData = true;
-                            isAbsArchived = true;
-                        }
-                    }
-                }
-                
-                var manualBehKey = 'year_' + yearLabel + '_behavior';
-                if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-' && studentData[manualBehKey] !== '') {
-                    behVal = studentData[manualBehKey];
-                    hasBehData = true;
-                    isBehManual = true;
-                } else {
-                    var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                    if (archivedStudent && archivedStudent.behavior) {
-                        behVal = archivedStudent.behavior;
-                        hasBehData = true;
-                        isBehArchived = true;
                     }
                 }
             }
             
-            html += '<div style="margin-top:2px; border-top:1px dashed #ddd; padding-top:2px; display:flex; flex-direction:column; gap:1px; font-size:10px;">';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:9px;">Mes:</span> ' +
-                        '<input type="text" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'value="' + avgVal + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:40px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:10px; ' + 
-                            (hasAvgData ? (isAvgManual ? 'background:#fff3e0;' : isAvgArchived ? 'background:#e8f5e9;' : 'background:#e8f5e9;') : 'background:#f5f5f5;') + '" ' +
-                            'onchange="onTranscriptAvgChangeFull(this)">' +
-                            (isAvgManual ? ' <span style="font-size:8px; color:#ed6c02;" title="Manual">✎</span>' : '') +
-                            (isAvgArchived ? ' <span style="font-size:8px; color:#2e7d32;" title="Nga arkiva">📚</span>' : '') +
-                    '</div>';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:9px;">Mung:</span> ' +
-                        '<input type="number" ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'value="' + (absVal !== '-' ? absVal : '') + '" ' +
-                            'placeholder="-" ' +
-                            'style="width:40px; text-align:center; padding:0 2px; border:1px solid #ccc; border-radius:3px; font-size:10px; ' + 
-                            (hasAbsData ? (isAbsManual ? 'background:#fff3e0;' : isAbsArchived ? 'background:#e8f5e9;' : 'background:#e8f5e9;') : 'background:#f5f5f5;') + '" ' +
-                            'min="0" onchange="onTranscriptAbsChangeFull(this)">' +
-                            (isAbsManual ? ' <span style="font-size:8px; color:#ed6c02;" title="Manual">✎</span>' : '') +
-                            (isAbsArchived ? ' <span style="font-size:8px; color:#2e7d32;" title="Nga arkiva">📚</span>' : '') +
-                    '</div>';
-            html += '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                        '<span style="color:#666; font-size:9px;">Sjell:</span> ' +
-                        '<select ' +
-                            'data-student="' + student.id + '" ' +
-                            'data-year="' + yearLabel + '" ' +
-                            'style="font-size:9px; padding:0 2px; border:1px solid #ccc; border-radius:3px; max-width:80px; ' +
-                            (hasBehData ? (isBehManual ? 'background:#fff3e0;' : isBehArchived ? 'background:#e8f5e9;' : 'background:#e8f5e9;') : 'background:#f5f5f5;') + '" ' +
-                            'onchange="onTranscriptBehaviorChangeFull(this)">' +
-                            '<option value="Shembullore" ' + (behVal === 'Shembullore' ? 'selected' : '') + '>Shembullore</option>' +
-                            '<option value="Shume mire" ' + (behVal === 'Shume mire' ? 'selected' : '') + '>Shumë mirë</option>' +
-                            '<option value="Mire" ' + (behVal === 'Mire' ? 'selected' : '') + '>Mirë</option>' +
-                            '<option value="Mjaftueshme" ' + (behVal === 'Mjaftueshme' ? 'selected' : '') + '>Mjaftueshme</option>' +
-                            '<option value="Keq" ' + (behVal === 'Keq' ? 'selected' : '') + '>Keq</option>' +
-                        '</select>' +
-                        (isBehManual ? ' <span style="font-size:8px; color:#ed6c02;" title="Manual">✎</span>' : '') +
-                        (isBehArchived ? ' <span style="font-size:8px; color:#2e7d32;" title="Nga arkiva">📚</span>' : '') +
-                    '</div>';
-            html += '</div>';
+            // Llogarit suksesin për këtë vit
+            var successForYear = '-';
+            var successColorYear = 'transparent';
+            if (hasAvgData && avgVal !== '-') {
+                var avgNum = parseFloat(avgVal);
+                successForYear = calculateSuccess(avgVal);
+                successColorYear = avgNum >= 4.5 ? '#e8f5e9' : 
+                                  avgNum >= 3.5 ? '#e3f2fd' : 
+                                  avgNum >= 2.5 ? '#fff3e0' : 
+                                  avgNum >= 1.5 ? '#ffebee' : '#ffcdd2';
+            }
             
-            html += '</div></td>';
+            html += `<div style="margin-top:4px; border-top:2px dashed #ddd; padding-top:4px; display:flex; flex-direction:column; gap:2px; font-size:13px;">`;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:2px 4px;">
+                        <span style="font-weight:bold; color:#0b4b6e;">Mesatarja:</span> 
+                        <input type="text" 
+                            data-student="${student.id}" 
+                            data-year="${yearLabel}" 
+                            value="${avgVal !== '-' ? avgVal : ''}" 
+                            placeholder="-" 
+                            style="width:50px; text-align:center; padding:3px 6px; border:2px solid #0b4b6e; border-radius:6px; font-size:15px; font-weight:bold; ${hasAvgData ? 'background:#e8f5e9;' : 'background:#f5f5f5;'}" 
+                            onchange="onTranscriptAvgChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                    </div>`;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:2px 4px;">
+                        <span style="font-weight:bold; color:#0b4b6e;">Suksesi:</span> 
+                        <span style="font-size:16px; font-weight:bold; padding:2px 10px; border-radius:6px; background:${successColorYear};">
+                            ${successForYear}
+                        </span>
+                    </div>`;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:2px 4px;">
+                        <span style="font-weight:bold; color:#0b4b6e;">Mungesat:</span> 
+                        <input type="number" 
+                            data-student="${student.id}" 
+                            data-year="${yearLabel}" 
+                            value="${getAbsencesForYear(student, yearLabel, studentData)}" 
+                            placeholder="0" 
+                            style="width:50px; text-align:center; padding:3px 6px; border:2px solid #ed6c02; border-radius:6px; font-size:15px; font-weight:bold;" 
+                            min="0" onchange="onTranscriptAbsChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                    </div>`;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:2px 4px;">
+                        <span style="font-weight:bold; color:#0b4b6e;">Sjellja:</span> 
+                        <select 
+                            data-student="${student.id}" 
+                            data-year="${yearLabel}" 
+                            style="font-size:14px; padding:4px 8px; border:2px solid #0b4b6e; border-radius:6px; max-width:120px; font-weight:bold;" 
+                            onchange="onTranscriptBehaviorChangeFull(this, ${idx})" onclick="event.stopPropagation();">
+                            <option value="Shembullore" ${getBehaviorForYear(student, yearLabel, studentData) === 'Shembullore' ? 'selected' : ''}>Shembullore</option>
+                            <option value="Shume mire" ${getBehaviorForYear(student, yearLabel, studentData) === 'Shume mire' ? 'selected' : ''}>Shumë mirë</option>
+                            <option value="Mire" ${getBehaviorForYear(student, yearLabel, studentData) === 'Mire' ? 'selected' : ''}>Mirë</option>
+                            <option value="Mjaftueshme" ${getBehaviorForYear(student, yearLabel, studentData) === 'Mjaftueshme' ? 'selected' : ''}>Mjaftueshme</option>
+                            <option value="Keq" ${getBehaviorForYear(student, yearLabel, studentData) === 'Keq' ? 'selected' : ''}>Keq</option>
+                        </select>
+                    </div>`;
+            html += `</div>`;
+            html += `</div></td>`;
         }
         
-        var totalAvg = getStudentAvg(student, classObj.subjectsOrder, 'final');
-        var totalAbs = getTotalAbsences(student, 'final');
-        var currentBehavior = student.behavior || 'Shembullore';
+        // Kolonat përfundimtare
+        html += `<td style="text-align:center; font-weight:bold; background:#e8f5e9; padding:10px 8px; font-size:18px; border:2px solid #eee;">${totalAvg}</td>`;
+        html += `<td style="text-align:center; background:#fff3e0; padding:10px 8px; font-size:16px; border:2px solid #eee;">${totalAbs.total}</td>`;
+        html += `<td style="text-align:center; background:#e3f2fd; padding:10px 8px; font-size:15px; border:2px solid #eee;">${currentBehavior}</td>`;
+        html += `<td style="text-align:center; background:${successColor}; padding:10px 8px; font-size:16px; font-weight:bold; border:2px solid #eee; border-radius:4px;">${successDesc}</td>`;
         
-        html += '<td style="text-align:center; font-weight:bold; background:#e8f5e9; padding:4px 6px; font-size:13px; border:1px solid #eee;">' + totalAvg + '</td>';
-        html += '<td style="text-align:center; background:#fff3e0; padding:4px 6px; font-size:12px; border:1px solid #eee;">' + totalAbs.total + '</td>';
-        html += '<td style="text-align:center; background:#e3f2fd; padding:4px 6px; font-size:11px; border:1px solid #eee;">' + currentBehavior + '</td>';
-        
-        html += '</tr>';
+        html += `</tr>`;
     });
     
-    html += '</tbody></table></div>';
+    html += `</tbody></table></div>`;
+    
+    html += `
+        <div style="margin-top:12px; padding:10px 15px; background:#f5f5f5; border-radius:8px; display:flex; justify-content:space-between; flex-wrap:wrap; font-size:14px; color:#555; border:1px solid #ddd;">
+            <div><strong>${filteredCount}</strong> nxënës të shfaqur nga <strong>${totalStudents}</strong></div>
+            <div><strong>${years.length}</strong> vite | <strong>${allSubjects.length}</strong> lëndë</div>
+            <div style="font-weight:bold; color:#0b4b6e;">Sistemi | Manual | Arkiva</div>
+        </div>
+    `;
     
     container.innerHTML = html;
+};
+
+// Funksione ndihmëse për të marrë të dhënat për vitin specifik
+function getAbsencesForYear(student, yearLabel, studentData) {
+    var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+    if (isCurrentYear) {
+        var abs = getTotalAbsences(student, 'final');
+        return abs.total;
+    } else {
+        var manualAbsKey = 'year_' + yearLabel + '_abs';
+        if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-' && studentData[manualAbsKey] !== '') {
+            return studentData[manualAbsKey];
+        } else {
+            var archivedStudent = findArchivedStudentData(student.id, transcriptCurrentClass?.className, yearLabel);
+            if (archivedStudent) {
+                return (archivedStudent.absencesWithReason || 0) + (archivedStudent.absencesWithoutReason || 0);
+            }
+        }
+    }
+    return '';
 }
 
-/**
- * Funksionet për ruajtjen e të dhënave manuale
- */
-window.onTranscriptGradeChangeFull = function(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var subjectKey = input.dataset.subject;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
+function getBehaviorForYear(student, yearLabel, studentData) {
+    var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+    if (isCurrentYear) {
+        return student.behavior || 'Shembullore';
     } else {
-        var num = parseInt(value);
-        if (isNaN(num) || num < 0 || num > 5) {
-            showNotification("⚠️ Nota duhet të jetë nga 1 deri në 5!");
-            input.value = '';
-            return;
-        }
-        if (num === 0) value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_' + subjectKey;
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    if (value !== '-') {
-        var num = parseInt(value);
-        if (num == 5) input.style.background = '#e8f5e9';
-        else if (num == 4) input.style.background = '#e3f2fd';
-        else if (num == 3) input.style.background = '#fff3e0';
-        else if (num == 2) input.style.background = '#ffebee';
-        else if (num == 1) input.style.background = '#ffcdd2';
-    } else {
-        input.style.background = 'white';
-    }
-    
-    saveToLocal();
-    updateManualStatus(false);
-    showNotification("💾 Nota u ruajt për " + year);
-};
-
-window.onTranscriptAvgChangeFull = function(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_avg';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-    showNotification("💾 Mesatarja u ruajt për " + year);
-};
-
-window.onTranscriptAbsChangeFull = function(input) {
-    var studentId = parseInt(input.dataset.student);
-    var year = input.dataset.year;
-    var value = input.value.trim();
-    
-    if (value === '' || value === '-') {
-        value = '-';
-    }
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_abs';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-    showNotification("💾 Mungesat u ruajtën për " + year);
-};
-
-window.onTranscriptBehaviorChangeFull = function(select) {
-    var studentId = parseInt(select.dataset.student);
-    var year = select.dataset.year;
-    var value = select.value;
-    
-    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-    var classId = transcriptEditorClassId;
-    if (!classId) return;
-    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-    if (!systemData.transcriptManualData[classId][studentId]) systemData.transcriptManualData[classId][studentId] = {};
-    
-    var key = 'year_' + year + '_behavior';
-    systemData.transcriptManualData[classId][studentId][key] = value;
-    
-    saveToLocal();
-    updateManualStatus(false);
-    showNotification("💾 Sjellja u ruajt për " + year);
-};
-
-/**
- * Eksporton të dhënat e fletëkalimeve në skedar JSON
- */
-window.exportTranscriptData = function() {
-    if (!requireAdmin()) return;
-    
-    var classId = transcriptEditorClassId;
-    if (!classId) {
-        showNotification("Nuk ka klasë të zgjedhur!");
-        return;
-    }
-    
-    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-    if (!classObj) {
-        showNotification("Klasa nuk u gjet!");
-        return;
-    }
-    
-    var exportData = {
-        className: classObj.className,
-        classId: classObj.id,
-        year: systemData.schoolInfo.year,
-        exportedAt: new Date().toISOString(),
-        students: classObj.students.map(function(s) {
-            return {
-                id: s.id,
-                name: s.name,
-                gender: s.gender,
-                behavior: s.behavior,
-                grades: s.grades,
-                gradesSemester2: s.gradesSemester2,
-                absencesWithReason: s.absencesWithReason,
-                absencesWithoutReason: s.absencesWithoutReason,
-                absencesWithReasonSemester2: s.absencesWithReasonSemester2,
-                absencesWithoutReasonSemester2: s.absencesWithoutReasonSemester2
-            };
-        }),
-        subjectsOrder: classObj.subjectsOrder,
-        manualData: systemData.transcriptManualData[classId] || {}
-    };
-    
-    var dataStr = JSON.stringify(exportData, null, 2);
-    var dataBlob = new Blob([dataStr], { type: "application/json" });
-    var url = URL.createObjectURL(dataBlob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'fletekalimet_' + classObj.className + '_' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-    showNotification("💾 Të dhënat u eksportuan!");
-};
-
-/**
- * Importon të dhënat e fletëkalimeve nga skedar JSON
- */
-window.importTranscriptData = function() {
-    if (!requireAdmin()) return;
-    
-    var classId = transcriptEditorClassId;
-    if (!classId) {
-        showNotification("Nuk ka klasë të zgjedhur!");
-        return;
-    }
-    
-    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-    if (!classObj) {
-        showNotification("Klasa nuk u gjet!");
-        return;
-    }
-    
-    var inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = '.json';
-    inp.onchange = function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            try {
-                var importedData = JSON.parse(ev.target.result);
-                
-                if (importedData.classId !== classObj.id && importedData.className !== classObj.className) {
-                    if (!confirm("Ky skedar i përket klasës " + importedData.className + 
-                                ", por ju jeni duke importuar për klasën " + classObj.className + 
-                                ". A doni të vazhdoni?")) return;
-                }
-                
-                if (importedData.manualData && Object.keys(importedData.manualData).length > 0) {
-                    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-                    if (!systemData.transcriptManualData[classId]) systemData.transcriptManualData[classId] = {};
-                    
-                    for (var studentId in importedData.manualData) {
-                        if (!systemData.transcriptManualData[classId][studentId]) {
-                            systemData.transcriptManualData[classId][studentId] = {};
-                        }
-                        for (var key in importedData.manualData[studentId]) {
-                            systemData.transcriptManualData[classId][studentId][key] = importedData.manualData[studentId][key];
-                        }
-                    }
-                }
-                
-                saveToLocal();
-                renderFullTranscriptEditor(classObj);
-                showNotification("📂 Të dhënat u importuan me sukses!");
-            } catch (err) {
-                alert("Gabim gjatë leximit të skedarit: " + err.message);
+        var manualBehKey = 'year_' + yearLabel + '_behavior';
+        if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-' && studentData[manualBehKey] !== '') {
+            return studentData[manualBehKey];
+        } else {
+            var archivedStudent = findArchivedStudentData(student.id, transcriptCurrentClass?.className, yearLabel);
+            if (archivedStudent && archivedStudent.behavior) {
+                return archivedStudent.behavior;
             }
-        };
-        reader.readAsText(file);
-    };
-    inp.click();
-};
-
-/**
- * Printon të gjitha fletëkalimet për klasën e zgjedhur - TË GJITHË NXËNËSIT
- */
-window.printFullTranscripts = function() {
-    if (!requireAdmin()) return;
-    
-    var classId = transcriptEditorClassId;
-    if (!classId) {
-        showNotification("Nuk ka klasë të zgjedhur!");
-        return;
-    }
-    
-    var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-    if (!classObj) {
-        showNotification("Klasa nuk u gjet!");
-        return;
-    }
-    
-    saveTranscriptData();
-    
-    var years = getStudentYears(classObj);
-    var teacher = systemData.teachers.find(function(t) { return t.classId === classObj.id; });
-    var teacherName = teacher ? teacher.name : '__________________';
-    var principalName = systemData.schoolInfo.principal || 'Drejtoresha';
-    var date = formatDate();
-    
-    var win = window.open('', '_blank');
-    if (!win) {
-        showNotification("⚠️ Ju lutemi lejoni dritaret kërcyese (popups)!");
-        return;
-    }
-    
-    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fletëkalimet - ' + classObj.className + '</title>');
-    win.document.write('<style>' +
-        '@page { size: A4 portrait; margin: 10mm; }' +
-        'body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }' +
-        '.certificate { max-width: 210mm; margin: 0 auto; padding: 5mm 8mm; border: 2px solid #d4af37; page-break-after: always; background: white; }' +
-        '.certificate:last-child { page-break-after: auto; }' +
-        '.header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 4mm; margin-bottom: 4mm; }' +
-        '.header h1 { color: #d4af37; font-size: 22px; margin: 3px 0; }' +
-        '.header .school { font-size: 13px; font-weight: bold; color: #0b4b6e; }' +
-        '.header .subtitle { font-size: 14px; font-weight: bold; color: #0b4b6e; }' +
-        '.student-name { font-size: 16px; font-weight: bold; text-align: center; margin: 3mm 0; padding: 3mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }' +
-        '.info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 11px; }' +
-        'table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 10px; }' +
-        'th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }' +
-        'th { background: #0b4b6e; color: white; font-weight: bold; }' +
-        '.avg-box { background: #e8f5e9; padding: 2mm; text-align: center; border-radius: 4px; margin: 3mm 0; }' +
-        '.avg-value { font-size: 18px; font-weight: bold; color: #2e7d32; }' +
-        '.abs-box { background: #fff3e0; padding: 2mm; margin: 3mm 0; border-radius: 4px; display: flex; justify-content: space-around; flex-wrap: wrap; font-size: 11px; }' +
-        '.signatures { display: flex; justify-content: space-between; margin-top: 5mm; padding-top: 3mm; border-top: 1px solid #000; }' +
-        '.signature { text-align: center; width: 120px; }' +
-        '.signature-line { border-top: 1px solid #000; margin-top: 4mm; padding-top: 2mm; }' +
-        '@media print { body { margin: 0; padding: 0; } }' +
-    '</style></head><body>');
-    
-    classObj.students.forEach(function(student, idx) {
-        var studentData = systemData.transcriptManualData && systemData.transcriptManualData[classObj.id] ? 
-            systemData.transcriptManualData[classObj.id][student.id] || {} : {};
-        
-        var headers = '<th style="border:1px solid #000; padding:5px; background:#0b4b6e; color:white; min-width:120px; font-size:11px;">Lënda</th>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            headers += '<th style="border:1px solid #000; padding:5px; background:#0b4b6e; color:white; min-width:80px; font-size:11px;">' + 
-                       yearLabel + (isCurrentYear ? ' 📌' : '') + '</th>';
-        }
-        
-        var rowsHtml = '';
-        classObj.subjectsOrder.forEach(function(sub) {
-            rowsHtml += '<tr><td style="border:1px solid #000; padding:4px 6px; text-align:left; font-weight:500; font-size:10px;">' + sub.name + '</td>';
-            
-            for (var y = 0; y < years.length; y++) {
-                var yearLabel = years[y];
-                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-                var grade = '-';
-                var bgColor = '#f5f5f5';
-                var isManual = false;
-                var isArchived = false;
-                
-                if (isCurrentYear) {
-                    var g = getFinalGrade(student, sub.key);
-                    if (g > 0) {
-                        grade = g;
-                        bgColor = '#e8f5e9';
-                    }
-                } else {
-                    var manualKey = 'year_' + yearLabel + '_' + sub.key;
-                    if (studentData[manualKey] !== undefined && studentData[manualKey] !== '-' && studentData[manualKey] !== '') {
-                        grade = studentData[manualKey];
-                        bgColor = '#fff3e0';
-                        isManual = true;
-                    } else {
-                        var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                        if (archivedStudent) {
-                            var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                            if (g > 0) {
-                                grade = g;
-                                bgColor = '#e8f5e9';
-                                isArchived = true;
-                            }
-                        }
-                    }
-                }
-                
-                rowsHtml += '<td style="border:1px solid #000; padding:3px 5px; text-align:center; background:' + bgColor + '; font-size:11px;">' + 
-                            '<strong>' + grade + '</strong>' +
-                            (isManual ? ' <span style="font-size:8px; color:#ed6c02;">✎</span>' : '') +
-                            (isArchived ? ' <span style="font-size:8px; color:#2e7d32;">📚</span>' : '') +
-                            '</td>';
-            }
-            rowsHtml += '</tr>';
-        });
-        
-        var avgRow = '<tr style="background:#e8eaf6;"><td style="border:1px solid #000; padding:4px 6px; text-align:left; font-size:10px;"><strong>📊 Mesatarja</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var avgVal = '-';
-            
-            if (isCurrentYear) {
-                avgVal = getStudentAvg(student, classObj.subjectsOrder, 'final');
-            } else {
-                var manualAvgKey = 'year_' + yearLabel + '_avg';
-                if (studentData[manualAvgKey] !== undefined && studentData[manualAvgKey] !== '-' && studentData[manualAvgKey] !== '') {
-                    avgVal = studentData[manualAvgKey];
-                } else {
-                    var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                    if (archivedStudent) {
-                        var aSum = 0, aCount = 0;
-                        classObj.subjectsOrder.forEach(function(sub) {
-                            var g = getArchivedStudentGrade(archivedStudent, sub.key);
-                            if (g > 0) { aSum += g; aCount++; }
-                        });
-                        if (aCount > 0) avgVal = (aSum / aCount).toFixed(2);
-                    }
-                }
-            }
-            avgRow += '<td style="border:1px solid #000; padding:3px 5px; text-align:center; font-size:10px;"><strong>' + avgVal + '</strong></td>';
-        }
-        avgRow += '</tr>';
-        
-        var statusRow = '<tr style="background:#e8eaf6;"><td style="border:1px solid #000; padding:4px 6px; text-align:left; font-size:10px;"><strong>🏷️ Statusi</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var statusVal = '-';
-            if (isCurrentYear) {
-                var avgNum = parseFloat(getStudentAvg(student, classObj.subjectsOrder, 'final'));
-                statusVal = avgNum >= 4.5 ? "Shkëlqyeshëm" : 
-                           avgNum >= 3.5 ? "Shumë i mirë" : 
-                           avgNum >= 2.5 ? "I mirë" : 
-                           avgNum >= 1.5 ? "Mjaftueshëm" : 
-                           "Pamjaftueshëm";
-            }
-            statusRow += '<td style="border:1px solid #000; padding:3px 5px; text-align:center; font-size:10px;">' + statusVal + '</td>';
-        }
-        statusRow += '</tr>';
-        
-        var absRow = '<tr style="background:#fff3e0;"><td style="border:1px solid #000; padding:4px 6px; text-align:left; font-size:10px;"><strong>📅 Mungesat</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var absVal = '-';
-            if (isCurrentYear) {
-                var abs = getTotalAbsences(student, 'final');
-                absVal = abs.total;
-            } else {
-                var manualAbsKey = 'year_' + yearLabel + '_abs';
-                if (studentData[manualAbsKey] !== undefined && studentData[manualAbsKey] !== '-' && studentData[manualAbsKey] !== '') {
-                    absVal = studentData[manualAbsKey];
-                } else {
-                    var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                    if (archivedStudent) {
-                        var absTotal = (archivedStudent.absencesWithReason || 0) + 
-                                      (archivedStudent.absencesWithoutReason || 0);
-                        if (absTotal > 0) absVal = absTotal;
-                    }
-                }
-            }
-            absRow += '<td style="border:1px solid #000; padding:3px 5px; text-align:center; font-size:10px;">' + absVal + '</td>';
-        }
-        absRow += '</tr>';
-        
-        var behRow = '<tr style="background:#e3f2fd;"><td style="border:1px solid #000; padding:4px 6px; text-align:left; font-size:10px;"><strong>✨ Sjellja</strong></td>';
-        for (var y = 0; y < years.length; y++) {
-            var yearLabel = years[y];
-            var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
-            var behVal = '-';
-            if (isCurrentYear) {
-                behVal = student.behavior || 'Shembullore';
-            } else {
-                var manualBehKey = 'year_' + yearLabel + '_behavior';
-                if (studentData[manualBehKey] !== undefined && studentData[manualBehKey] !== '-' && studentData[manualBehKey] !== '') {
-                    behVal = studentData[manualBehKey];
-                } else {
-                    var archivedStudent = findArchivedStudentData(student.id, classObj.className, yearLabel);
-                    if (archivedStudent && archivedStudent.behavior) {
-                        behVal = archivedStudent.behavior;
-                    }
-                }
-            }
-            behRow += '<td style="border:1px solid #000; padding:3px 5px; text-align:center; font-size:10px;">' + behVal + '</td>';
-        }
-        behRow += '</tr>';
-        
-        if (idx > 0) {
-            win.document.write('<div style="page-break-after: always;"></div>');
-        }
-        
-        win.document.write('<div class="certificate">' +
-            '<div class="header">' +
-                '<div class="school">REPUBLIKA E KOSOVËS</div>' +
-                '<div class="school">' + systemData.schoolInfo.name + '</div>' +
-                '<h1>FLETËKALIMI</h1>' +
-                '<div style="font-size:13px; font-weight:bold; color:#0b4b6e;">PËRFUNDIMTAR</div>' +
-                '<div style="font-size:11px; color:#333;">' + systemData.schoolInfo.year + '</div>' +
-            '</div>' +
-            '<div class="student-name">' + student.name + '</div>' +
-            '<div class="info">' +
-                '<div><strong>Klasa:</strong> ' + classObj.className + '</div>' +
-                '<div><strong>Data:</strong> ' + date + '</div>' +
-                '<div style="font-size:9px; color:#999;">📌 <span style="background:#e8f5e9; padding:0 4px;">Sistemi</span> | <span style="background:#fff3e0; padding:0 4px;">✎ Manual</span></div>' +
-            '</div>' +
-            '<div style="overflow-x:auto;"><table>' +
-                '<thead><tr>' + headers + '</tr></thead>' +
-                '<tbody>' + rowsHtml + avgRow + statusRow + absRow + behRow + '</tbody>' +
-            '</table></div>' +
-            '<div class="signatures">' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Kujdestari</div>' +
-                    '<div style="margin-top:2mm; font-size:11px;">' + teacherName + '</div>' +
-                '</div>' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Drejtoresha</div>' +
-                    '<div style="margin-top:2mm; font-size:11px;">' + principalName + '</div>' +
-                '</div>' +
-                '<div class="signature">' +
-                    '<div class="signature-line">Vula e shkollës</div>' +
-                '</div>' +
-            '</div>' +
-        '</div>');
-    });
-    
-    win.document.write('<script>window.print();<\/script></body></html>');
-    win.document.close();
-};
-
-/**
- * Ruaj të gjitha të dhënat manuale të fletëkalimit
- */
-window.saveTranscriptData = function() {
-    if (!requireAdmin()) return;
-    saveToLocal();
-    showNotification("💾 Të dhënat e fletëkalimeve u ruajtën!");
-    updateManualStatus(true);
-};
-
-/**
- * Mbyll redaktorin e fletëkalimeve
- */
-window.closeTranscriptEditor = function() {
-    hideModal('transcriptEditorModal');
-    transcriptEditorClassId = null;
-    transcriptCurrentClass = null;
-};
-
-/**
- * Funksion i thjeshtuar për të hapur fletëkalimet për klasën e zgjedhur
- */
-window.openTranscriptForCurrentClass = function() {
-    if (!requireAdmin()) return;
-    
-    var classId = null;
-    
-    if (selectedActiveFilter) {
-        var filtered = systemData.classes.filter(function(c) { return c.activeId === selectedActiveFilter; });
-        if (filtered.length > 0) {
-            classId = filtered[0].id;
         }
     }
-    
-    if (!classId && systemData.classes.length > 0) {
-        classId = systemData.classes[0].id;
-    }
-    
-    if (classId) {
-        var classObj = systemData.classes.find(function(c) { return c.id === classId; });
-        showNotification("📜 Duke hapur fletëkalimet për: " + classObj.className + " (" + classObj.students.length + " nxënës)");
-        openTranscriptEditor(classId);
-    } else {
-        showNotification("⚠️ Nuk ka klasa në sistem!");
-    }
-};
+    return 'Shembullore';
+}
 
-// Ekspozo funksionet globalisht
-window.openTranscriptEditor = openTranscriptEditor;
-window.closeTranscriptEditor = closeTranscriptEditor;
-window.saveTranscriptData = saveTranscriptData;
-window.printFullTranscripts = printFullTranscripts;
-window.onTranscriptGradeChangeFull = onTranscriptGradeChangeFull;
-window.onTranscriptAvgChangeFull = onTranscriptAvgChangeFull;
-window.onTranscriptAbsChangeFull = onTranscriptAbsChangeFull;
-window.onTranscriptBehaviorChangeFull = onTranscriptBehaviorChangeFull;
-window.exportTranscriptData = exportTranscriptData;
-window.importTranscriptData = importTranscriptData;
-window.openTranscriptForCurrentClass = openTranscriptForCurrentClass;
-
-console.log("✅ Funksionet e fletëkalimeve janë inicializuar!");
-console.log("📜 openTranscriptForCurrentClass:", typeof window.openTranscriptForCurrentClass);
-</script>
+console.log("✅ Tabela e plotësimit u përmirësua me font më të madh dhe Suksesin!");
+    </script>
 </body>
 </html>
