@@ -10454,105 +10454,183 @@
         }
 
         // ==================== FILLIMI I SISTEMIT ====================
-        function init() {
-            console.log("🚀 Inicializimi i sistemit Cloud Edition...");
+function init() {
+    console.log("🚀 Inicializimi i sistemit Cloud Edition...");
 
-            // Ngarko të dhënat lokale fillimisht
-            if (!loadFromLocal()) {
-                console.log("ℹ️ Nuk u gjetën të dhëna të ruajtura, krijohen të dhënat demo...");
-                initializeDemoData();
-            } else {
-                console.log("✅ Të dhënat u ngarkuan me sukses!");
-            }
-
-            // Pastaj ngarko nga cloud
-            if (isConnected) {
-                console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
-                setTimeout(function() {
-                    loadAllDataFromCloud();
-                }, 500);
-            } else {
-                console.log("⚠️ Pa lidhje me cloud, duke punuar offline");
-            }
-
-            // Lidh butonat
-            setTimeout(function() {
-                console.log("🔗 Duke lidhur butonat...");
-
-                // Butoni Login
-                var loginBtn = document.getElementById('loginBtn');
-                if (loginBtn) {
-                    var newLoginBtn = loginBtn.cloneNode(true);
-                    loginBtn.parentNode.replaceChild(newLoginBtn, loginBtn);
-                    newLoginBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        console.log("🖱️ Login u klikua!");
-                        performLogin();
-                    });
-                    console.log("✅ Login butoni u lidh!");
-                } else {
-                    console.error("❌ Login butoni nuk u gjet!");
-                }
-
-                // Lidhja Admin
-                var adminLink = document.getElementById('adminLink');
-                if (adminLink) {
-                    var newAdminLink = adminLink.cloneNode(true);
-                    adminLink.parentNode.replaceChild(newAdminLink, adminLink);
-                    newAdminLink.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        console.log("🖱️ Admin link u klikua!");
-                        showAdminLogin();
-                    });
-                    console.log("✅ Admin link u lidh!");
-                }
-
-                // Butoni Logout
-                var logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) {
-                    var newLogoutBtn = logoutBtn.cloneNode(true);
-                    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-                    newLogoutBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        console.log("🖱️ Logout u klikua!");
-                        logout();
-                    });
-                    console.log("✅ Logout butoni u lidh!");
-                }
-
-                // Enter key
-                var usernameInput = document.getElementById('username');
-                var passwordInput = document.getElementById('password');
-                if (usernameInput && passwordInput) {
-                    function handleEnter(e) {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            console.log("⌨️ Enter u shtyp!");
-                            performLogin();
+    // Ngarko të dhënat lokale fillimisht
+    var hasLocalData = loadFromLocal();
+    
+    if (!hasLocalData) {
+        console.log("ℹ️ Nuk u gjetën të dhëna lokale, duke pritur të dhënat nga cloud...");
+        
+        // Nëse ka lidhje me cloud, ngarko automatikisht
+        if (isConnected && db) {
+            db.ref('schoolData_v5_4').once('value')
+                .then(function(snapshot) {
+                    var data = snapshot.val();
+                    if (data) {
+                        console.log("✅ Të dhënat u ngarkuan nga cloud automatikisht!");
+                        systemData = data;
+                        // Sigurohu që të gjitha fushat ekzistojnë
+                        ensureSystemDataFields();
+                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                        if (currentUser) refreshDisplay();
+                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+                    } else {
+                        console.log("ℹ️ Nuk ka të dhëna në cloud, duke krijuar të dhëna demo...");
+                        initializeDemoData();
+                    }
+                })
+                .catch(function(err) {
+                    console.warn("⚠️ Gabim në ngarkimin nga cloud:", err);
+                    console.log("🔄 Duke krijuar të dhëna demo...");
+                    initializeDemoData();
+                });
+        } else {
+            console.log("🔄 Nuk ka lidhje me cloud, duke krijuar të dhëna demo...");
+            initializeDemoData();
+        }
+    } else {
+        console.log("✅ Të dhënat u ngarkuan me sukses nga localStorage!");
+        
+        // Gjithsesi, kontrollo nëse ka të dhëna më të reja në cloud
+        if (isConnected && db) {
+            db.ref('schoolData_v5_4').once('value')
+                .then(function(snapshot) {
+                    var cloudData = snapshot.val();
+                    if (cloudData) {
+                        // Krahaso datat për të parë nëse ka të dhëna më të reja
+                        var localTime = localStorage.getItem('lastCloudSync') || '1970-01-01';
+                        var cloudTime = cloudData.lastUpdated || cloudData.archivedAt || new Date().toISOString();
+                        
+                        console.log("📅 Lokale:", localTime);
+                        console.log("📅 Cloud:", cloudTime);
+                        
+                        // Nëse cloud ka të dhëna më të reja, ngarkoj
+                        if (cloudTime > localTime) {
+                            console.log("☁️ Ka të dhëna më të reja në cloud, duke ngarkuar...");
+                            systemData = cloudData;
+                            ensureSystemDataFields();
+                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                            localStorage.setItem('lastCloudSync', cloudTime);
+                            if (currentUser) refreshDisplay();
+                            showNotification("✅ Të dhënat u përditësuan nga cloud!");
                         }
                     }
-                    usernameInput.addEventListener('keydown', handleEnter);
-                    passwordInput.addEventListener('keydown', handleEnter);
-                    console.log("✅ Enter event u lidh!");
-                }
-
-            }, 100);
-
-            updateConnectionStatusUI();
-            loadTeacherOfflineData();
-
-            if (typeof initTabelariData === 'function') {
-                initTabelariData();
-            }
-
-            console.log("✅ Sistemi Cloud Edition është gati!");
-            console.log("👑 Administrator: admin / admin123");
-            console.log("👨‍🏫 Mësimdhënësit në sistem:");
-            systemData.teachers.forEach(function(t) {
-                console.log("  • " + t.username + " / " + t.password + " (" + t.name + ")");
-            });
-            console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
+                })
+                .catch(function(err) {
+                    console.warn("⚠️ Gabim në kontrollin e cloud:", err);
+                });
         }
+    }
+
+    // Lidh butonat
+    setTimeout(function() {
+        console.log("🔗 Duke lidhur butonat...");
+        setupButtons();
+    }, 100);
+
+    updateConnectionStatusUI();
+    loadTeacherOfflineData();
+    initTabelariData();
+
+    console.log("✅ Sistemi Cloud Edition është gati!");
+    console.log("👑 Administrator: admin / admin123");
+    console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
+}
+
+// ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
+function ensureSystemDataFields() {
+    if (!systemData.actives) systemData.actives = [
+        { id: "active_ix", name: "KLASA IX", code: "IX", order: 1 },
+        { id: "active_viii", name: "KLASA VIII", code: "VIII", order: 2 },
+        { id: "active_vii", name: "KLASA VII", code: "VII", order: 3 },
+        { id: "active_vi", name: "KLASA VI", code: "VI", order: 4 }
+    ];
+    if (!systemData.curriculum) systemData.curriculum = { weeksSem1: 16, weeksSem2: 21, activeWeeks: {} };
+    if (!systemData.holidays) systemData.holidays = [];
+    if (!systemData.semesterDates) systemData.semesterDates = {
+        schoolStart: "2025-09-01", schoolEnd: "2026-06-15",
+        semester1Start: "2025-09-01", semester1End: "2025-12-20",
+        semester2Start: "2026-01-10", semester2End: "2026-06-15"
+    };
+    if (!systemData.adminPassword) systemData.adminPassword = "admin123";
+    if (!systemData.schoolInfo) systemData.schoolInfo = {
+        name: "SHFMU 'EMIN DURAKU' KACANIK",
+        year: "2025-2026",
+        principal: "DIANA REKA"
+    };
+    if (!systemData.archivedYears) systemData.archivedYears = [];
+    if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
+    if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
+    systemData.appVersion = APP_VERSION;
+}
+
+// ==================== FUNKSIONI PËR LIDHJEN E BUTONAVE ====================
+function setupButtons() {
+    // Butoni Login
+    var loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        var newBtn = loginBtn.cloneNode(true);
+        loginBtn.parentNode.replaceChild(newBtn, loginBtn);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            performLogin();
+        });
+        newBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            performLogin();
+        }, { passive: false });
+        console.log("✅ Login butoni u lidh!");
+    }
+
+    // Lidhja "Hyr si Administrator"
+    var adminLink = document.getElementById('adminLink');
+    if (adminLink) {
+        var newLink = adminLink.cloneNode(true);
+        adminLink.parentNode.replaceChild(newLink, adminLink);
+        newLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showAdminLogin();
+        });
+        newLink.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            showAdminLogin();
+        }, { passive: false });
+        console.log("✅ Admin link u lidh!");
+    }
+
+    // Butoni Logout
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        var newBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
+        newBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            logout();
+        }, { passive: false });
+        console.log("✅ Logout butoni u lidh!");
+    }
+
+    // Enter key
+    var usernameInput = document.getElementById('username');
+    var passwordInput = document.getElementById('password');
+    if (usernameInput && passwordInput) {
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performLogin();
+            }
+        }
+        usernameInput.addEventListener('keydown', handleEnter);
+        passwordInput.addEventListener('keydown', handleEnter);
+        console.log("✅ Enter event u lidh!");
+    }
+}
 
         // ==================== EKSPOZO FUNKSIONET GLOBALISHT ====================
         window.performLogin = performLogin;
