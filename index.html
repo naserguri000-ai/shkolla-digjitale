@@ -1911,86 +1911,61 @@
         }
 
         function loadAllDataFromCloud() {
-            if (!db || !isConnected) {
-                showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-                return;
+    if (!db || !isConnected) {
+        showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
+        return;
+    }
+
+    console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
+
+    db.ref('schoolData_v5_4').once('value')
+        .then(function(snapshot) {
+            var data = snapshot.val();
+            if (data && data.classes && data.classes.length > 0) {
+                console.log("✅ Të dhënat u gjetën në cloud!");
+                console.log("📊 Klasa:", data.classes.length);
+                
+                // Kontrollo sa nxënës ka në cloud
+                var totalCloud = 0;
+                data.classes.forEach(function(c) {
+                    totalCloud += c.students ? c.students.length : 0;
+                });
+                console.log("👨‍🎓 Nxënës në cloud:", totalCloud);
+                
+                // Nëse cloud ka më shumë nxënës se sa lokal, ngarko
+                var localTotal = 0;
+                if (systemData.classes) {
+                    systemData.classes.forEach(function(c) {
+                        localTotal += c.students ? c.students.length : 0;
+                    });
+                }
+                
+                if (totalCloud > localTotal || localTotal === 0) {
+                    console.log("☁️ Duke ngarkuar të dhëna më të mira nga cloud...");
+                    systemData = data;
+                    ensureSystemDataFields();
+                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                    
+                    if (currentUser) {
+                        refreshDisplay();
+                    }
+                    
+                    showNotification("✅ " + totalCloud + " nxënës u ngarkuan nga cloud!");
+                } else {
+                    console.log("✅ Të dhënat lokale janë të përditësuara.");
+                    showNotification("✅ Të dhënat lokale janë të përditësuara!");
+                }
+            } else {
+                console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
+                loadFromLocal();
             }
-
-            console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
-
-            db.ref('schoolData_v5_4').once('value')
-                .then(function(snapshot) {
-                    var data = snapshot.val();
-                    if (data) {
-                        systemData = data;
-                        if (!systemData.actives) systemData.actives = [
-                            { id: "active_ix", name: "KLASA IX", code: "IX", order: 1 },
-                            { id: "active_viii", name: "KLASA VIII", code: "VIII", order: 2 },
-                            { id: "active_vii", name: "KLASA VII", code: "VII", order: 3 },
-                            { id: "active_vi", name: "KLASA VI", code: "VI", order: 4 }
-                        ];
-                        if (!systemData.curriculum) systemData.curriculum = { weeksSem1: 16, weeksSem2: 21 };
-                        if (!systemData.holidays) systemData.holidays = [];
-                        if (!systemData.semesterDates) systemData.semesterDates = {
-                            schoolStart: "2025-09-01", schoolEnd: "2026-06-15",
-                            semester1Start: "2025-09-01", semester1End: "2025-12-20",
-                            semester2Start: "2026-01-10", semester2End: "2026-06-15"
-                        };
-                        if (!systemData.adminPassword) systemData.adminPassword = "admin123";
-                        if (!systemData.schoolInfo) systemData.schoolInfo = {
-                            name: "SHFMU 'EMIN DURAKU' KACANIK",
-                            year: "2025-2026",
-                            principal: "DIANA REKA"
-                        };
-                        if (!systemData.archivedYears) systemData.archivedYears = [];
-                        if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
-                        if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-                        systemData.appVersion = APP_VERSION;
-
-                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                        console.log("✅ Të dhënat u ngarkuan nga cloud");
-                        if (currentUser) refreshDisplay();
-                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-                    } else {
-                        console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
-                        syncAllDataToCloud();
-                    }
-                })
-                .catch(function(err) {
-                    console.error("❌ Gabim në ngarkimin e të dhënave:", err);
-                    showNotification("⚠️ Gabim në lidhje me cloud!");
-                });
-
-            db.ref('users').once('value')
-                .then(function(snapshot) {
-                    var users = snapshot.val();
-                    if (users) {
-                        var teachers = [];
-                        for (var id in users) {
-                            var user = users[id];
-                            if (user.role === 'teacher') {
-                                teachers.push({
-                                    id: user.id,
-                                    name: user.name,
-                                    username: user.username,
-                                    password: user.password,
-                                    classId: user.classId,
-                                    role: user.role
-                                });
-                            }
-                        }
-                        if (teachers.length > 0) {
-                            systemData.teachers = teachers;
-                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                            if (currentUser) refreshDisplay();
-                            console.log("✅ " + teachers.length + " mësimdhënës u ngarkuan nga cloud");
-                        }
-                    }
-                })
-                .catch(function(err) {
-                    console.warn("⚠️ Gabim në ngarkimin e përdoruesve:", err);
-                });
-        }
+        })
+        .catch(function(err) {
+            console.error("❌ Gabim në ngarkimin e të dhënave:", err);
+            showNotification("⚠️ Gabim në lidhje me cloud!");
+            loadFromLocal();
+        });
+}
 
         function saveToCloud() {
             if (!db || !isConnected || !isCloudConfigured) {
@@ -2150,13 +2125,6 @@
             document.getElementById('password').value = '';
             document.getElementById('password').focus();
             showNotification("🔑 Vendosni fjalëkalimin e administratorit");
-        }
-
-        function showMainApp() {
-            document.getElementById('loginContainer').classList.add('hidden');
-            document.getElementById('mainContainer').classList.remove('hidden');
-            refreshDisplay();
-            showNotification("✅ Mirë se vini, " + currentUser.name + "!");
         }
 
         function logout() {
@@ -2373,260 +2341,6 @@
                 subjectsOrder: ALL_SUBJECTS.slice(),
                 schedule: null
             };
-        }
-
-        // ==================== FUNKSIONET ADMIN ====================
-        function renderAdminDashboard() {
-            if (!requireAdmin()) return;
-
-            var globalStats = getGlobalStats(currentSemesterView, selectedActiveFilter);
-            var activeName = selectedActiveFilter ? (systemData.actives.find(function(a) { return a.id ===
-                    selectedActiveFilter; })?.name ||
-                "Të gjitha") : "Të gjitha klasat";
-            var dateInfo = getSemesterDateInfo();
-            var isYearEnded = dateInfo.status === 'year_ended';
-            var filteredClasses = selectedActiveFilter ? systemData.classes.filter(function(c) { return c.activeId ===
-                    selectedActiveFilter; }) :
-                systemData.classes;
-
-            var totalStudents = globalStats.totalStudents;
-            var totalMale = globalStats.totalMale;
-            var totalFemale = globalStats.totalFemale;
-            var getPercent = function(count, total) { return total > 0 ? ((count / total) * 100).toFixed(1) : '0'; };
-
-            var html = `
-                <div class="class-card-large">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                        <h2>👑 PANELI I ADMINISTRATORIT</h2>
-                        <span class="admin-badge">🔑 ADMIN</span>
-                    </div>
-                    
-                    <div class="cloud-status-bar">
-                        <span>☁️ Statusi i Cloud: <span class="${isConnected ? 'online' : 'offline'}">${isConnected ? '✅ Online' : '❌ Offline'}</span></span>
-                        <span>👨‍🏫 Mësimdhënës: ${systemData.teachers.length}</span>
-                        <span>🏫 Klasa: ${systemData.classes.length}</span>
-                        <span>👨‍🎓 Nxënës: ${totalStudents}</span>
-                        <div>
-                            <button class="btn btn-cloud btn-sm" onclick="syncAllDataToCloud()" style="background:#1a237e; color:white; border:2px solid #0d47a1;">☁️ Sinkronizo</button>
-                            <button class="btn btn-info btn-sm" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko</button>
-                            <button class="btn btn-warning btn-sm" onclick="showCloudStatus()" style="background:#ed6c02; color:white;">📊 Statusi</button>
-                            <button class="btn btn-danger btn-sm" onclick="forceCacheClear()" style="background:#c62828; color:white; border:2px solid #b71c1c;">🔄 Pastro Cache</button>
-                        </div>
-                    </div>
-                    
-                    <div class="date-badge">
-                        <span>${dateInfo.statusText}</span>
-                        <div class="date-status">📘 Gjysmevjetori I: ${dateInfo.sem1Start} - ${dateInfo.sem1End}</div>
-                        <div class="date-status">📙 Gjysmevjetori II: ${dateInfo.sem2Start} - ${dateInfo.sem2End}</div>
-                        <button class="btn btn-info" style="margin-top:8px;" onclick="openSemesterDatesModal()">📅 Vendos Datat</button>
-                    </div>
-                    
-                    <div class="report-actions">
-                        <button class="btn btn-admin" onclick="changeSchoolYearManually()">📅 Ndrysho Vitin Manual</button>
-                        <button class="btn btn-admin" onclick="openPrincipalModal()">👤 Ndrysho Administratorin</button>
-                        <button class="btn btn-admin" onclick="openPasswordModal()">🔑 Ndrysho Fjalëkalimet</button>
-                        <button class="btn btn-admin" onclick="openYearModal()">📅 Ndrysho Vitin</button>
-                        <button class="btn btn-admin" onclick="openAdminCurriculumModal()">📚 Plani Mësimor</button>
-                        <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
-                        <button class="btn btn-admin" onclick="openSubjectsModalGlobal()">📚 Menaxho Lëndët</button>
-                        <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
-                        <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
-                        <button class="btn btn-admin" onclick="takeBackup()">💾 Backup në Memorie</button>
-                        <button class="btn btn-admin" onclick="backupToFile()">💿 Shkarko Backup</button>
-                        <button class="btn btn-admin" onclick="restoreFromFile()">📂 Restauro nga Backup</button>
-                        <button class="btn btn-admin" onclick="undoChanges()">↩️ Undo</button>
-                        <button class="btn btn-admin" onclick="exportAllData()">📎 Shkarko excel</button>
-                        <button class="btn btn-admin" onclick="openActiveHoursEditor()">⏱️ Orët sipas Aktiveve</button>
-                        <button class="btn btn-info" onclick="openTabelariModal()">📊 Tabelari i Mungesave ☁️</button>
-                        <button class="btn btn-warning" onclick="printDirectorReport()">📄 Raporti i Drejtorisë</button>
-                        <button class="btn btn-admin" onclick="showAllClassesHoursSummary()">📊 Përmbledhja e Orëve</button>
-                        <button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha Vitet)</button>
-                        <button class="btn btn-danger" onclick="openResetModal()">🔄 Rivendos Sistemin</button>
-                        <button class="btn btn-success" onclick="syncAllDataToCloud()" style="background:#2e7d32; color:white;">☁️ Sinkronizo me Cloud</button>
-                        <button class="btn btn-info" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko nga Cloud</button>
-                        <button class="btn btn-danger" onclick="forceCacheClear()" style="background:#c62828; color:white;">🔄 Pastro Cache</button>
-                    </div>
-                    
-                    ${renderArchiveSection()}
-                    
-                    <div class="active-selector">
-                        <span style="font-weight:bold;">🔍 Filtro sipas aktivit:</span>
-                        <div class="active-chip ${!selectedActiveFilter ? 'active' : ''}" onclick="setActiveFilter(null)">📌 Të gjitha (${systemData.classes.length})</div>
-                        ${systemData.actives.sort(function(a,b){return a.order-b.order;}).map(function(a) {
-                            var classCount = systemData.classes.filter(function(c) { return c.activeId === a.id; }).length;
-                            return '<div class="active-chip ' + (selectedActiveFilter === a.id ? 'active' : '') + '" onclick="setActiveFilter(\'' + a.id + '\')">' + a.name + ' (' + classCount + ')</div>';
-                        }).join('')}
-                    </div>
-                    
-                    <div class="semester-selector">
-                        <button class="semester-btn ${currentSemesterView === 'semester1' ? 'active' : ''} ${isYearEnded ? 'disabled' : ''}" onclick="${!isYearEnded ? "setSemester('semester1')" : ''}" ${isYearEnded ? 'disabled' : ''}>📖 Gjysmevjetori I</button>
-                        <button class="semester-btn ${currentSemesterView === 'semester2' ? 'active' : ''} ${isYearEnded ? 'disabled' : ''}" onclick="${!isYearEnded ? "setSemester('semester2')" : ''}" ${isYearEnded ? 'disabled' : ''}>📘 Gjysmevjetori II</button>
-                        <button class="semester-btn ${currentSemesterView === 'final' ? 'active' : ''}" onclick="setSemester('final')">🎓 Përfundimtar</button>
-                    </div>
-                    
-                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:25px;">
-                        <div class="dashboard-widget" style="background:#0b4b6e;" onclick="alert('📚 Totali i klasave: ${globalStats.classesStats.length}')">
-                            <h3>🏫 KLASA</h3><div class="number">${globalStats.classesStats.length}</div>
-                        </div>
-                        <div class="dashboard-widget" style="background:#2e7d32;" onclick="alert('👨‍🎓 Totali nxënës: ${globalStats.totalStudents}\nM Djem: ${globalStats.totalMale} (${getPercent(globalStats.totalMale, globalStats.totalStudents)}%)\nF Vajza: ${globalStats.totalFemale} (${getPercent(globalStats.totalFemale, globalStats.totalStudents)}%)')">
-                            <h3>👨‍🎓 NXËNËS</h3><div class="number">${globalStats.totalStudents}</div>
-                            <div style="font-size:11px;">M ${globalStats.totalMale} (${getPercent(globalStats.totalMale, globalStats.totalStudents)}%) | F ${globalStats.totalFemale} (${getPercent(globalStats.totalFemale, globalStats.totalStudents)}%)</div>
-                        </div>
-                        <div class="dashboard-widget" style="background:#ed6c02;" onclick="alert('📊 Mesatarja e përgjithshme: ${globalStats.overallAvg}')">
-                            <h3>📊 MESATARJA</h3><div class="number">${globalStats.overallAvg}</div>
-                        </div>
-                        <div class="dashboard-widget" style="background:#c62828;" onclick="alert('📅 Mungesat totale:\n✅ Me arsye: ${globalStats.totalAbsencesWR}\n❌ Pa arsye: ${globalStats.totalAbsencesWOR}\n📌 Gjithsej: ${globalStats.totalAbsencesWR + globalStats.totalAbsencesWOR}')">
-                            <h3>📅 MUNGESAT</h3>
-                            <div class="number">${globalStats.totalAbsencesWR + globalStats.totalAbsencesWOR}</div>
-                            <div style="font-size:10px;">✅ ${globalStats.totalAbsencesWR} | ❌ ${globalStats.totalAbsencesWOR}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-table"><h3>📈 SUKSESI SIPAS KATEGORIVE</h3><div class="stats-grid">
-                        ${['excellent','verygood','good','sufficient','fail','ungraded'].map(function(c) {
-                            var maleCount = globalStats.maleCategories[c] || 0;
-                            var femaleCount = globalStats.femaleCategories[c] || 0;
-                            var totalCount = globalStats.categories[c] || 0;
-                            var categoryName = c==='excellent'?'⭐ Shkëlqyeshëm':c==='verygood'?'🌟 Shumë mirë':c==='good'?'📖 Mirë':c==='sufficient'?'⚠️ Mjaftueshëm':c==='fail'?'❌ Pamjaftueshëm':'📝 I panotuar';
-                            var categoryColor = c==='excellent'?'#e8f5e9':c==='verygood'?'#e3f2fd':c==='good'?'#fff3e0':c==='sufficient'?'#ffebee':c==='fail'?'#ffcdd2':'#f5f5f5';
-                            return '<div class="stat-card" style="background:' + categoryColor + ';" onclick="alert(\'' + categoryName + '\n📊 Gjithsej: ' + totalCount + '\')">' +
-                                '<h4>' + categoryName + '</h4>' +
-                                '<div class="stat-value">' + totalCount + '</div>' +
-                                '<div style="font-size:10px;">M ' + maleCount + ' | F ' + femaleCount + '</div>' +
-                            '</div>';
-                        }).join('')}
-                    </div></div>
-                    
-                    <div style="margin:20px 0; display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn btn-admin" onclick="showAddClassModal()">➕ Shto Klasë</button>
-                        <button class="btn btn-admin" onclick="openTeacherModal()">👨‍🏫 Shto Kujdestar</button>
-                    </div>
-                    
-                    <h3>📚 MENAXHIMI I KLASAVE - ${activeName}</h3>`;
-
-            if (filteredClasses.length === 0) {
-                html +=
-                    '<div style="padding:20px; text-align:center; background:#f8f9fa; border-radius:12px;">⚠️ Nuk ka klasa në këtë aktiv. <br><button class="btn btn-admin" style="margin-top:10px;" onclick="showAddClassModal()">Shto Klasë të Re</button></div>';
-            } else {
-                filteredClasses.forEach(function(cls) {
-                    var teacher = systemData.teachers.find(function(t) { return t.classId === cls.id; });
-                    var activeInfo = systemData.actives.find(function(a) { return a.id === cls.activeId; });
-                    html += '<div class="class-item">' +
-                        '<div><strong>📖 ' + cls.className + '</strong><br>' +
-                        '<span style="font-size:12px;">🏷️ ' + (activeInfo ? activeInfo.name : 'Pa aktiv') +
-                        ' | 👨‍🎓 ' + cls.students.length + ' nxënës</span></div>' +
-                        '<div style="color:' + (teacher ? '#2e7d32' : '#c62828') + ';">' + (teacher ? '👨‍🏫 ' +
-                            teacher.name : '⚠️ PA CAKTUAR') + '</div>' +
-                        '<div style="display:flex; gap:5px; flex-wrap:wrap;">' +
-                        '<button class="btn btn-primary" onclick="viewClassAsAdmin(\'' + cls.id +
-                        '\')" style="font-size:11px;">👁️ Shiko</button>' +
-                        '<button class="btn btn-info" onclick="printClassReportById(\'' + cls.id + '\', \'' +
-                        currentSemesterView + '\')" style="font-size:11px;">📄 Raporti</button>' +
-                        '<button class="btn btn-warning" onclick="showClassStats(systemData.classes.find(function(c) { return c.id === \'' + cls.id + '\'; }))" style="font-size:11px;">📊 Statistikat</button>' +
-                        '<button class="btn btn-info" onclick="printClassCertificates(\'' + cls.className +
-                        '\')" style="font-size:11px;">📜 Dëftesat</button>' +
-                        '<button class="btn btn-info" onclick="openClassCurriculumModal(\'' + cls.id +
-                        '\')" style="font-size:11px;">📚 Plani</button>' +
-                        '<button class="btn btn-info" onclick="openScheduleModal(\'' + cls.id +
-                        '\')" style="font-size:11px;">⏰ Orari</button>' +
-                        '<button class="btn btn-warning" onclick="openClassEditModal(\'' + cls.id +
-                        '\')" style="font-size:11px;">✏️ Ndrysho</button>' +
-                        '<button class="btn btn-purple" onclick="exportClassDataById(\'' + cls.id +
-                        '\')" style="background:#6a1b9a; color:white; font-size:11px;">💾 Eksporto</button>' +
-                        '<button class="btn btn-purple" onclick="importClassDataById(\'' + cls.id +
-                        '\')" style="background:#6a1b9a; color:white; font-size:11px;">📂 Importo</button>' +
-                        '<button class="btn btn-danger" onclick="clearClassData(\'' + cls.id +
-                        '\')" style="font-size:11px;">🗑️ Fshi</button>' +
-                        '</div>' +
-                        '</div>';
-                });
-            }
-
-            html += '<h3 style="margin-top:20px;">👨‍🏫 TË GJITHË KUJDESTARËT</h3>';
-            if (systemData.teachers.length === 0) {
-                html +=
-                    '<div style="padding:20px; text-align:center; background:#f8f9fa; border-radius:12px;">⚠️ Nuk ka kujdestarë të regjistruar. <br><button class="btn btn-admin" style="margin-top:10px;" onclick="openTeacherModal()">Shto Kujdestar të Ri</button></div>';
-            } else {
-                systemData.teachers.forEach(function(t) {
-                    var classObj = systemData.classes.find(function(c) { return c.id === t.classId; });
-                    html += '<div class="teacher-item">' +
-                        '<div><strong>👨‍🏫 ' + t.name + '</strong><br><span style="font-size:11px;">🔑 ' +
-                        t.username + '</span></div>' +
-                        '<div>📖 Klasa: ' + (classObj ? classObj.className : '⚠️ N/A') + '</div>' +
-                        '<div>' +
-                        '<button class="btn btn-admin" onclick="editTeacher(\'' + t.id +
-                        '\')" style="font-size:11px;">✏️</button>' +
-                        '<button class="btn btn-admin" onclick="openChangePasswordForTeacher(\'' + t.id +
-                        '\')" style="font-size:11px;">🔑</button>' +
-                        '<button class="btn btn-danger" onclick="removeTeacher(\'' + t.id +
-                        '\')" style="font-size:11px;">🗑️</button>' +
-                        '</div>' +
-                        '</div>';
-                });
-            }
-
-            html += '</div>';
-            document.getElementById('dynamicContent').innerHTML = html;
-            document.getElementById('userNameDisplay').innerHTML = '👑 ADMINISTRATORI | DREJTORI: ' + systemData
-                .schoolInfo.principal;
-            document.getElementById('principalDisplay').innerHTML = '👤 Drejtoresha: ' + systemData.schoolInfo.principal;
-            document.getElementById('schoolYearDisplay').innerHTML = systemData.schoolInfo.year;
-
-            setTimeout(function() {
-                setupTableNavigation();
-            }, 300);
-        }
-
-        function renderArchiveSection() {
-            var currentYear = systemData.schoolInfo.year;
-            var nextYear = getNextSchoolYear(currentYear);
-            var archivedYears = getAllArchivedYears();
-            var hasArchive = archivedYears.length > 0;
-
-            var html = '<div class="archive-section">' +
-                '<h3>📦 ARKIVA E VITEVE SHKOLLORE</h3>' +
-                '<div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center; margin-bottom:10px;">' +
-                '<span class="year-status ' + (isNewSchoolYear() ? 'ended' : 'active') + '">' +
-                (isNewSchoolYear() ? '🏁 Viti ka përfunduar' : '📅 Viti në vazhdim') +
-                '</span>' +
-                '<button class="btn btn-admin" onclick="archiveFullYear()">📦 Arkivo Vitin ' + currentYear +
-                '</button>' +
-                '<button class="undo-btn" onclick="undoLastArchive()" ' + (hasUndoState() ? '' : 'disabled') +
-                '>↩️ UNDO</button>' +
-                '<button class="btn btn-info" onclick="viewArchive()">📚 Shiko Arkivën (' + archivedYears.length +
-                ' vite)</button>' +
-                '</div>' +
-                '<div class="years-timeline">';
-
-            if (hasArchive) {
-                var sortedYears = archivedYears.slice().sort(function(a, b) {
-                    var yA = parseInt(a.year.split('-')[0]);
-                    var yB = parseInt(b.year.split('-')[0]);
-                    return yB - yA;
-                });
-
-                sortedYears.forEach(function(arch) {
-                    var classesCount = arch.classes ? arch.classes.length : 0;
-                    var studentsCount = arch.totalStudents || 0;
-                    html += '<div class="year-box archived-year">' +
-                        '<div class="year-label">' + arch.year + '</div>' +
-                        '<div class="year-status-label">📚 ' + classesCount + ' klasa | 👨‍🎓 ' +
-                        studentsCount + ' nxënës</div>' +
-                        '<div style="font-size:10px; color:#666;">' + (arch.archivedAt ? new Date(arch
-                            .archivedAt).toLocaleDateString() : '') + '</div>' +
-                        '</div>';
-                });
-            }
-
-            html += '<div class="year-box active-year">' +
-                '<div class="year-label">' + currentYear + '</div>' +
-                '<div class="year-status-label">📌 AKTUAL</div>' +
-                '<div style="font-size:10px; color:#666;">' + systemData.classes.length + ' klasa</div>' +
-                '</div>';
-
-            html += '</div></div>';
-
-            return html;
         }
 
         // ==================== FUNKSIONI RENDER_TEACHER_DASHBOARD ====================
@@ -6824,64 +6538,6 @@
             initializeDemoData();
         }
 
-        function initializeDemoData() {
-            if (systemData.classes && systemData.classes.length > 0) return;
-
-            console.log("🔄 Krijohen të dhënat demo...");
-
-            var classNames = [];
-            for (var i = 1; i <= 6; i++) {
-                classNames.push('VI-' + i);
-                classNames.push('VII-' + i);
-                classNames.push('VIII-' + i);
-                classNames.push('IX-' + i);
-            }
-
-            var activeMap = {
-                'VI': 'active_vi',
-                'VII': 'active_vii',
-                'VIII': 'active_viii',
-                'IX': 'active_ix'
-            };
-
-            classNames.forEach(function(name) {
-                var prefix = name.split('-')[0];
-                var activeId = activeMap[prefix] || null;
-                var cls = createClass(name, null, activeId);
-                systemData.classes.push(cls);
-            });
-
-            var demoTeachers = [
-                { name: 'Arbesa Raka', username: 'arbesa', password: 'arbesa123', classId: systemData.classes[0]
-                        ?.id },
-                { name: 'Fatos Gashi', username: 'fatos', password: 'fatos123', classId: systemData.classes[1]
-                        ?.id },
-                { name: 'Gjylije Beka', username: 'gjylije', password: 'gjylije123', classId: systemData.classes[2]
-                        ?.id },
-                { name: 'Luljeta Kollqaku', username: 'luljeta', password: 'luljeta123',
-                    classId: systemData.classes[3]?.id }
-            ];
-
-            demoTeachers.forEach(function(t) {
-                if (t.classId) {
-                    var teacher = {
-                        id: 'teacher_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                        name: t.name,
-                        username: t.username,
-                        password: t.password,
-                        classId: t.classId,
-                        role: 'teacher'
-                    };
-                    systemData.teachers.push(teacher);
-                    var cls = systemData.classes.find(function(c) { return c.id === t.classId; });
-                    if (cls) cls.teacherId = teacher.id;
-                }
-            });
-
-            saveToLocal();
-            console.log("✅ Të dhënat demo u krijuan!");
-        }
-
         // ==================== FUNKSIONET PËR BACKUP ====================
         function takeBackup() {
             if (!requireAdmin()) return;
@@ -10471,7 +10127,6 @@ function init() {
                     if (data) {
                         console.log("✅ Të dhënat u ngarkuan nga cloud automatikisht!");
                         systemData = data;
-                        // Sigurohu që të gjitha fushat ekzistojnë
                         ensureSystemDataFields();
                         localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
                         if (currentUser) refreshDisplay();
@@ -10538,7 +10193,6 @@ function init() {
     console.log("👑 Administrator: admin / admin123");
     console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
 }
-
 // ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
 function ensureSystemDataFields() {
     if (!systemData.actives) systemData.actives = [
@@ -12313,155 +11967,6 @@ function syncAllDataToCloud() {
             });
     });
 }
-
-// ==================== 3. FUNKSIONI loadAllDataFromCloud ====================
-function loadAllDataFromCloud() {
-    if (!requireAdmin()) return;
-    
-    if (!db || !isConnected) {
-        showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-        return;
-    }
-
-    console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
-
-    db.ref('schoolData_v5_4').once('value')
-        .then(function(snapshot) {
-            var data = snapshot.val();
-            if (data) {
-                systemData = data;
-                if (!systemData.actives) systemData.actives = [
-                    { id: "active_ix", name: "KLASA IX", code: "IX", order: 1 },
-                    { id: "active_viii", name: "KLASA VIII", code: "VIII", order: 2 },
-                    { id: "active_vii", name: "KLASA VII", code: "VII", order: 3 },
-                    { id: "active_vi", name: "KLASA VI", code: "VI", order: 4 }
-                ];
-                if (!systemData.curriculum) systemData.curriculum = { weeksSem1: 16, weeksSem2: 21 };
-                if (!systemData.holidays) systemData.holidays = [];
-                if (!systemData.semesterDates) systemData.semesterDates = {
-                    schoolStart: "2025-09-01", schoolEnd: "2026-06-15",
-                    semester1Start: "2025-09-01", semester1End: "2025-12-20",
-                    semester2Start: "2026-01-10", semester2End: "2026-06-15"
-                };
-                if (!systemData.adminPassword) systemData.adminPassword = "admin123";
-                if (!systemData.schoolInfo) systemData.schoolInfo = {
-                    name: "SHFMU 'EMIN DURAKU' KACANIK",
-                    year: "2025-2026",
-                    principal: "DIANA REKA"
-                };
-                if (!systemData.archivedYears) systemData.archivedYears = [];
-                if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
-                if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-                systemData.appVersion = APP_VERSION;
-
-                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                console.log("✅ Të dhënat u ngarkuan nga cloud");
-                if (currentUser) refreshDisplay();
-                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-            } else {
-                console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
-                syncAllDataToCloud();
-            }
-        })
-        .catch(function(err) {
-            console.error("❌ Gabim në ngarkimin e të dhënave:", err);
-            showNotification("⚠️ Gabim në lidhje me cloud!");
-        });
-
-    db.ref('users').once('value')
-        .then(function(snapshot) {
-            var users = snapshot.val();
-            if (users) {
-                var teachers = [];
-                for (var id in users) {
-                    var user = users[id];
-                    if (user.role === 'teacher') {
-                        teachers.push({
-                            id: user.id,
-                            name: user.name,
-                            username: user.username,
-                            password: user.password,
-                            classId: user.classId,
-                            role: user.role
-                        });
-                    }
-                }
-                if (teachers.length > 0) {
-                    systemData.teachers = teachers;
-                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                    if (currentUser) refreshDisplay();
-                    console.log("✅ " + teachers.length + " mësimdhënës u ngarkuan nga cloud");
-                }
-            }
-        })
-        .catch(function(err) {
-            console.warn("⚠️ Gabim në ngarkimin e përdoruesve:", err);
-        });
-}
-
-// ==================== 4. FUNKSIONI forceSaveData ====================
-function forceSaveData() {
-    if (!requireAdmin()) return;
-    
-    try {
-        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-        sessionStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-        if (db && isConnected) {
-            db.ref('schoolData_v5_4').set(systemData);
-        }
-        showNotification("✅ Të dhënat u ruajtën me forcë!");
-        return true;
-    } catch(e) {
-        showNotification("❌ Gabim në ruajtje: " + e.message);
-        return false;
-    }
-}
-
-// ==================== 5. FUNKSIONI forceCacheClear ====================
-function forceCacheClear() {
-    if (!requireAdmin()) return;
-
-    if (confirm(
-            "🔄 PASTRIMI I CACHE\n\n" +
-            "Ky veprim do të:\n" +
-            "1. Pastrojë të gjitha të dhënat e cache\n" +
-            "2. Rifreskojë faqen\n" +
-            "3. Ngarkojë të dhënat më të fundit nga cloud\n\n" +
-            "Vazhdo?"
-        )) {
-        showNotification("🔄 Duke pastruar cache...");
-
-        // Pastro localStorage (por ruaj të dhënat në memory)
-        var backupData = JSON.stringify(systemData);
-        localStorage.removeItem('schoolSystemFinalV5_4');
-        localStorage.removeItem('lastCloudSync');
-        localStorage.removeItem('tabelariData_v6');
-
-        // Pastro sessionStorage
-        sessionStorage.clear();
-
-        // Pastro cookies
-        document.cookie.split(";").forEach(function(c) {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() +
-                ";path=/");
-        });
-
-        // Restauro të dhënat
-        try { localStorage.setItem('schoolSystemFinalV5_4', backupData); } catch(e) {}
-
-        showNotification("✅ Cache u pastrua! Duke rifreskuar...");
-
-        // Ngarko nga cloud
-        if (isConnected) {
-            loadAllDataFromCloud();
-        }
-
-        setTimeout(function() {
-            location.reload();
-        }, 1500);
-    }
-}
-
 // ==================== 6. EKSPOZO FUNKSIONET ====================
 window.showCloudStatus = showCloudStatus;
 window.syncAllDataToCloud = syncAllDataToCloud;
@@ -12738,6 +12243,49 @@ function renderAdminDashboard() {
     }, 300);
 }
 
+// ==================== FUNKSIONI RENDER ARCHIVE SECTION ====================
+function renderArchiveSection() {
+    var currentYear = systemData.schoolInfo.year;
+    var archivedYears = systemData.archivedYears || [];
+    var hasArchive = archivedYears.length > 0;
+
+    var html = '<div class="archive-section">' +
+        '<h3>📦 ARKIVA E VITEVE SHKOLLORE</h3>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center; margin-bottom:10px;">' +
+        '<span class="year-status">📅 Viti në vazhdim</span>' +
+        '<button class="btn btn-admin" onclick="archiveFullYear()">📦 Arkivo Vitin ' + currentYear + '</button>' +
+        '<button class="btn btn-info" onclick="viewArchive()">📚 Shiko Arkivën (' + archivedYears.length + ' vite)</button>' +
+        '</div>' +
+        '<div class="years-timeline">';
+
+    if (hasArchive) {
+        var sortedYears = archivedYears.slice().sort(function(a, b) {
+            var yA = parseInt(a.year.split('-')[0]);
+            var yB = parseInt(b.year.split('-')[0]);
+            return yB - yA;
+        });
+
+        sortedYears.forEach(function(arch) {
+            var classesCount = arch.classes ? arch.classes.length : 0;
+            var studentsCount = arch.totalStudents || 0;
+            html += '<div class="year-box archived-year">' +
+                '<div class="year-label">' + arch.year + '</div>' +
+                '<div class="year-status-label">📚 ' + classesCount + ' klasa | 👨‍🎓 ' + studentsCount + ' nxënës</div>' +
+                '<div style="font-size:10px; color:#666;">' + (arch.archivedAt ? new Date(arch.archivedAt).toLocaleDateString() : '') + '</div>' +
+                '</div>';
+        });
+    }
+
+    html += '<div class="year-box active-year">' +
+        '<div class="year-label">' + currentYear + '</div>' +
+        '<div class="year-status-label">📌 AKTUAL</div>' +
+        '<div style="font-size:10px; color:#666;">' + systemData.classes.length + ' klasa</div>' +
+        '</div>';
+
+    html += '</div></div>';
+
+    return html;
+}
 // ==================== 4. EKSPOZO FUNKSIONET ====================
 window.refreshDisplay = refreshDisplay;
 window.showMainApp = showMainApp;
