@@ -1684,6 +1684,95 @@
             document.getElementById('loginStatusMsg').innerHTML = "⚠️ Firebase gabim! Duke punuar lokalisht.";
             document.getElementById('loginStatusMsg').style.color = "orange";
         }
+        // ==================== FIX KOMPLET PËR SINKRONIZIM ====================
+
+// 1. NGARKO TË DHËNAT NGA CLOUD KUR FILLON SISTEMI
+(function loadInitialData() {
+    console.log("☁️ Kontrollo të dhënat nga cloud...");
+    
+    if (db && isCloudConfigured) {
+        db.ref('schoolData_v5_4').once('value')
+            .then(function(snapshot) {
+                var data = snapshot.val();
+                if (data && data.classes && data.classes.length > 0) {
+                    console.log("☁️ Të dhënat u gjetën në cloud!");
+                    systemData = data;
+                    ensureSystemDataFields();
+                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                    if (currentUser) refreshDisplay();
+                    showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+                } else {
+                    console.log("ℹ️ Nuk ka të dhëna në cloud, kontrollo lokal...");
+                    loadFromLocal();
+                }
+            })
+            .catch(function(err) {
+                console.warn("⚠️ Gabim në ngarkimin nga cloud:", err);
+                loadFromLocal();
+            });
+    } else {
+        loadFromLocal();
+    }
+})();
+
+// 2. RREGULLO FUNKSIONIN saveToCloud
+window.saveToCloud = function() {
+    if (!db || !isConnected || !isCloudConfigured) {
+        console.log("💾 Offline - ruajtje lokale");
+        return;
+    }
+    
+    db.ref('schoolData_v5_4').set(systemData)
+        .then(function() {
+            console.log("☁️✅ Sinkronizimi u krye!");
+            localStorage.setItem('lastCloudSync', new Date().toISOString());
+        })
+        .catch(function(err) {
+            console.warn("☁️⚠️ Gabim në sinkronizim:", err.message);
+        });
+};
+
+// 3. RREGULLO FUNKSIONIN saveToLocal
+var originalSaveToLocal = window.saveToLocal || function() {};
+
+window.saveToLocal = function() {
+    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+    window.saveToCloud();
+    if (typeof updateManualStatus === 'function') updateManualStatus(true);
+};
+
+// 4. SINKRONIZIM PERIODIK (çdo 30 sekonda)
+setInterval(function() {
+    if (isConnected && db && currentUser) {
+        window.saveToCloud();
+    }
+}, 30000);
+
+// 5. SINKRONIZO KUR LIDHJA KTHEHET
+if (db) {
+    db.ref('.info/connected').on('value', function(snap) {
+        if (snap.val() === true) {
+            console.log("☁️ Lidhja u kthye! Duke sinkronizuar...");
+            setTimeout(function() {
+                // Ngarko të dhënat më të reja
+                db.ref('schoolData_v5_4').once('value')
+                    .then(function(snapshot) {
+                        var data = snapshot.val();
+                        if (data && data.classes && data.classes.length > 0) {
+                            systemData = data;
+                            ensureSystemDataFields();
+                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                            if (currentUser) refreshDisplay();
+                            showNotification("✅ Të dhënat u përditësuan nga cloud!");
+                        }
+                    });
+                window.saveToCloud();
+            }, 1000);
+        }
+    });
+}
+
+console.log("✅ Fix-i për sinkronizimin u aplikua!");
 
         // ==================== FUNKSIONET E MODAL-EVE ====================
         function showModal(id) {
