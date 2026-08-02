@@ -1684,7 +1684,7 @@
             document.getElementById('loginStatusMsg').innerHTML = "⚠️ Firebase gabim! Duke punuar lokalisht.";
             document.getElementById('loginStatusMsg').style.color = "orange";
         }
-        // ==================== FIX KOMPLET PËR SINKRONIZIM ====================
+// ==================== FIX KOMPLET PËR SINKRONIZIM ====================
 
 // 1. NGARKO TË DHËNAT NGA CLOUD KUR FILLON SISTEMI
 (function loadInitialData() {
@@ -10204,64 +10204,216 @@ function forceUploadToCloud() {
             }
         }
 
-        // ==================== INICIALIZIMI ====================
-        function initializeDemoData() {
-            if (systemData.classes && systemData.classes.length > 0) return;
+        // ==================== INICIALIZIMI I SISTEMIT (FIX) ====================
 
-            console.log("🔄 Krijohen të dhënat demo...");
-
-            var classNames = [];
-            for (var i = 1; i <= 6; i++) {
-                classNames.push('VI-' + i);
-                classNames.push('VII-' + i);
-                classNames.push('VIII-' + i);
-                classNames.push('IX-' + i);
-            }
-
-            var activeMap = {
-                'VI': 'active_vi',
-                'VII': 'active_vii',
-                'VIII': 'active_viii',
-                'IX': 'active_ix'
-            };
-
-            classNames.forEach(function(name) {
-                var prefix = name.split('-')[0];
-                var activeId = activeMap[prefix] || null;
-                var cls = createClass(name, null, activeId);
-                systemData.classes.push(cls);
-            });
-
-            var demoTeachers = [
-                { name: 'Arbesa Raka', username: 'arbesa', password: 'arbesa123', classId: systemData.classes[
-                        0]?.id },
-                { name: 'Fatos Gashi', username: 'fatos', password: 'fatos123', classId: systemData.classes[
-                        1]?.id },
-                { name: 'Gjylije Beka', username: 'gjylije', password: 'gjylije123', classId: systemData
-                        .classes[2]?.id },
-                { name: 'Luljeta Kollqaku', username: 'luljeta', password: 'luljeta123',
-                    classId: systemData.classes[3]?.id }
-            ];
-
-            demoTeachers.forEach(function(t) {
-                if (t.classId) {
-                    var teacher = {
-                        id: 'teacher_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                        name: t.name,
-                        username: t.username,
-                        password: t.password,
-                        classId: t.classId,
-                        role: 'teacher'
-                    };
-                    systemData.teachers.push(teacher);
-                    var cls = systemData.classes.find(function(c) { return c.id === t.classId; });
-                    if (cls) cls.teacherId = teacher.id;
+// 1. FUNKSIONI KRYESOR I INICIALIZIMIT
+function initializeSystem() {
+    console.log("🚀 Inicializimi i sistemit...");
+    
+    // Kontrollo nëse ka të dhëna në localStorage
+    var localData = localStorage.getItem('schoolSystemFinalV5_4');
+    
+    if (localData) {
+        try {
+            var parsed = JSON.parse(localData);
+            if (parsed.classes && parsed.classes.length > 0) {
+                var totalLocal = 0;
+                parsed.classes.forEach(function(c) {
+                    totalLocal += c.students ? c.students.length : 0;
+                });
+                console.log("📂 U gjetën " + totalLocal + " nxënës në localStorage");
+                
+                // Përdor të dhënat lokale
+                systemData = parsed;
+                ensureSystemDataFields();
+                
+                // Nëse ka lidhje me cloud, sinkronizo
+                if (db && isConnected) {
+                    console.log("☁️ Duke sinkronizuar me cloud...");
+                    db.ref('schoolData_v5_4').set(systemData)
+                        .then(function() {
+                            console.log("☁️✅ Të dhënat lokale u ngarkuan në cloud!");
+                        })
+                        .catch(function(err) {
+                            console.warn("⚠️ Gabim në sinkronizim:", err);
+                        });
                 }
-            });
-
-            saveToLocal();
-            console.log("✅ Të dhënat demo u krijuan!");
+                
+                if (currentUser) refreshDisplay();
+                return;
+            }
+        } catch(e) {
+            console.warn("Gabim në leximin e localStorage:", e);
         }
+    }
+    
+    // Nëse nuk ka të dhëna lokale, kontrollo cloud-in
+    if (db && isCloudConfigured) {
+        console.log("☁️ Kontrollo cloud-in për të dhëna...");
+        
+        db.ref('schoolData_v5_4').once('value')
+            .then(function(snapshot) {
+                var data = snapshot.val();
+                
+                if (data && data.classes && data.classes.length > 0) {
+                    var totalCloud = 0;
+                    data.classes.forEach(function(c) {
+                        totalCloud += c.students ? c.students.length : 0;
+                    });
+                    
+                    console.log("☁️ U gjetën " + totalCloud + " nxënës në cloud!");
+                    
+                    // Përdor të dhënat nga cloud
+                    systemData = data;
+                    ensureSystemDataFields();
+                    
+                    // Ruaj në localStorage për herën tjetër
+                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                    localStorage.setItem('lastCloudSync', new Date().toISOString());
+                    
+                    if (currentUser) refreshDisplay();
+                    showNotification("✅ " + totalCloud + " nxënës u ngarkuan nga cloud!");
+                    return;
+                } else {
+                    console.log("ℹ️ Nuk ka të dhëna në cloud, krijo demo...");
+                    createDemoData();
+                }
+            })
+            .catch(function(err) {
+                console.error("❌ Gabim në kontrollin e cloud:", err);
+                createDemoData();
+            });
+    } else {
+        console.log("ℹ️ Firebase jo gati, krijo demo...");
+        createDemoData();
+    }
+}
+
+// 2. FUNKSIONI PËR KRIJIMIN E DEMO-S
+function createDemoData() {
+    console.log("🆕 Krijo të dhëna demo...");
+    
+    // Krijo demo vetëm nëse nuk ka klasa
+    if (systemData.classes && systemData.classes.length > 0) {
+        console.log("ℹ️ Tashmë ka të dhëna, nuk krijohet demo");
+        if (currentUser) refreshDisplay();
+        return;
+    }
+    
+    initializeDemoData();
+    
+    // Ruaj demo në localStorage
+    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+    
+    // Nëse ka lidhje, ruaj edhe në cloud
+    if (db && isConnected) {
+        db.ref('schoolData_v5_4').set(systemData)
+            .then(function() {
+                console.log("📤 Demo u ngarkua në cloud!");
+                showNotification("📤 Demo u ngarkua në cloud!");
+            })
+            .catch(function(err) {
+                console.warn("⚠️ Gabim në ngarkimin e demo-s:", err);
+            });
+    }
+    
+    if (currentUser) refreshDisplay();
+    showNotification("📚 " + systemData.classes.reduce(function(acc, c) { return acc + c.students.length; }, 0) + " nxënës demo u krijuan!");
+}
+
+// 3. FUNKSIONI PËR NGARKIM NGA CLOUD (MANUAL)
+window.loadAllDataFromCloud = function() {
+    if (!db || !isConnected) {
+        showNotification("⚠️ Nuk ka lidhje me cloud!");
+        return;
+    }
+    
+    showNotification("☁️ Duke ngarkuar nga cloud...");
+    
+    db.ref('schoolData_v5_4').once('value')
+        .then(function(snapshot) {
+            var data = snapshot.val();
+            if (data && data.classes && data.classes.length > 0) {
+                var totalStudents = 0;
+                data.classes.forEach(function(c) {
+                    totalStudents += c.students ? c.students.length : 0;
+                });
+                
+                systemData = data;
+                ensureSystemDataFields();
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                
+                if (currentUser) refreshDisplay();
+                showNotification("✅ " + totalStudents + " nxënës u ngarkuan nga cloud!");
+            } else {
+                showNotification("⚠️ Nuk ka të dhëna në cloud!");
+            }
+        })
+        .catch(function(err) {
+            showNotification("❌ Gabim: " + err.message);
+        });
+};
+
+// 4. FUNKSIONI PËR RUAJTJE NË CLOUD
+window.saveToCloud = function() {
+    if (!db || !isConnected) {
+        console.log("💾 Offline - ruajtje lokale");
+        return;
+    }
+    
+    db.ref('schoolData_v5_4').set(systemData)
+        .then(function() {
+            console.log("☁️✅ Sinkronizimi u krye!");
+            localStorage.setItem('lastCloudSync', new Date().toISOString());
+        })
+        .catch(function(err) {
+            console.warn("☁️⚠️ Gabim në sinkronizim:", err.message);
+        });
+};
+
+// 5. RREGULLO saveToLocal
+var originalSaveToLocal = window.saveToLocal || function() {};
+
+window.saveToLocal = function() {
+    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+    window.saveToCloud();
+    if (typeof updateManualStatus === 'function') updateManualStatus(true);
+};
+
+// 6. AUTO-SYNC PERIODIK
+setInterval(function() {
+    if (isConnected && db && currentUser) {
+        window.saveToCloud();
+    }
+}, 30000);
+
+// 7. SINKRONIZO KUR LIDHJA KTHEHET
+if (db) {
+    db.ref('.info/connected').on('value', function(snap) {
+        if (snap.val() === true) {
+            console.log("☁️ Lidhja u kthye! Duke sinkronizuar...");
+            setTimeout(function() {
+                window.saveToCloud();
+            }, 1000);
+        }
+    });
+}
+
+// 8. FILLO SISTEMIN
+loadTeacherOfflineData();
+initTabelariData();
+
+// Kontrollo nëse ka përdorues të loguar
+if (currentUser) {
+    initializeSystem();
+} else {
+    // Nëse nuk ka përdorues, ngarko të dhënat prapa skenës
+    initializeSystem();
+}
+
+console.log("✅ Sistemi Cloud Edition është gati!");
+console.log("👑 Administrator: admin / admin123");
+console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
 
         // ==================== FILLIMI I SISTEMIT ====================
 function init() {
