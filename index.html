@@ -10204,15 +10204,15 @@ function forceUploadToCloud() {
             }
         }
 
-        // ==================== INICIALIZIMI I SISTEMIT (FIX PËRFUNDIMTAR) ====================
+        // ==================== SISTEMI REAL-TIME CLOUD ====================
 
-// 1. FUNKSIONI PËR NGARKIM NGA CLOUD (PARA DEMO-S)
-function loadRealDataFromCloud() {
-    console.log("☁️ Duke kërkuar të dhënat tuaja reale në cloud...");
+// 1. FUNKSIONI KRYESOR - NGARKO TË DHËNAT NGA CLOUD
+function loadSharedData() {
+    console.log("☁️ Duke ngarkuar të dhënat e përbashkëta nga cloud...");
     
     if (!db || !isConnected) {
-        console.log("⚠️ Cloud jo gati, provo lokal...");
-        loadRealDataFromLocal();
+        console.log("⚠️ Cloud jo gati, provo përsëri...");
+        setTimeout(loadSharedData, 2000);
         return;
     }
     
@@ -10220,172 +10220,145 @@ function loadRealDataFromCloud() {
         .then(function(snapshot) {
             var data = snapshot.val();
             
-            // Nëse ka të dhëna reale në cloud
             if (data && data.classes && data.classes.length > 0) {
                 var totalStudents = 0;
                 data.classes.forEach(function(c) {
                     totalStudents += c.students ? c.students.length : 0;
                 });
                 
-                // Kontrollo nëse janë të dhëna reale apo demo
-                var hasRealTeachers = false;
-                if (data.teachers && data.teachers.length > 0) {
-                    // Nëse ka më shumë se 4 mësimdhënës ose emra që nuk janë demo
-                    if (data.teachers.length > 4) {
-                        hasRealTeachers = true;
-                    } else {
-                        // Kontrollo nëse emrat janë demo
-                        var demoNames = ['Arbesa Raka', 'Fatos Gashi', 'Gjylije Beka', 'Luljeta Kollqaku'];
-                        var allDemo = data.teachers.every(function(t) {
-                            return demoNames.includes(t.name);
-                        });
-                        hasRealTeachers = !allDemo;
-                    }
-                }
+                console.log("☁️✅ U ngarkuan " + totalStudents + " nxënës nga cloud!");
                 
-                // Nëse ka të dhëna reale (jo demo)
-                if (totalStudents > 0 || hasRealTeachers) {
-                    console.log("☁️✅ U gjetën të dhënat tuaja reale në cloud!");
-                    console.log("👨‍🎓 " + totalStudents + " nxënës");
-                    console.log("👨‍🏫 " + data.teachers.length + " mësimdhënës");
-                    
-                    systemData = data;
-                    ensureSystemDataFields();
-                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                    
-                    if (currentUser) refreshDisplay();
-                    showNotification("✅ " + totalStudents + " nxënës u ngarkuan nga cloud!");
-                    return;
-                } else {
-                    console.log("ℹ️ Cloud ka vetëm demo, kërko të dhëna të tjera...");
-                }
+                // Përdor të dhënat nga cloud
+                systemData = data;
+                ensureSystemDataFields();
+                
+                // Ruaj në localStorage për cache
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                localStorage.setItem('lastCloudSync', new Date().toISOString());
+                
+                if (currentUser) refreshDisplay();
+                showNotification("✅ " + totalStudents + " nxënës u ngarkuan nga cloud!");
+                return;
             }
             
-            // Nëse nuk ka të dhëna reale në cloud, provo lokal
-            console.log("📂 Kontrollo për të dhëna lokale...");
-            loadRealDataFromLocal();
+            // Nëse cloud-i është bosh, krijo strukturë fillestare
+            console.log("🆕 Cloud-i është bosh! Duke krijuar strukturën fillestare...");
+            createInitialStructure();
         })
         .catch(function(err) {
-            console.warn("⚠️ Gabim në cloud:", err);
-            loadRealDataFromLocal();
+            console.error("❌ Gabim në ngarkim:", err);
+            // Provoni të ngarkoni nga localStorage
+            loadFromLocalCache();
         });
 }
 
-// 2. FUNKSIONI PËR NGARKIM LOKAL
-function loadRealDataFromLocal() {
-    var data = localStorage.getItem('schoolSystemFinalV5_4');
-    
-    if (data) {
-        try {
-            var parsed = JSON.parse(data);
-            if (parsed.classes && parsed.classes.length > 0) {
-                var totalStudents = 0;
-                parsed.classes.forEach(function(c) {
-                    totalStudents += c.students ? c.students.length : 0;
-                });
-                
-                // Kontrollo nëse janë të dhëna reale
-                var hasRealTeachers = false;
-                if (parsed.teachers && parsed.teachers.length > 0) {
-                    if (parsed.teachers.length > 4) {
-                        hasRealTeachers = true;
-                    } else {
-                        var demoNames = ['Arbesa Raka', 'Fatos Gashi', 'Gjylije Beka', 'Luljeta Kollqaku'];
-                        var allDemo = parsed.teachers.every(function(t) {
-                            return demoNames.includes(t.name);
-                        });
-                        hasRealTeachers = !allDemo;
-                    }
-                }
-                
-                if (totalStudents > 0 || hasRealTeachers) {
-                    console.log("📂✅ U gjetën të dhënat tuaja reale në localStorage!");
-                    systemData = parsed;
-                    ensureSystemDataFields();
-                    
-                    // Ngarko në cloud nëse mungojnë
-                    if (db && isConnected) {
-                        db.ref('schoolData_v5_4').set(systemData)
-                            .then(function() {
-                                console.log("📤 Të dhënat lokale u ngarkuan në cloud!");
-                            });
-                    }
-                    
-                    if (currentUser) refreshDisplay();
-                    showNotification("✅ " + totalStudents + " nxënës u ngarkuan!");
-                    return;
-                }
-            }
-        } catch(e) {
-            console.warn("Gabim në leximin e localStorage:", e);
-        }
-    }
-    
-    // Nëse nuk ka të dhëna reale askund, krijo VETËM klasa pa mësimdhënës
-    console.log("🆕 Nuk ka të dhëna reale, krijo strukturë boshe...");
-    createEmptyStructure();
-}
-
-// 3. KRIJO STRUKTURË BOSHE (PA MËSIMDHËNËS DEMO)
-function createEmptyStructure() {
-    // Ruaj të dhënat ekzistuese nëse ka
-    if (systemData.classes && systemData.classes.length > 0) {
-        console.log("ℹ️ Tashmë ka të dhëna, nuk ndryshohet");
-        if (currentUser) refreshDisplay();
-        return;
-    }
-    
-    // Krijo VETËM strukturën, pa nxënës dhe pa mësimdhënës
+// 2. KRIJO STRUKTURËN FILLESTARE (PA DEMO)
+function createInitialStructure() {
+    // Krijo vetëm strukturën, pa nxënës demo
     systemData.classes = [];
     systemData.teachers = [];
     
+    // Ruaj në cloud
+    db.ref('schoolData_v5_4').set(systemData)
+        .then(function() {
+            console.log("📤 Struktura fillestare u ngarkua në cloud!");
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+            if (currentUser) refreshDisplay();
+            showNotification("📚 Sistemi gati! Shtoni klasa dhe nxënës.");
+        })
+        .catch(function(err) {
+            console.error("❌ Gabim:", err);
+        });
+}
+
+// 3. NGARKO NGA CACHE LOKAL (NËSE CLOUD NUK PUNON)
+function loadFromLocalCache() {
+    var data = localStorage.getItem('schoolSystemFinalV5_4');
+    if (data) {
+        try {
+            systemData = JSON.parse(data);
+            ensureSystemDataFields();
+            console.log("📂 U ngarkuan të dhënat nga cache lokale");
+            if (currentUser) refreshDisplay();
+        } catch(e) {
+            console.error("Gabim në cache:", e);
+            createInitialStructure();
+        }
+    } else {
+        createInitialStructure();
+    }
+}
+
+// 4. DËGJO PËR NDRYSHIME NË CLOUD (REAL-TIME)
+function listenToCloudChanges() {
+    if (!db || !isConnected) {
+        console.log("⚠️ Cloud jo gati për dëgjim...");
+        setTimeout(listenToCloudChanges, 3000);
+        return;
+    }
+    
+    console.log("👂 Duke dëgjuar për ndryshime në cloud...");
+    
+    db.ref('schoolData_v5_4').on('value', function(snapshot) {
+        var data = snapshot.val();
+        if (!data) return;
+        
+        // Kontrollo nëse ka ndryshime
+        var currentData = JSON.stringify(systemData);
+        var newData = JSON.stringify(data);
+        
+        if (currentData !== newData) {
+            console.log("🔄 U zbuluan ndryshime në cloud!");
+            systemData = data;
+            ensureSystemDataFields();
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+            
+            if (currentUser) {
+                refreshDisplay();
+                showNotification("📥 Të dhënat u përditësuan nga cloud!");
+            }
+        }
+    });
+}
+
+// 5. RREGULLO saveToLocal PËR SINKRONIZIM
+window.saveToLocal = function() {
     // Ruaj në localStorage
     localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
     
-    // Nëse ka lidhje, ruaj në cloud
+    // Ruaj në cloud
     if (db && isConnected) {
         db.ref('schoolData_v5_4').set(systemData)
             .then(function() {
-                console.log("📤 Struktura boshe u ngarkua në cloud!");
-            })
-            .catch(function(err) {
-                console.warn("⚠️ Gabim:", err);
-            });
-    }
-    
-    if (currentUser) refreshDisplay();
-    showNotification("📚 Sistemi gati për të dhëna të reja!");
-}
-
-// 4. ZËVENDËSO FUNKSIONIN initializeDemoData
-window.initializeDemoData = function() {
-    console.log("⚠️ initializeDemoData u thirr - POR nuk krijon demo!");
-    // Në vend të demo-s, krijo strukturë boshe
-    createEmptyStructure();
-};
-
-// 5. RREGULLO saveToLocal
-window.saveToLocal = function() {
-    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-    
-    if (db && isConnected) {
-        db.ref('schoolData_v5_4').set(systemData)
-            .then(function() {
-                console.log("☁️✅ Të dhënat u ruajtën në cloud!");
+                console.log("☁️✅ Të dhënat u sinkronizuan në cloud!");
                 localStorage.setItem('lastCloudSync', new Date().toISOString());
             })
             .catch(function(err) {
-                console.warn("☁️⚠️ Gabim:", err.message);
+                console.warn("☁️⚠️ Gabim në sinkronizim:", err.message);
             });
     }
     
     if (typeof updateManualStatus === 'function') updateManualStatus(true);
 };
 
-// 6. NGARKO TË DHËNAT REALE
-loadRealDataFromCloud();
+// 6. RREGULLO FUNKSIONIN saveToCloud
+window.saveToCloud = function() {
+    if (!db || !isConnected) {
+        console.log("💾 Offline - ruajtje lokale");
+        return;
+    }
+    
+    db.ref('schoolData_v5_4').set(systemData)
+        .then(function() {
+            console.log("☁️✅ Sinkronizimi u krye!");
+            localStorage.setItem('lastCloudSync', new Date().toISOString());
+        })
+        .catch(function(err) {
+            console.warn("☁️⚠️ Gabim:", err.message);
+        });
+};
 
-// 7. AUTO-SYNC PERIODIK
+// 7. AUTO-SYNC PERIODIK (ÇDO 10 SEKONDA)
 setInterval(function() {
     if (isConnected && db && currentUser) {
         db.ref('schoolData_v5_4').set(systemData)
@@ -10393,112 +10366,215 @@ setInterval(function() {
                 console.warn("⚠️ Auto-sync gabim:", err);
             });
     }
-}, 30000);
+}, 10000);
 
 // 8. SINKRONIZO KUR LIDHJA KTHEHET
 if (db) {
     db.ref('.info/connected').on('value', function(snap) {
         if (snap.val() === true) {
-            console.log("☁️ Lidhja u kthye! Duke sinkronizuar...");
+            console.log("🌐 Lidhja u rikthye! Duke sinkronizuar...");
             setTimeout(function() {
-                // Ngarko të dhënat më të reja
-                db.ref('schoolData_v5_4').once('value')
-                    .then(function(snapshot) {
-                        var data = snapshot.val();
-                        if (data && data.classes && data.classes.length > 0) {
-                            systemData = data;
-                            ensureSystemDataFields();
-                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                            if (currentUser) refreshDisplay();
-                            showNotification("✅ Të dhënat u përditësuan nga cloud!");
-                        }
-                    });
+                loadSharedData();
             }, 1000);
         }
     });
 }
 
-console.log("✅ Sistemi Cloud Edition v5.4 - PA DEMO!");
-console.log("☁️ Ngarkon VETËM të dhënat tuaja reale!");
+// 9. FILLO SISTEMIN
+loadTeacherOfflineData();
+initTabelariData();
 
-        // ==================== FILLIMI I SISTEMIT ====================
-function init() {
-    console.log("🚀 Inicializimi i sistemit Cloud Edition...");
-
-    var hasLocalData = loadFromLocal();
-    
-    // Gjithmonë kontrollo cloud për të dhëna më të reja
-    if (isConnected && db) {
-        db.ref('schoolData_v5_4').once('value')
-            .then(function(snapshot) {
-                var cloudData = snapshot.val();
-                if (cloudData && cloudData.classes && cloudData.classes.length > 0) {
-                    var cloudTotal = 0;
-                    cloudData.classes.forEach(function(c) {
-                        cloudTotal += c.students ? c.students.length : 0;
-                    });
-                    
-                    var localTotal = 0;
-                    if (systemData.classes) {
-                        systemData.classes.forEach(function(c) {
-                            localTotal += c.students ? c.students.length : 0;
-                        });
-                    }
-                    
-                    if (cloudTotal > localTotal) {
-                        console.log("☁️ Cloud ka më shumë nxënës (" + cloudTotal + "), duke ngarkuar...");
-                        systemData = cloudData;
-                        ensureSystemDataFields();
-                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                        if (currentUser) refreshDisplay();
-                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-                    } else if (localTotal > 0 && cloudTotal === 0) {
-                        console.log("📤 Duke ngarkuar të dhënat lokale në cloud...");
-                        db.ref('schoolData_v5_4').set(systemData)
-                            .then(function() {
-                                showNotification("✅ Të dhënat lokale u ngarkuan në cloud!");
-                            })
-                            .catch(function(err) {
-                                console.error("❌ Gabim në ngarkim:", err);
-                            });
-                    } else {
-                        console.log("✅ Të dhënat janë të sinkronizuara");
-                    }
-                } else if (hasLocalData) {
-                    var totalStudents = 0;
-                    systemData.classes.forEach(function(c) {
-                        totalStudents += c.students.length;
-                    });
-                    if (totalStudents > 0) {
-                        console.log("📤 Duke ngarkuar të dhënat lokale në cloud...");
-                        db.ref('schoolData_v5_4').set(systemData)
-                            .then(function() {
-                                showNotification("✅ Të dhënat u ngarkuan në cloud!");
-                            })
-                            .catch(function(err) {
-                                console.error("❌ Gabim në ngarkim:", err);
-                            });
-                    }
-                }
-            })
-            .catch(function(err) {
-                console.warn("⚠️ Gabim në kontrollin e cloud:", err);
-            });
-    }
-
-    setTimeout(function() {
-        console.log("🔗 Duke lidhur butonat...");
-        setupButtons();
-    }, 100);
-
-    updateConnectionStatusUI();
-    loadTeacherOfflineData();
-    initTabelariData();
-
-    console.log("✅ Sistemi Cloud Edition është gati!");
-    console.log("👑 Administrator: admin / admin123");
-    console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
+// Ngarko të dhënat nga cloud
+if (db && isConnected) {
+    loadSharedData();
+    listenToCloudChanges();
+} else {
+    loadFromLocalCache();
 }
+
+// 10. ZËVENDËSO FUNKSIONIN DEMO (NUK KRIJO MË DEMO)
+window.initializeDemoData = function() {
+    console.log("⚠️ initializeDemoData është çaktivizuar - nuk krijohen demo!");
+    if (!systemData.classes || systemData.classes.length === 0) {
+        createInitialStructure();
+    }
+};
+
+console.log("✅ SISTEMI REAL-TIME CLOUD ËSHTË AKTIV!");
+console.log("📡 Të gjitha ndryshimet do të sinkronizohen AUTOMATIKISHT!");
+console.log("👥 Të gjithë përdoruesit shohin të njëjtat të dhëna!");
+// ==================== FIX PËR BUTONAT HYR ====================
+
+// 1. RREGULLO FUNKSIONIN performLogin
+window.performLogin = function() {
+    console.log("🔐 performLogin u thirr!");
+    
+    var usernameEl = document.getElementById('username');
+    var passwordEl = document.getElementById('password');
+    
+    if (!usernameEl || !passwordEl) {
+        alert("⚠️ Gabim në sistem! Rifreskoni faqen.");
+        return;
+    }
+    
+    var u = usernameEl.value.trim();
+    var p = passwordEl.value.trim();
+    
+    console.log("👤 Përdoruesi:", u);
+    
+    if (!u || !p) {
+        alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
+        return;
+    }
+    
+    // Administrator
+    if (u === 'admin' && p === systemData.adminPassword) {
+        console.log("✅ Hyrje si Administrator");
+        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
+        showMainApp();
+        return;
+    }
+    
+    // Kujdestarët
+    var teacher = systemData.teachers.find(function(t) {
+        return t.username === u && t.password === p;
+    });
+    
+    if (teacher) {
+        console.log("✅ Hyrje si Kujdestar:", teacher.name);
+        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+        showMainApp();
+        return;
+    }
+    
+    alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
+        "📌 Sigurohuni që:\n" +
+        "• Emri i përdoruesit është i saktë\n" +
+        "• Fjalëkalimi është i saktë\n" +
+        "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
+};
+
+// 2. RREGULLO FUNKSIONIN showAdminLogin
+window.showAdminLogin = function() {
+    document.getElementById('username').value = 'admin';
+    document.getElementById('password').value = '';
+    document.getElementById('password').focus();
+    showNotification("🔑 Vendosni fjalëkalimin e administratorit");
+};
+
+// 3. RREGULLO FUNKSIONIN logout
+window.logout = function() {
+    currentUser = null;
+    window.viewingClassId = null;
+    selectedActiveFilter = null;
+    document.getElementById('loginContainer').classList.remove('hidden');
+    document.getElementById('mainContainer').classList.add('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    showNotification("👋 Jeni shkyçur nga sistemi");
+};
+
+// 4. RREGULLO FUNKSIONIN showMainApp
+window.showMainApp = function() {
+    document.getElementById('loginContainer').classList.add('hidden');
+    document.getElementById('mainContainer').classList.remove('hidden');
+    refreshDisplay();
+    showNotification("✅ Mirë se vini, " + currentUser.name + "!");
+};
+
+// 5. RILIDH BUTONAT MANUALISHT
+(function fixLoginButtons() {
+    console.log("🔧 Rilidhja e butonave të hyrjes...");
+    
+    // Butoni Login
+    var loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        // Zëvendëso me një buton të ri
+        var newBtn = loginBtn.cloneNode(true);
+        loginBtn.parentNode.replaceChild(newBtn, loginBtn);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Butoni HYR u klikua!");
+            if (typeof window.performLogin === 'function') {
+                window.performLogin();
+            }
+        });
+        newBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Butoni HYR u klikua (touch)!");
+            if (typeof window.performLogin === 'function') {
+                window.performLogin();
+            }
+        }, { passive: false });
+        console.log("✅ Butoni HYR u lidh!");
+    }
+    
+    // Lidhja "Hyr si Administrator"
+    var adminLink = document.getElementById('adminLink');
+    if (adminLink) {
+        var newLink = adminLink.cloneNode(true);
+        adminLink.parentNode.replaceChild(newLink, adminLink);
+        newLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Admin link u klikua!");
+            if (typeof window.showAdminLogin === 'function') {
+                window.showAdminLogin();
+            }
+        });
+        newLink.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Admin link u klikua (touch)!");
+            if (typeof window.showAdminLogin === 'function') {
+                window.showAdminLogin();
+            }
+        }, { passive: false });
+        console.log("✅ Admin link u lidh!");
+    }
+    
+    // Butoni Logout
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        var newBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Logout u klikua!");
+            if (typeof window.logout === 'function') {
+                window.logout();
+            }
+        });
+        newBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log("🖱️ Logout u klikua (touch)!");
+            if (typeof window.logout === 'function') {
+                window.logout();
+            }
+        }, { passive: false });
+        console.log("✅ Logout butoni u lidh!");
+    }
+    
+    // Enter key në fushat e login
+    var usernameInput = document.getElementById('username');
+    var passwordInput = document.getElementById('password');
+    if (usernameInput && passwordInput) {
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                console.log("⌨️ Enter u shtyp!");
+                if (typeof window.performLogin === 'function') {
+                    window.performLogin();
+                }
+            }
+        }
+        usernameInput.addEventListener('keydown', handleEnter);
+        passwordInput.addEventListener('keydown', handleEnter);
+        console.log("✅ Enter event u lidh!");
+    }
+    
+    console.log("✅ Të gjithë butonat u lidhën!");
+})();
+
+console.log("✅ Fix-i për butonat HYR u aplikua!");
 // ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
 function ensureSystemDataFields() {
     if (!systemData.actives) systemData.actives = [
