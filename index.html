@@ -12797,8 +12797,8 @@ db.ref('schoolData').set(systemData)
         console.log("✅ Të dhënat u ruajtën në cloud!");
         console.log("📊 Të dhënat:", {school
             "klasa": systemData.classes.length,
-            mesimdhenes: systemData.teachers.length,
-            nxenes: systemData.classes.reduce(function(acc, c) { return acc + c.students.length; }, 0)
+            "mesimdhenes": systemData.teachers.length,
+            "nxenes": systemData.classes.reduce(function(acc, c) { return acc + c.students.length; }, 0)
         });
     })
     .catch(function(err) {
