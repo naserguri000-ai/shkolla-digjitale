@@ -2221,7 +2221,7 @@ function forceUploadToCloud() {
 
             // Nëse nuk gjendet lokal dhe ka lidhje me cloud, kontrollo në cloud
             if (!teacher && isConnected) {
-                db.ref('users').orderByChild('username').equalTo(u).once('value')
+                db.ref('teachers').orderByChild('username').equalTo(u).once('value')
                     .then(function(snapshot) {
                         var users = snapshot.val();
                         if (users) {
