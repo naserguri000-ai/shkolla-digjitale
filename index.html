@@ -1691,7 +1691,7 @@
     console.log("☁️ Kontrollo të dhënat nga cloud...");
     
     if (db && isCloudConfigured) {
-        db.ref('schoolData').once('value')
+        db.ref('/').once('value')
             .then(function(snapshot) {
                 var data = snapshot.val();
                 if (data && data.classes && data.classes.length > 0) {
@@ -1722,7 +1722,7 @@ window.saveToCloud = function() {
         return;
     }
     
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             console.log("☁️✅ Sinkronizimi u krye!");
             localStorage.setItem('lastCloudSync', new Date().toISOString());
@@ -1755,7 +1755,7 @@ if (db) {
             console.log("☁️ Lidhja u kthye! Duke sinkronizuar...");
             setTimeout(function() {
                 // Ngarko të dhënat më të reja
-                db.ref('schoolData').once('value')
+                db.ref('/').once('value')
                     .then(function(snapshot) {
                         var data = snapshot.val();
                         if (data && data.classes && data.classes.length > 0) {
@@ -1980,7 +1980,7 @@ console.log("✅ Fix-i për sinkronizimin u aplikua!");
 
             showNotification("☁️ Duke sinkronizuar të dhënat...");
 
-            db.ref('schoolData').set(systemData)
+            db.ref('/').set(systemData)
                 .then(function() {
                     showNotification("✅ Të dhënat u sinkronizuan me cloud!");
                     console.log("✅ Sinkronizimi i plotë u krye");
@@ -2007,7 +2007,7 @@ console.log("✅ Fix-i për sinkronizimin u aplikua!");
 
     console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
 
-    db.ref('schoolData').once('value')
+    db.ref('/').once('value')
         .then(function(snapshot) {
             var data = snapshot.val();
             
@@ -2060,7 +2060,7 @@ console.log("✅ Fix-i për sinkronizimin u aplikua!");
                 });
                 if (totalStudents > 0) {
                     showNotification("📤 Duke ngarkuar të dhënat lokale në cloud...");
-                    db.ref('schoolData').set(systemData)
+                    db.ref('/').set(systemData)
                         .then(function() {
                             showNotification("✅ Të dhënat lokale u ngarkuan në cloud!");
                         })
@@ -2107,7 +2107,7 @@ function forceUploadToCloud() {
 
     systemData.lastUploadedToCloud = new Date().toISOString();
 
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             showNotification("✅ " + totalStudents + " nxënës u ngarkuan në cloud!");
             localStorage.setItem('lastCloudSync', new Date().toISOString());
@@ -2128,7 +2128,7 @@ function forceUploadToCloud() {
 
     console.log("☁️ Duke ruajtur në cloud...");
     
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             console.log("✅ Të dhënat u ruajtën në cloud!");
             localStorage.setItem('lastCloudSync', new Date().toISOString());
@@ -10216,7 +10216,7 @@ function loadSharedData() {
         return;
     }
     
-    db.ref('schoolData').once('value')
+    db.ref('/').once('value')
         .then(function(snapshot) {
             var data = snapshot.val();
             
@@ -10259,7 +10259,7 @@ function createInitialStructure() {
     systemData.teachers = [];
     
     // Ruaj në cloud
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             console.log("📤 Struktura fillestare u ngarkua në cloud!");
             localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
@@ -10299,7 +10299,7 @@ function listenToCloudChanges() {
     
     console.log("👂 Duke dëgjuar për ndryshime në cloud...");
     
-    db.ref('schoolData').on('value', function(snapshot) {
+    db.ref('/').on('value', function(snapshot) {
         var data = snapshot.val();
         if (!data) return;
         
@@ -10328,7 +10328,7 @@ window.saveToLocal = function() {
     
     // Ruaj në cloud
     if (db && isConnected) {
-        db.ref('schoolData').set(systemData)
+        db.ref('/').set(systemData)
             .then(function() {
                 console.log("☁️✅ Të dhënat u sinkronizuan në cloud!");
                 localStorage.setItem('lastCloudSync', new Date().toISOString());
@@ -10348,7 +10348,7 @@ window.saveToCloud = function() {
         return;
     }
     
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             console.log("☁️✅ Sinkronizimi u krye!");
             localStorage.setItem('lastCloudSync', new Date().toISOString());
@@ -10361,7 +10361,7 @@ window.saveToCloud = function() {
 // 7. AUTO-SYNC PERIODIK (ÇDO 10 SEKONDA)
 setInterval(function() {
     if (isConnected && db && currentUser) {
-        db.ref('schoolData').set(systemData)
+        db.ref('/').set(systemData)
             .catch(function(err) {
                 console.warn("⚠️ Auto-sync gabim:", err);
             });
@@ -12331,7 +12331,7 @@ function syncAllDataToCloud() {
 
     showNotification("☁️ Duke sinkronizuar të dhënat...");
 
-    db.ref('schoolData').set(systemData)
+    db.ref('/').set(systemData)
         .then(function() {
             showNotification("✅ Të dhënat u sinkronizuan me cloud!");
             console.log("✅ Sinkronizimi i plotë u krye");
@@ -12792,7 +12792,7 @@ window.updateCloudStatusUI = window.updateCloudStatusUI;
 console.log("✅ Fix-i për pullat e dyfishta u aplikua!");
 console.log("📌 Tani do të ketë vetëm një pullë 'Online' në header!");
 // Ruaj të dhënat aktuale në cloud
-db.ref('schoolData').set(systemData)
+db.ref('/').set(systemData)
     .then(function() {
         console.log("✅ Të dhënat u ruajtën në cloud!");
         console.log("📊 Të dhënat:", {school
