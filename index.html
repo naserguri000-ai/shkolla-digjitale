@@ -12804,6 +12804,196 @@ db.ref('schoolData_v5_4').set(systemData)
     .catch(function(err) {
         console.error("❌ Gabim në ruajtje:", err);
     });
+// ================================================================
+//  FIX PËR SISTEMIN - VERSIONI I FUNDIT
+// ================================================================
+
+// 1. RREGULLO FUNKSIONET KRYESORE
+window.initializeDemoData = function() {
+    if (!systemData.classes || systemData.classes.length === 0) {
+        console.log("📚 Duke krijuar të dhëna demo...");
+        // Krijo klasat e para
+        for (var i = 1; i <= 6; i++) {
+            var cls = createClass('VI-' + i, null, 'active_vi');
+            systemData.classes.push(cls);
+        }
+        for (var i = 1; i <= 6; i++) {
+            var cls = createClass('VII-' + i, null, 'active_vii');
+            systemData.classes.push(cls);
+        }
+        for (var i = 1; i <= 6; i++) {
+            var cls = createClass('VIII-' + i, null, 'active_viii');
+            systemData.classes.push(cls);
+        }
+        for (var i = 1; i <= 6; i++) {
+            var cls = createClass('IX-' + i, null, 'active_ix');
+            systemData.classes.push(cls);
+        }
+        
+        // Krijo kujdestarë demo
+        var demoTeachers = [
+            { name: 'Kujdestari IX-1', username: 'k_ix1', password: 'ix1', classId: systemData.classes[18]?.id || null },
+            { name: 'Kujdestari IX-2', username: 'k_ix2', password: 'ix2', classId: systemData.classes[19]?.id || null },
+            { name: 'Kujdestari IX-3', username: 'k_ix3', password: 'ix3', classId: systemData.classes[20]?.id || null },
+            { name: 'Kujdestari IX-4', username: 'k_ix4', password: 'ix4', classId: systemData.classes[21]?.id || null },
+            { name: 'Kujdestari IX-5', username: 'k_ix5', password: 'ix5', classId: systemData.classes[22]?.id || null },
+            { name: 'Kujdestari IX-6', username: 'k_ix6', password: 'ix6', classId: systemData.classes[23]?.id || null }
+        ];
+        
+        demoTeachers.forEach(function(t) {
+            if (t.classId) {
+                systemData.teachers.push({
+                    id: 'teacher_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    name: t.name,
+                    username: t.username,
+                    password: t.password,
+                    classId: t.classId,
+                    role: 'teacher'
+                });
+            }
+        });
+        
+        saveToLocal();
+        console.log("✅ Të dhënat demo u krijuan!");
+    }
+};
+
+// 2. FUNKSIONI KRYESOR PËR NGARKIM
+window.loadSharedData = function() {
+    console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
+    
+    if (!db || !isConnected) {
+        console.log("⚠️ Cloud jo gati, duke ngarkuar nga lokal...");
+        loadFromLocalCache();
+        return;
+    }
+    
+    db.ref('schoolData_v5_4').once('value')
+        .then(function(snapshot) {
+            var data = snapshot.val();
+            
+            if (data && data.classes && data.classes.length > 0) {
+                console.log("✅ Të dhënat u gjetën në cloud!");
+                systemData = data;
+                ensureSystemDataFields();
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                if (currentUser) refreshDisplay();
+                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+            } else {
+                console.log("ℹ️ Nuk ka të dhëna në cloud, duke ngarkuar nga lokal...");
+                loadFromLocalCache();
+            }
+        })
+        .catch(function(err) {
+            console.error("❌ Gabim:", err);
+            loadFromLocalCache();
+        });
+};
+
+// 3. NGARKO NGA CACHE LOKAL
+window.loadFromLocalCache = function() {
+    var data = localStorage.getItem('schoolSystemFinalV5_4');
+    if (data) {
+        try {
+            systemData = JSON.parse(data);
+            ensureSystemDataFields();
+            console.log("📂 U ngarkuan të dhënat nga cache lokale");
+            if (currentUser) refreshDisplay();
+            return true;
+        } catch(e) {
+            console.error("Gabim në cache:", e);
+        }
+    }
+    
+    // Nëse nuk ka të dhëna, krijo demo
+    initializeDemoData();
+    return false;
+};
+
+// 4. SINKRONIZO PERIODIKISHT
+setInterval(function() {
+    if (isConnected && db && currentUser) {
+        db.ref('schoolData_v5_4').set(systemData)
+            .catch(function(err) {
+                console.warn("⚠️ Auto-sync gabim:", err);
+            });
+    }
+}, 30000);
+
+// 5. RREGULLO FUNKSIONIN SAVE TO LOCAL
+window.saveToLocal = function() {
+    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+    
+    if (db && isConnected) {
+        db.ref('schoolData_v5_4').set(systemData)
+            .then(function() {
+                console.log("☁️✅ Të dhënat u ruajtën në cloud!");
+                localStorage.setItem('lastCloudSync', new Date().toISOString());
+            })
+            .catch(function(err) {
+                console.warn("☁️⚠️ Gabim:", err.message);
+            });
+    }
+    
+    if (typeof updateManualStatus === 'function') updateManualStatus(true);
+};
+
+// 6. RREGULLO REFRESH DISPLAY
+var originalRefresh = window.refreshDisplay || function() {};
+
+window.refreshDisplay = function() {
+    console.log("🔄 refreshDisplay u thirr!");
+    
+    if (!currentUser) {
+        console.log("⚠️ Nuk ka përdorues!");
+        return;
+    }
+    
+    try {
+        if (isAdmin()) {
+            renderAdminDashboard();
+        } else if (isTeacher()) {
+            var cls = getCurrentClass();
+            if (!cls) {
+                document.getElementById('dynamicContent').innerHTML = 
+                    '<div class="class-card-large"><h3>⚠️ Nuk keni klasë të caktuar</h3></div>';
+            } else {
+                document.getElementById('dynamicContent').innerHTML = renderTeacherDashboard(cls);
+            }
+            document.getElementById('userNameDisplay').innerHTML = '👨‍🏫 KUJDESTARI | ' + currentUser.name;
+            document.getElementById('schoolYearDisplay').innerHTML = systemData.schoolInfo.year;
+        }
+        console.log("✅ Faqja u rifreskua!");
+    } catch(error) {
+        console.error("❌ Gabim:", error);
+        document.getElementById('dynamicContent').innerHTML = 
+            '<div class="class-card-large"><h3>❌ Gabim</h3><p>' + error.message + '</p></div>';
+    }
+};
+
+// 7. RREGULLO SHOW MAIN APP
+var originalShowMainApp = window.showMainApp || function() {};
+
+window.showMainApp = function() {
+    console.log("🚀 showMainApp u thirr!");
+    
+    document.getElementById('loginContainer').classList.add('hidden');
+    document.getElementById('mainContainer').classList.remove('hidden');
+    
+    // Ngarko të dhënat
+    loadSharedData();
+    
+    // Thirr refreshDisplay pas një kohe
+    setTimeout(function() {
+        refreshDisplay();
+    }, 500);
+    
+    showNotification("✅ Mirë se vini, " + currentUser.name + "!");
+};
+
+console.log("✅ Të gjitha defektet u rregulluan!");
+console.log("👑 Administrator: admin / admin123");
+console.log("👨‍🏫 Demo kujdestarë: k_ix1 / ix1, k_ix2 / ix2, etj.");
 </script>
 </body>
 </html>
