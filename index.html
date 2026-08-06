@@ -4690,7 +4690,7 @@
                 totalWOR: totalWOR, totalAbsences: totalWR + totalWOR, subjectStats: subjectStats };
         }
 
-        function getSubjectStats(students, subjectsOrder, semester) {
+                function getSubjectStats(students, subjectsOrder, semester) {
             var stats = [];
             subjectsOrder.forEach(function(sub) {
                 var maleGrades = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, total: 0, sum: 0 };
@@ -4698,11 +4698,15 @@
                 students.forEach(function(s) {
                     var grade = getStudentGradeForSemester(s, sub.key, semester);
                     if (grade >= 1 && grade <= 5) {
-                        if (s.gender === 'M') { maleGrades[grade]++;
+                        if (s.gender === 'M') { 
+                            maleGrades[grade]++;
                             maleGrades.total++;
-                            maleGrades.sum += grade; } else { femaleGrades[grade]++;
+                            maleGrades.sum += grade; 
+                        } else { 
+                            femaleGrades[grade]++;
                             femaleGrades.total++;
-                            femaleGrades.sum += grade; }
+                            femaleGrades.sum += grade; 
+                        }
                     }
                 });
                 var maleAvg = maleGrades.total > 0 ? (maleGrades.sum / maleGrades.total).toFixed(2) : '0.00';
@@ -6822,64 +6826,6 @@
                 undoState: null
             };
             initializeDemoData();
-        }
-
-        function initializeDemoData() {
-            if (systemData.classes && systemData.classes.length > 0) return;
-
-            console.log("🔄 Krijohen të dhënat demo...");
-
-            var classNames = [];
-            for (var i = 1; i <= 6; i++) {
-                classNames.push('VI-' + i);
-                classNames.push('VII-' + i);
-                classNames.push('VIII-' + i);
-                classNames.push('IX-' + i);
-            }
-
-            var activeMap = {
-                'VI': 'active_vi',
-                'VII': 'active_vii',
-                'VIII': 'active_viii',
-                'IX': 'active_ix'
-            };
-
-            classNames.forEach(function(name) {
-                var prefix = name.split('-')[0];
-                var activeId = activeMap[prefix] || null;
-                var cls = createClass(name, null, activeId);
-                systemData.classes.push(cls);
-            });
-
-            var demoTeachers = [
-                { name: 'Arbesa Raka', username: 'arbesa', password: 'arbesa123', classId: systemData.classes[0]
-                        ?.id },
-                { name: 'Fatos Gashi', username: 'fatos', password: 'fatos123', classId: systemData.classes[1]
-                        ?.id },
-                { name: 'Gjylije Beka', username: 'gjylije', password: 'gjylije123', classId: systemData.classes[2]
-                        ?.id },
-                { name: 'Luljeta Kollqaku', username: 'luljeta', password: 'luljeta123',
-                    classId: systemData.classes[3]?.id }
-            ];
-
-            demoTeachers.forEach(function(t) {
-                if (t.classId) {
-                    var teacher = {
-                        id: 'teacher_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                        name: t.name,
-                        username: t.username,
-                        password: t.password,
-                        classId: t.classId,
-                        role: 'teacher'
-                    };
-                    systemData.teachers.push(teacher);
-                    var cls = systemData.classes.find(function(c) { return c.id === t.classId; });
-                    if (cls) cls.teacherId = teacher.id;
-                }
-            });
-
-            saveToLocal();
-            console.log("✅ Të dhënat demo u krijuan!");
         }
 
         // ==================== FUNKSIONET PËR BACKUP ====================
@@ -11739,7 +11685,6 @@ function saveClassName() {
         }
     }
 }
-
 // ==================== 7. FUNKSIONET PËR PRINT CLASS REPORT ====================
 function printClassReportById(classId, semester) {
     var cls = systemData.classes.find(function(c) { return c.id === classId; });
@@ -11944,6 +11889,8 @@ function printClassCertificates(className) {
         var successDesc = avgNum >= 4.5 ? 'Shkëlqyeshëm' : avgNum >= 3.5 ? 'Shumë i mirë' : avgNum >= 2.5 ?
             'I mirë' : avgNum >= 1.5 ? 'Mjaftueshëm' : 'Pamjaftueshëm';
         var abs = getTotalAbsences(student, semester);
+        var hasOne = hasAnyOne(student, classObj.subjectsOrder, semester);
+        var onesCount = countOnes(student, classObj.subjectsOrder, semester);
         var behavior = student.behavior || 'Shembullore';
 
         var subjectsHtml = '';
@@ -12088,6 +12035,7 @@ function printTranscriptSimple(studentId, classId) {
     var classPrefix = classObj.className.match(/^[IVX]+/i)?.[0].toUpperCase() || "IX";
     var yearsToShow = [];
     var yearLabels = ["2022/2023", "2023/2024", "2024/2025", "2025/2026"];
+
     if (classPrefix === "IX") yearsToShow = [0, 1, 2, 3];
     else if (classPrefix === "VIII") yearsToShow = [1, 2, 3];
     else if (classPrefix === "VII") yearsToShow = [2, 3];
