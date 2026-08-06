@@ -2401,12 +2401,13 @@
                         <span class="admin-badge">🔑 ADMIN</span>
                     </div>
                     
-                    <div class="cloud-status-bar">
+                                        <div class="cloud-status-bar">
                         <span>☁️ Statusi i Cloud: <span class="${isConnected ? 'online' : 'offline'}">${isConnected ? '✅ Online' : '❌ Offline'}</span></span>
                         <span>👨‍🏫 Mësimdhënës: ${systemData.teachers.length}</span>
                         <span>🏫 Klasa: ${systemData.classes.length}</span>
                         <span>👨‍🎓 Nxënës: ${totalStudents}</span>
                         <div>
+                            <button class="btn btn-success btn-sm" onclick="syncAllDataToCloud()" style="background:#2e7d32; color:white; border:2px solid #1b5e20;">💾 Ruaj në Cloud</button>
                             <button class="btn btn-cloud btn-sm" onclick="syncAllDataToCloud()" style="background:#1a237e; color:white; border:2px solid #0d47a1;">☁️ Sinkronizo</button>
                             <button class="btn btn-info btn-sm" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko</button>
                             <button class="btn btn-warning btn-sm" onclick="showCloudStatus()" style="background:#ed6c02; color:white;">📊 Statusi</button>
@@ -10424,17 +10425,15 @@ function init() {
                         showNotification("✅ Të dhënat u ngarkuan nga cloud!");
                     } else {
                         console.log("ℹ️ Nuk ka të dhëna në cloud, duke krijuar të dhëna demo...");
-                        initializeDemoData();
                     }
                 })
                 .catch(function(err) {
                     console.warn("⚠️ Gabim në ngarkimin nga cloud:", err);
                     console.log("🔄 Duke krijuar të dhëna demo...");
-                    initializeDemoData();
+                    
                 });
         } else {
             console.log("🔄 Nuk ka lidhje me cloud, duke krijuar të dhëna demo...");
-            initializeDemoData();
         }
     } else {
         console.log("✅ Të dhënat u ngarkuan me sukses nga localStorage!");
@@ -12534,6 +12533,7 @@ function renderAdminDashboard() {
                     <button class="btn btn-cloud btn-sm" onclick="syncAllDataToCloud()" style="background:#1a237e; color:white; border:2px solid #0d47a1;">☁️ Sinkronizo</button>
                     <button class="btn btn-info btn-sm" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko</button>
                     <button class="btn btn-warning btn-sm" onclick="showCloudStatus()" style="background:#ed6c02; color:white;">📊 Statusi</button>
+<button class="btn btn-success btn-sm" onclick="syncAllDataToCloud()" style="background:#2e7d32; color:white; border:2px solid #1b5e20;">💾 Ruaj në Cloud</button>
                     <button class="btn btn-danger btn-sm" onclick="forceCacheClear()" style="background:#c62828; color:white; border:2px solid #b71c1c;">🔄 Pastro Cache</button>
                 </div>
             </div>
