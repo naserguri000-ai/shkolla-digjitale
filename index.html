@@ -7232,10 +7232,14 @@ if (systemData.classes && systemData.classes.length > 0) {
                 </tr>`;
             });
 
-            var totalStudents = 0;
-systemData.classes.forEach(function(c) {
-    totalStudents += c.students ? c.students.length : 0;
-});
+                var totalStudents = 0;
+    if (systemData.classes && Array.isArray(systemData.classes)) {
+        systemData.classes.forEach(function(c) {
+            if (c && c.students) {
+                totalStudents += c.students.length;
+            }
+        });
+    }
             var totalFailAll = globalStats.categories.fail || 0;
             var percentFailAll = totalStudents > 0 ? ((totalFailAll / totalStudents) * 100).toFixed(1) :
             '0';
@@ -12601,13 +12605,8 @@ function renderAdminDashboard() {
                 <button class="semester-btn ${currentSemesterView === 'final' ? 'active' : ''}" onclick="setSemester('final')">🎓 Përfundimtar</button>
             </div>
             
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:25px;">
-                <div class="dashboard-widget" style="background:#0b4b6e;" onclick="alert('📚 Totali i klasave: ${globalStats.classesStats.length}')">
-                    <h3>🏫 KLASA</h3><div class="number">${globalStats.classesStats.length}</div>
-                </div>
-                <div class="dashboard-widget" style="background:#2e7d32;" onclick="alert('👨‍🎓 Totali nxënës: ${globalStats.totalStudents}\nM Djem: ${globalStats.totalMale} (${getPercent(globalStats.totalMale, globalStats.totalStudents)}%)\nF Vajza: ${globalStats.totalFemale} (${getPercent(globalStats.totalFemale, globalStats.totalStudents)}%)')">
-                    <h3>👨‍🎓 NXËNËS</h3><div class="number">${globalStats.totalStudents}</div>
-                    <div style="font-size:11px;">M ${globalStats.totalMale} (${getPercent(globalStats.totalMale, globalStats.totalStudents)}%) | F ${globalStats.totalFemale} (${getPercent(globalStats.totalFemale, globalStats.totalStudents)}%)</div>
+                            <div class="dashboard-widget" style="background:#2e7d32;" onclick="alert('👨‍🎓 Totali nxënës: ${totalStudents}')">
+                    <h3>👨‍🎓 NXËNËS</h3><div class="number">${totalStudents}</div>
                 </div>
                 <div class="dashboard-widget" style="background:#ed6c02;" onclick="alert('📊 Mesatarja e përgjithshme: ${globalStats.overallAvg}')">
                     <h3>📊 MESATARJA</h3><div class="number">${globalStats.overallAvg}</div>
