@@ -7232,7 +7232,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 </tr>`;
             });
 
-            var totalStudents = globalStats.totalStudents;
+            var totalStudents = 0;
+systemData.classes.forEach(function(c) {
+    totalStudents += c.students ? c.students.length : 0;
+});
             var totalFailAll = globalStats.categories.fail || 0;
             var percentFailAll = totalStudents > 0 ? ((totalFailAll / totalStudents) * 100).toFixed(1) :
             '0';
@@ -12512,8 +12515,8 @@ function renderAdminDashboard() {
     var filteredClasses = selectedActiveFilter ? systemData.classes.filter(function(c) { return c.activeId === selectedActiveFilter; }) : systemData.classes;
 
     var totalStudents = globalStats.totalStudents;
-    var totalMale = globalStats.totalMale;
-    var totalFemale = globalStats.totalFemale;
+    var totalMale = 0;
+    var totalFemale = 0;
     var getPercent = function(count, total) { return total > 0 ? ((count / total) * 100).toFixed(1) : '0'; };
 
     // Kontrollo nëse ka klasa
