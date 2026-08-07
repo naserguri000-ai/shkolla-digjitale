@@ -6826,7 +6826,6 @@
                 transcriptManualData: {},
                 undoState: null
             };
-            initializeDemoData();
         }
 
         // ==================== FUNKSIONET PËR BACKUP ====================
@@ -12509,7 +12508,7 @@ function renderAdminDashboard() {
     // Kontrollo nëse ka klasa
     if (systemData.classes.length === 0) {
         console.log("⚠️ Nuk ka klasa në sistem, duke krijuar të dhëna demo...");
-        initializeDemoData();
+        
         // Rilogarit statistikat
         globalStats = getGlobalStats(currentSemesterView, selectedActiveFilter);
         totalStudents = globalStats.totalStudents;
