@@ -2389,10 +2389,20 @@
                     selectedActiveFilter; }) :
                 systemData.classes;
 
-            var totalStudents = globalStats.totalStudents;
+            // Llogaritja e saktë e nxënësve nga të dhënat reale
+var totalStudents = 0;
+if (systemData.classes && systemData.classes.length > 0) {
+    systemData.classes.forEach(function(c) {
+        if (c.students) {
+            totalStudents += c.students.length;
+        }
+    });
+}
             var totalMale = globalStats.totalMale;
             var totalFemale = globalStats.totalFemale;
-            var getPercent = function(count, total) { return total > 0 ? ((count / total) * 100).toFixed(1) : '0'; };
+            function getPercent(count, total) { 
+    return total > 0 ? ((count / total) * 100).toFixed(1) : '0'; 
+}
 
             var html = `
                 <div class="class-card-large">
