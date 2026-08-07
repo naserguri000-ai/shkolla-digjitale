@@ -1674,6 +1674,7 @@
                 updateConnectionStatusUI();
                 updateCloudStatusUI();
                 if (isConnected && currentUser) {
+                    refreshDisplay();
                     console.log("☁️ Lidhur me cloud, duke sinkronizuar...");
                     loadAllDataFromCloud();
                 }
