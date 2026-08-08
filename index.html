@@ -10424,43 +10424,48 @@ function init() {
     // Ngarko të dhënat lokale fillimisht
     var hasLocalData = loadFromLocal();
     
+    // --- KONTROLLI I RI PËR INCOGNITO/PA TË DHËNA ---
     if (!hasLocalData) {
-        console.log("ℹ️ Nuk u gjetën të dhëna lokale, duke pritur të dhënat nga cloud...");
+        console.log("ℹ️ Nuk u gjetën të dhëna në këtë shfletues (Incognito ose i ri). Duke u përpjekur të ngarkohet nga Cloud-i...");
         
-        // Nëse ka lidhje me cloud, ngarko automatikisht
+        // Nëse ka lidhje me cloud, provo të ngarkosh nga aty
         if (isConnected && db) {
             db.ref('schoolData_v5_4').once('value')
                 .then(function(snapshot) {
                     var data = snapshot.val();
-                    if (data) {
-                        console.log("✅ Të dhënat u ngarkuan nga cloud automatikisht!");
+                    if (data && data.classes && data.classes.length > 0) {
+                        console.log("✅ Të dhënat u gjetën dhe u ngarkuan nga Cloud-i!");
                         systemData = data;
-                        // Sigurohu që të gjitha fushat ekzistojnë
                         ensureSystemDataFields();
                         localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                        if (currentUser) refreshDisplay();
-                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+                        // Nëse tashmë ishte i loguar, rifresko pamjen
+                        if (currentUser) refreshDisplay(); 
+                        showNotification("✅ Të dhënat u ngarkuan nga Cloud-i!");
                     } else {
-                        console.log("ℹ️ Nuk ka të dhëna në cloud, duke krijuar të dhëna demo...");
+                        console.log("ℹ️ Nuk ka të dhëna fare në Cloud. Duke krijuar të dhënat fillestare (Demo)...");
+                        initializeDemoData();
                     }
                 })
                 .catch(function(err) {
                     console.warn("⚠️ Gabim në ngarkimin nga cloud:", err);
-                    console.log("🔄 Duke krijuar të dhëna demo...");
-                    
+                    console.log("🔄 Nuk mundi të lidhej me cloud. Duke krijuar të dhëna demo lokale...");
+                    initializeDemoData();
                 });
         } else {
-            console.log("🔄 Nuk ka lidhje me cloud, duke krijuar të dhëna demo...");
+            console.log("🔄 Nuk ka lidhje me internet/cloud. Duke krijuar të dhëna demo lokale...");
+            initializeDemoData();
         }
-    } else {
-        console.log("✅ Të dhënat u ngarkuan me sukses nga localStorage!");
+    } 
+    // --- FUNDI I KONTROLLIT TË RI ---
+    else {
+        console.log("✅ Të dhënat u ngarkuan me sukses nga localStorage (Browseri kryesor)!");
         
         // Gjithsesi, kontrollo nëse ka të dhëna më të reja në cloud
         if (isConnected && db) {
             db.ref('schoolData_v5_4').once('value')
                 .then(function(snapshot) {
                     var cloudData = snapshot.val();
-                    if (cloudData) {
+                    if (cloudData && cloudData.classes && cloudData.classes.length > 0) {
                         // Krahaso datat për të parë nëse ka të dhëna më të reja
                         var localTime = localStorage.getItem('lastCloudSync') || '1970-01-01';
                         var cloudTime = cloudData.lastUpdated || cloudData.archivedAt || new Date().toISOString();
