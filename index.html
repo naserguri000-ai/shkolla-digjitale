@@ -10446,47 +10446,56 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== FILLIMI I SISTEMIT ====================
 function init() {
-    console.log("🚀 Duke inicializuar sistemin për 25 mësimdhënës (Cloud-First)...");
+    console.log("🚀 Sistemi Cloud po fillon (pa krijuar demo)...");
 
-    // 1. Kontrollo a ka lidhje me Cloud
-    if (!isConnected || !db) {
-        console.warn("⚠️ Nuk ka lidhje me Cloud. Duke u përpjekur të ngarkohen të dhënat lokale...");
-        // Nëse nuk ka internet, ngarko lokal (për përdorim offline)
-        var hasLocalData = loadFromLocal();
-        if (!hasLocalData) {
-            initializeDemoData(); // Nëse as lokali nuk ka, krijo demo
-        }
-    } else {
-        // 2. Nëse ka internet, PJESËMARRËSIT (Mësimdhënësit) NGARKOJNË VETËM NGA CLOUD
-        console.log("☁️ Lidhur me Cloud. Duke ngarkuar të dhënat e fundit për të gjithë...");
-        
+    // 1. Përpiqu të ngarkosh nga CLOUD-I
+    if (isConnected && db) {
+        console.log("☁️ Duke u lidhur me Cloud për të marrë të dhënat...");
+
         db.ref('schoolData_v5_4').once('value')
             .then(function(snapshot) {
                 var data = snapshot.val();
+
+                // Nëse Cloud-i ka të dhëna, i ngarkojmë dhe i ruajmë
                 if (data && data.classes && data.classes.length > 0) {
+                    console.log("✅ Të dhënat u ngarkuan nga Cloud!");
                     systemData = data;
                     ensureSystemDataFields();
-                    
-                    // Ruajmë një kopje lokale për shpejtësi (por burimi kryesor mbetet Cloud-i)
+                    // Ruaj në kompjuterin lokal për shpejtësi
                     localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                    
-                    console.log("✅ Të dhënat u ngarkuan me sukses nga Cloud-i!");
                     if (currentUser) refreshDisplay();
+                    showNotification("✅ Të dhënat u ngarkuan nga Cloud-i!");
                 } else {
-                    console.log("ℹ️ Nuk ka të dhëna në Cloud. Duke krijuar të dhënat fillestare...");
-                    initializeDemoData();
-                    // Ruajini në Cloud që mësimdhënësit e tjerë t'i shohin
-                    syncAllDataToCloud();
+                    // Nëse Cloud-i është bosh, shfaq një mesazh dhe MOS KRIJO DEMO
+                    console.warn("⚠️ Cloud-i është bosh! Nuk ka fare të dhëna.");
+                    document.getElementById('loginStatusMsg').innerHTML = "⚠️ Nuk ka të dhëna në Cloud. Ju lutemi identifikohuni si ADMIN për të inicializuar sistemin.";
+                    document.getElementById('loginStatusMsg').style.color = "orange";
+                    
+                    // Kontrollo nëse ka të paktën të dhëna lokale nga një herë tjetër
+                    var hasLocalBackup = loadFromLocal();
+                    if (!hasLocalBackup) {
+                        // Nëse as lokali nuk ka, lëre bosh. Jo demo!
+                        systemData.classes = [];
+                    }
                 }
             })
             .catch(function(err) {
-                console.error("❌ Gabim në ngarkimin nga Cloud:", err);
-                // Rast i rrallë: bie në backup lokal
-                var hasLocalData = loadFromLocal();
-                if (!hasLocalData) {
-                    initializeDemoData();
+                console.error("❌ Gabim në lidhjen me Cloud:", err);
+                // Nëse bie interneti, përdor backup-in lokal
+                var hasLocalBackup = loadFromLocal();
+                if (!hasLocalBackup) {
+                    document.getElementById('loginStatusMsg').innerHTML = "⚠️ Nuk mund të lidhet me Cloud. Kontrolloni internetin.";
+                    document.getElementById('loginStatusMsg').style.color = "red";
                 }
             });
+    } else {
+        // Nëse nuk ka fare internet në fillim
+        console.warn("📱 Offline mode. Duke u përpjekur për të ngarkuar të dhëna nga memoria lokale...");
+        var hasLocalBackup = loadFromLocal();
+        if (!hasLocalBackup) {
+            document.getElementById('loginStatusMsg').innerHTML = "⚠️ Offline dhe pa të dhëna lokale. Lidhuni me internet.";
+            document.getElementById('loginStatusMsg').style.color = "red";
+        }
     }
 
     // Lidh butonat
@@ -10498,10 +10507,8 @@ function init() {
     loadTeacherOfflineData();
     initTabelariData();
 
-    console.log("✅ Sistemi Cloud është gati për punë në ekip!");
-    console.log("☁️ Të dhënat do të sinkronizohen në kohë reale për të gjithë.");
+    console.log("✅ Sistemi Cloud u inicializua pa krijuar asnjë të dhënë demo.");
 }
-
 // ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
 function ensureSystemDataFields() {
     if (!systemData.actives) systemData.actives = [
