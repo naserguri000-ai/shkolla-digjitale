@@ -1912,86 +1912,41 @@
         }
 
         function loadAllDataFromCloud() {
-            if (!db || !isConnected) {
-                showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-                return;
+    if (!requireAdmin()) return;
+
+    // VËREJTJE: I hoqa kontrollin "if (!db || !isConnected)" nga këtu!
+    // Tani sistemi do të përpiqet të bëjë kërkesën te Cloud-i edhe nëse Incognito e quan veten "Offline".
+
+    if (!db) {
+        showNotification("⚠️ Firebase nuk u inicializua. Duke punuar offline.");
+        return;
+    }
+
+    console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
+
+    db.ref('schoolData_v5_4').once('value')
+        .then(function(snapshot) {
+            var data = snapshot.val();
+            if (data) {
+                systemData = data;
+                ensureSystemDataFields();
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                console.log("✅ Të dhënat u ngarkuan nga cloud");
+                if (currentUser) refreshDisplay();
+                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+            } else {
+                console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
+                // Nëse nuk ka në cloud, atëherë provo të ngarkosh nga lokalja
+                loadFromLocal();
             }
-
-            console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
-
-            db.ref('schoolData_v5_4').once('value')
-                .then(function(snapshot) {
-                    var data = snapshot.val();
-                    if (data) {
-                        systemData = data;
-                        if (!systemData.actives) systemData.actives = [
-                            { id: "active_ix", name: "KLASA IX", code: "IX", order: 1 },
-                            { id: "active_viii", name: "KLASA VIII", code: "VIII", order: 2 },
-                            { id: "active_vii", name: "KLASA VII", code: "VII", order: 3 },
-                            { id: "active_vi", name: "KLASA VI", code: "VI", order: 4 }
-                        ];
-                        if (!systemData.curriculum) systemData.curriculum = { weeksSem1: 16, weeksSem2: 21 };
-                        if (!systemData.holidays) systemData.holidays = [];
-                        if (!systemData.semesterDates) systemData.semesterDates = {
-                            schoolStart: "2025-09-01", schoolEnd: "2026-06-15",
-                            semester1Start: "2025-09-01", semester1End: "2025-12-20",
-                            semester2Start: "2026-01-10", semester2End: "2026-06-15"
-                        };
-                        if (!systemData.adminPassword) systemData.adminPassword = "admin123";
-                        if (!systemData.schoolInfo) systemData.schoolInfo = {
-                            name: "SHFMU 'EMIN DURAKU' KACANIK",
-                            year: "2025-2026",
-                            principal: "DIANA REKA"
-                        };
-                        if (!systemData.archivedYears) systemData.archivedYears = [];
-                        if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
-                        if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-                        systemData.appVersion = APP_VERSION;
-
-                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                        console.log("✅ Të dhënat u ngarkuan nga cloud");
-                        if (currentUser) refreshDisplay();
-                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-                    } else {
-                        console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
-                        syncAllDataToCloud();
-                    }
-                })
-                .catch(function(err) {
-                    console.error("❌ Gabim në ngarkimin e të dhënave:", err);
-                    showNotification("⚠️ Gabim në lidhje me cloud!");
-                });
-
-            db.ref('users').once('value')
-                .then(function(snapshot) {
-                    var users = snapshot.val();
-                    if (users) {
-                        var teachers = [];
-                        for (var id in users) {
-                            var user = users[id];
-                            if (user.role === 'teacher') {
-                                teachers.push({
-                                    id: user.id,
-                                    name: user.name,
-                                    username: user.username,
-                                    password: user.password,
-                                    classId: user.classId,
-                                    role: user.role
-                                });
-                            }
-                        }
-                        if (teachers.length > 0) {
-                            systemData.teachers = teachers;
-                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                            if (currentUser) refreshDisplay();
-                            console.log("✅ " + teachers.length + " mësimdhënës u ngarkuan nga cloud");
-                        }
-                    }
-                })
-                .catch(function(err) {
-                    console.warn("⚠️ Gabim në ngarkimin e përdoruesve:", err);
-                });
-        }
+        })
+        .catch(function(err) {
+            console.error("❌ Gabim në ngarkimin e të dhënave:", err);
+            // Nëse bie gabimi i rrjetit, atëherë bie në lokale
+            loadFromLocal();
+            showNotification("⚠️ Gabim në lidhje me cloud! Duke përdorur të dhënat lokale.");
+        });
+}
 
         function saveToCloud() {
             if (!db || !isConnected || !isCloudConfigured) {
