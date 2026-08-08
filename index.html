@@ -2012,11 +2012,38 @@
                 });
         }
 
-        function saveToLocal() {
-            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-            saveToCloud();
-            updateManualStatus(true);
-        }
+        // Ky funksion thirret sa herë që bëhet një ndryshim (notë, mungesë, shtim nxënësi)
+function saveToLocal() {
+    // 1. Ruaj një kopje në cache lokal (për shpejtësi nëse humbet interneti)
+    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+    
+    // 2. Sinkronizo AUTOMATIKISHT dhe MENJËHERË me Cloud për të gjithë mësimdhënësit
+    if (db && isConnected) {
+        console.log("☁️ Duke ruajtur ndryshimin në Cloud për të gjithë përdoruesit...");
+        db.ref('schoolData_v5_4').set(systemData)
+            .then(function() {
+                console.log("☁️✅ Ndryshimi u ruajt në Cloud!");
+                localStorage.setItem('lastCloudSync', new Date().toISOString());
+                // Nëse ky është mësimdhënës, mund t'i tregojmë se u ruajt
+                updateManualStatus(true);
+            })
+            .catch(function(err) {
+                console.error("❌ Gabim në sinkronizim me Cloud:", err);
+                showNotification("⚠ë Ndryshimi u ruajt lokalisht, por nuk arriti në Cloud. Duke u përpjekur përsëri...");
+                // Provo përsëri pas 5 sekondash
+                setTimeout(function() {
+                    if (db && isConnected) {
+                        db.ref('schoolData_v5_4').set(systemData);
+                    }
+                }, 5000);
+                updateManualStatus(false);
+            });
+    } else {
+        // Nëse nuk ka internet, ruhet vetëm lokal
+        console.log("📱 Offline mode - ndryshimi u ruajt vetëm lokalisht");
+        updateManualStatus(false);
+    }
+}
 
         function loadFromLocal() {
             var data = localStorage.getItem('schoolSystemFinalV5_4');
@@ -10419,81 +10446,51 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== FILLIMI I SISTEMIT ====================
 function init() {
-    console.log("🚀 Inicializimi i sistemit Cloud Edition...");
+    console.log("🚀 Duke inicializuar sistemin për 25 mësimdhënës (Cloud-First)...");
 
-    // Ngarko të dhënat lokale fillimisht
-    var hasLocalData = loadFromLocal();
-    
-    // --- KONTROLLI I RI PËR INCOGNITO/PA TË DHËNA ---
-    if (!hasLocalData) {
-        console.log("ℹ️ Nuk u gjetën të dhëna në këtë shfletues (Incognito ose i ri). Duke u përpjekur të ngarkohet nga Cloud-i...");
+    // 1. Kontrollo a ka lidhje me Cloud
+    if (!isConnected || !db) {
+        console.warn("⚠️ Nuk ka lidhje me Cloud. Duke u përpjekur të ngarkohen të dhënat lokale...");
+        // Nëse nuk ka internet, ngarko lokal (për përdorim offline)
+        var hasLocalData = loadFromLocal();
+        if (!hasLocalData) {
+            initializeDemoData(); // Nëse as lokali nuk ka, krijo demo
+        }
+    } else {
+        // 2. Nëse ka internet, PJESËMARRËSIT (Mësimdhënësit) NGARKOJNË VETËM NGA CLOUD
+        console.log("☁️ Lidhur me Cloud. Duke ngarkuar të dhënat e fundit për të gjithë...");
         
-        // Nëse ka lidhje me cloud, provo të ngarkosh nga aty
-        if (isConnected && db) {
-            db.ref('schoolData_v5_4').once('value')
-                .then(function(snapshot) {
-                    var data = snapshot.val();
-                    if (data && data.classes && data.classes.length > 0) {
-                        console.log("✅ Të dhënat u gjetën dhe u ngarkuan nga Cloud-i!");
-                        systemData = data;
-                        ensureSystemDataFields();
-                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                        // Nëse tashmë ishte i loguar, rifresko pamjen
-                        if (currentUser) refreshDisplay(); 
-                        showNotification("✅ Të dhënat u ngarkuan nga Cloud-i!");
-                    } else {
-                        console.log("ℹ️ Nuk ka të dhëna fare në Cloud. Duke krijuar të dhënat fillestare (Demo)...");
-                        initializeDemoData();
-                    }
-                })
-                .catch(function(err) {
-                    console.warn("⚠️ Gabim në ngarkimin nga cloud:", err);
-                    console.log("🔄 Nuk mundi të lidhej me cloud. Duke krijuar të dhëna demo lokale...");
+        db.ref('schoolData_v5_4').once('value')
+            .then(function(snapshot) {
+                var data = snapshot.val();
+                if (data && data.classes && data.classes.length > 0) {
+                    systemData = data;
+                    ensureSystemDataFields();
+                    
+                    // Ruajmë një kopje lokale për shpejtësi (por burimi kryesor mbetet Cloud-i)
+                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                    
+                    console.log("✅ Të dhënat u ngarkuan me sukses nga Cloud-i!");
+                    if (currentUser) refreshDisplay();
+                } else {
+                    console.log("ℹ️ Nuk ka të dhëna në Cloud. Duke krijuar të dhënat fillestare...");
                     initializeDemoData();
-                });
-        } else {
-            console.log("🔄 Nuk ka lidhje me internet/cloud. Duke krijuar të dhëna demo lokale...");
-            initializeDemoData();
-        }
-    } 
-    // --- FUNDI I KONTROLLIT TË RI ---
-    else {
-        console.log("✅ Të dhënat u ngarkuan me sukses nga localStorage (Browseri kryesor)!");
-        
-        // Gjithsesi, kontrollo nëse ka të dhëna më të reja në cloud
-        if (isConnected && db) {
-            db.ref('schoolData_v5_4').once('value')
-                .then(function(snapshot) {
-                    var cloudData = snapshot.val();
-                    if (cloudData && cloudData.classes && cloudData.classes.length > 0) {
-                        // Krahaso datat për të parë nëse ka të dhëna më të reja
-                        var localTime = localStorage.getItem('lastCloudSync') || '1970-01-01';
-                        var cloudTime = cloudData.lastUpdated || cloudData.archivedAt || new Date().toISOString();
-                        
-                        console.log("📅 Lokale:", localTime);
-                        console.log("📅 Cloud:", cloudTime);
-                        
-                        // Nëse cloud ka të dhëna më të reja, ngarkoj
-                        if (cloudTime > localTime) {
-                            console.log("☁️ Ka të dhëna më të reja në cloud, duke ngarkuar...");
-                            systemData = cloudData;
-                            ensureSystemDataFields();
-                            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                            localStorage.setItem('lastCloudSync', cloudTime);
-                            if (currentUser) refreshDisplay();
-                            showNotification("✅ Të dhënat u përditësuan nga cloud!");
-                        }
-                    }
-                })
-                .catch(function(err) {
-                    console.warn("⚠️ Gabim në kontrollin e cloud:", err);
-                });
-        }
+                    // Ruajini në Cloud që mësimdhënësit e tjerë t'i shohin
+                    syncAllDataToCloud();
+                }
+            })
+            .catch(function(err) {
+                console.error("❌ Gabim në ngarkimin nga Cloud:", err);
+                // Rast i rrallë: bie në backup lokal
+                var hasLocalData = loadFromLocal();
+                if (!hasLocalData) {
+                    initializeDemoData();
+                }
+            });
     }
 
     // Lidh butonat
     setTimeout(function() {
-        console.log("🔗 Duke lidhur butonat...");
         setupButtons();
     }, 100);
 
@@ -10501,9 +10498,8 @@ function init() {
     loadTeacherOfflineData();
     initTabelariData();
 
-    console.log("✅ Sistemi Cloud Edition është gati!");
-    console.log("👑 Administrator: admin / admin123");
-    console.log("☁️ Statusi i cloud:", isConnected ? "Online" : "Offline");
+    console.log("✅ Sistemi Cloud është gati për punë në ekip!");
+    console.log("☁️ Të dhënat do të sinkronizohen në kohë reale për të gjithë.");
 }
 
 // ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
