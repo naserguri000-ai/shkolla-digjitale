@@ -10447,56 +10447,44 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== FILLIMI I SISTEMIT ====================
 function init() {
-    console.log("🚀 Sistemi Cloud po fillon (pa krijuar demo)...");
+    console.log("🚀 Sistemi Cloud po fillon...");
 
-    // 1. Përpiqu të ngarkosh nga CLOUD-I
-    if (isConnected && db) {
+    // 1. Përpiqu të ngarkosh nga CLOUD-I (Anashkalo çdo gabim lokal)
+    if (db) {
         console.log("☁️ Duke u lidhur me Cloud për të marrë të dhënat...");
 
         db.ref('schoolData_v5_4').once('value')
             .then(function(snapshot) {
                 var data = snapshot.val();
 
-                // Nëse Cloud-i ka të dhëna, i ngarkojmë dhe i ruajmë
                 if (data && data.classes && data.classes.length > 0) {
                     console.log("✅ Të dhënat u ngarkuan nga Cloud!");
                     systemData = data;
                     ensureSystemDataFields();
-                    // Ruaj në kompjuterin lokal për shpejtësi
                     localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
                     if (currentUser) refreshDisplay();
                     showNotification("✅ Të dhënat u ngarkuan nga Cloud-i!");
                 } else {
-                    // Nëse Cloud-i është bosh, shfaq një mesazh dhe MOS KRIJO DEMO
-                    console.warn("⚠️ Cloud-i është bosh! Nuk ka fare të dhëna.");
-                    document.getElementById('loginStatusMsg').innerHTML = "⚠️ Nuk ka të dhëna në Cloud. Ju lutemi identifikohuni si ADMIN për të inicializuar sistemin.";
-                    document.getElementById('loginStatusMsg').style.color = "orange";
-                    
-                    // Kontrollo nëse ka të paktën të dhëna lokale nga një herë tjetër
-                    var hasLocalBackup = loadFromLocal();
-                    if (!hasLocalBackup) {
-                        // Nëse as lokali nuk ka, lëre bosh. Jo demo!
-                        systemData.classes = [];
+                    console.warn("⚠️ Cloud-i është bosh. Duke kontrolluar të dhënat lokale...");
+                    // Nëse Cloud-i është bosh, provo të ngarkosh të dhënat lokale
+                    var hasLocalData = loadFromLocal();
+                    if (!hasLocalData) {
+                        console.log("ℹ️ Nuk ka të dhëna fare. Sistemi është bosh.");
+                        // Nuk krijojmë demo!
                     }
                 }
             })
             .catch(function(err) {
                 console.error("❌ Gabim në lidhjen me Cloud:", err);
-                // Nëse bie interneti, përdor backup-in lokal
+                // Nëse bie interneti vërtet, përdor backup-in lokal
                 var hasLocalBackup = loadFromLocal();
                 if (!hasLocalBackup) {
-                    document.getElementById('loginStatusMsg').innerHTML = "⚠️ Nuk mund të lidhet me Cloud. Kontrolloni internetin.";
-                    document.getElementById('loginStatusMsg').style.color = "red";
+                    console.warn("⚠️ Nuk ka internet dhe nuk ka të dhëna lokale.");
                 }
             });
     } else {
-        // Nëse nuk ka fare internet në fillim
-        console.warn("📱 Offline mode. Duke u përpjekur për të ngarkuar të dhëna nga memoria lokale...");
-        var hasLocalBackup = loadFromLocal();
-        if (!hasLocalBackup) {
-            document.getElementById('loginStatusMsg').innerHTML = "⚠️ Offline dhe pa të dhëna lokale. Lidhuni me internet.";
-            document.getElementById('loginStatusMsg').style.color = "red";
-        }
+        console.warn("📱 Firebase nuk u inicializua. Duke u përpjekur për të ngarkuar të dhëna lokale...");
+        loadFromLocal();
     }
 
     // Lidh butonat
@@ -10508,7 +10496,7 @@ function init() {
     loadTeacherOfflineData();
     initTabelariData();
 
-    console.log("✅ Sistemi Cloud u inicializua pa krijuar asnjë të dhënë demo.");
+    console.log("✅ Sistemi Cloud u inicializua.");
 }
 // ==================== FUNKSIONI PËR TË SIGURUAR FUSHAT ====================
 function ensureSystemDataFields() {
