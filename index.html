@@ -1671,12 +1671,15 @@
             isCloudConfigured = true;
             db.ref('.info/connected').on('value', function(snap) {
                 isConnected = snap.val() === true;
+                console.log(isConnected ? "🔌 Firebase: ✅ Lidhur me cloud" : "🔌 Firebase: ❌ Shkëputur nga cloud");
                 updateConnectionStatusUI();
                 updateCloudStatusUI();
-                if (isConnected && currentUser) {
-                    refreshDisplay();
-                    console.log("☁️ Lidhur me cloud, duke sinkronizuar...");
+                if (isConnected) {
+                    // Ngarko dhe fillo dëgjimin në kohë reale sapo lidhemi, PA pritur
+                    // që dikush të jetë kyçur — kështu të dhënat janë gati që në fillim.
                     loadAllDataFromCloud();
+                    startRealtimeSync();
+                    if (currentUser) refreshDisplay();
                 }
             });
         } catch (e) {
@@ -1881,28 +1884,123 @@
                 .getFullYear()).slice(-2);
         }
 
-        // ==================== FUNKSIONET E SINKRONIZIMIT CLOUD ====================
+        // ==================== FUNKSIONET E SINKRONIZIMIT CLOUD (v6 - konsoliduar) ====================
+        // Këto janë tani FUNKSIONET E VETME dhe zyrtare për sync. Çdo version tjetër
+        // i mëparshëm (tek fundi i skedarit) ishte një "arnim" i vjetër dhe u hoq,
+        // sepse po e mbishkruante këtë version me një version më të dobët.
+
+        // Firebase nganjëherë kthen vargjet (arrays) si objekte me çelësa numerikë
+        // (p.sh. {0: {...}, 1: {...}}) në vend të [{...}, {...}]. Kjo funksion e rregullon.
+        function firebaseToArray(obj) {
+            if (!obj) return [];
+            if (Array.isArray(obj)) return obj;
+            if (typeof obj === 'object') {
+                const keys = Object.keys(obj);
+                const isNumericKeys = keys.length > 0 && keys.every(k => !isNaN(parseInt(k)));
+                if (isNumericKeys) {
+                    let arr = [];
+                    keys.sort((a, b) => parseInt(a) - parseInt(b)).forEach(k => arr.push(obj[k]));
+                    return arr;
+                }
+            }
+            return obj;
+        }
+
+        function fixFirebaseArrays(data) {
+            if (!data || typeof data !== 'object') return data;
+            const arrayFields = ['classes', 'actives', 'teachers', 'holidays', 'students', 'subjectsOrder'];
+            for (let key of Object.keys(data)) {
+                if (arrayFields.includes(key)) {
+                    data[key] = firebaseToArray(data[key]);
+                    if (key === 'classes' && Array.isArray(data[key])) {
+                        data[key].forEach(cls => {
+                            if (cls && cls.students) cls.students = firebaseToArray(cls.students);
+                            if (cls && cls.subjectsOrder) cls.subjectsOrder = firebaseToArray(cls.subjectsOrder);
+                        });
+                    }
+                }
+            }
+            return data;
+        }
+
+        // Bashkon dy vargje sipas fushës "id": nëse një rekord ekziston vetëm në cloud
+        // (e ka shtuar dikush tjetër ndërkohë), e ruajmë; nëse ekziston edhe lokal edhe
+        // në cloud, fiton versioni lokal (sepse supozojmë se ai është ai që po ruhet tani).
+        // Kjo parandalon që një ruajtje e një përdoruesi të FSHIJË punën e një përdoruesi tjetër.
+        function mergeById(localArr, remoteArr) {
+            localArr = firebaseToArray(localArr) || [];
+            remoteArr = firebaseToArray(remoteArr) || [];
+            var merged = localArr.slice();
+            var localIds = {};
+            localArr.forEach(function(item) { if (item && item.id) localIds[item.id] = true; });
+            remoteArr.forEach(function(item) {
+                if (item && item.id && !localIds[item.id]) {
+                    merged.push(item);
+                }
+            });
+            return merged;
+        }
+
+        // Lexon momentalisht të dhënat nga cloud dhe i bashkon me ato lokale përpara se
+        // të shkruajë, në vend që të fshijë gjithçka me set() të verbër.
+        function mergeAndPushToCloud(onDone) {
+            if (!db || !isConnected) {
+                if (onDone) onDone(false);
+                return;
+            }
+            db.ref('schoolData_v5_4').once('value').then(function(snapshot) {
+                var remote = fixFirebaseArrays(snapshot.val() || {});
+                systemData.teachers = mergeById(systemData.teachers, remote.teachers);
+                systemData.classes = mergeById(systemData.classes, remote.classes);
+                systemData.actives = mergeById(systemData.actives, remote.actives);
+                if (remote.holidays) systemData.holidays = mergeById(systemData.holidays, remote.holidays);
+                systemData.lastUpdated = new Date().toISOString();
+                systemData.lastUpdatedBy = currentUser ? currentUser.username : 'panjohur';
+
+                db.ref('schoolData_v5_4').set(systemData).then(function() {
+                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                    localStorage.setItem('lastCloudSync', new Date().toISOString());
+                    if (onDone) onDone(true);
+                }).catch(function(err) {
+                    console.error("❌ Gabim në shkrimin te cloud:", err);
+                    if (onDone) onDone(false);
+                });
+            }).catch(function(err) {
+                console.error("❌ Gabim në leximin nga cloud:", err);
+                if (onDone) onDone(false);
+            });
+        }
+
+        // Version i "debounce-uar": grumbullon disa ndryshime të shpejta (p.sh. disa nota
+        // të futura brenda pak sekondash) në një shkrim të vetëm te cloud, në vend që të
+        // bëjë dhjetëra shkrime të veçanta që rrisin rrezikun e përplasjes mes përdoruesve.
+        var _cloudSaveTimer = null;
+        function scheduleCloudSave() {
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+            if (!db || !isConnected) return;
+            if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
+            _cloudSaveTimer = setTimeout(function() {
+                _cloudSaveTimer = null;
+                _suppressNextRemoteRefresh = true;
+                mergeAndPushToCloud(function() {});
+            }, 900);
+        }
+
         function syncAllDataToCloud() {
             if (!requireAdmin()) return;
-
             if (!db || !isConnected) {
                 showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
                 return;
             }
-
             showNotification("☁️ Duke sinkronizuar të dhënat...");
-
-            db.ref('schoolData_v5_4').set(systemData)
-                .then(function() {
+            _suppressNextRemoteRefresh = true;
+            mergeAndPushToCloud(function(ok) {
+                if (ok) {
                     showNotification("✅ Të dhënat u sinkronizuan me cloud!");
-                    console.log("✅ Sinkronizimi i plotë u krye");
-                    localStorage.setItem('lastCloudSync', new Date().toISOString());
-                })
-                .catch(function(err) {
-                    showNotification("❌ Gabim në sinkronizim: " + err.message);
-                    console.error("❌ Gabim:", err);
-                });
-
+                } else {
+                    showNotification("❌ Gabim në sinkronizim!");
+                }
+            });
             systemData.teachers.forEach(function(teacher) {
                 db.ref('users/' + teacher.id).set(teacher)
                     .catch(function(err) {
@@ -1912,79 +2010,57 @@
         }
 
         function loadAllDataFromCloud() {
-    if (!db || !isConnected) {
-        console.warn("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-        return;
-    }
-
-    console.log("☁️ Duke ngarkuar të dhënat nga cloud (Metoda V4.1)...");
-
-    // Ky funksion i vogël është kyçi që mungonte në versionin 5.4!
-    function firebaseToArray(obj) {
-        if (!obj) return [];
-        if (Array.isArray(obj)) return obj;
-        // Nëse është një objekt me çelësa numerikë (0, 1, 2...), ktheje në array
-        if (typeof obj === 'object') {
-            const keys = Object.keys(obj);
-            const isNumericKeys = keys.length > 0 && keys.every(k => !isNaN(parseInt(k)));
-            if (isNumericKeys) {
-                let arr = [];
-                keys.sort((a,b) => parseInt(a) - parseInt(b)).forEach(k => arr.push(obj[k]));
-                return arr;
+            if (!db || !isConnected) {
+                console.warn("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
+                showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
+                return;
             }
+            console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
+            db.ref('schoolData_v5_4').once('value')
+                .then(function(snapshot) {
+                    var data = snapshot.val();
+                    if (data) {
+                        systemData = fixFirebaseArrays(data);
+                        ensureSystemDataFields();
+                        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                        console.log("✅ Të dhënat u ngarkuan nga cloud (me formatet e rregulluara)");
+                        if (currentUser) refreshDisplay();
+                        showNotification("✅ Të dhënat u ngarkuan nga cloud!");
+                    } else {
+                        console.log("ℹ️ Nuk ka të dhëna në cloud.");
+                        var hasLocal = loadFromLocal();
+                        if (!hasLocal) {
+                            initializeDemoData();
+                        }
+                    }
+                })
+                .catch(function(err) {
+                    console.error("❌ Gabim në ngarkimin e të dhënave:", err);
+                    loadFromLocal();
+                });
         }
-        return obj;
-    }
 
-    // Funksioni për të rregulluar strukturat e ardhura nga Firebase
-    function fixFirebaseArrays(data) {
-        if (!data || typeof data !== 'object') return data;
-        // Lista e fushave që duhet të jenë patjetër vargje (arrays)
-        const arrayFields = ['classes', 'actives', 'teachers', 'holidays', 'students', 'subjectsOrder'];
-        for (let key of Object.keys(data)) {
-            if (arrayFields.includes(key)) {
-                data[key] = firebaseToArray(data[key]);
-                // Kontrollo edhe brenda klasave
-                if (key === 'classes' && Array.isArray(data[key])) {
-                    data[key].forEach(cls => {
-                        if (cls && cls.students) cls.students = firebaseToArray(cls.students);
-                        if (cls && cls.subjectsOrder) cls.subjectsOrder = firebaseToArray(cls.subjectsOrder);
-                    });
+        // Dëgjues NË KOHË REALE: çdo herë që dikush ruan të dhëna në cloud (admin ose
+        // mësimdhënës), TË GJITHË përdoruesit e tjerë të lidhur e marrin përditësimin
+        // automatikisht, pa pritur 30 sekonda dhe pa qenë admin.
+        var _suppressNextRemoteRefresh = false;
+        function startRealtimeSync() {
+            if (!db) return;
+            db.ref('schoolData_v5_4').on('value', function(snapshot) {
+                if (_suppressNextRemoteRefresh) {
+                    // Ky ishte ndryshimi ynë vetë; e injorojmë një herë që të mos rifreskojmë
+                    // pa nevojë ekranin që përdoruesi po e përdor pikërisht tani.
+                    _suppressNextRemoteRefresh = false;
+                    return;
                 }
-            }
-        }
-        return data;
-    }
-
-    // Tani bëjmë thirrjen në Cloud
-    db.ref('schoolData_v5_4').once('value')
-        .then(function(snapshot) {
-            var data = snapshot.val();
-            if (data) {
-                // --- KY ËSHTË RREGULLIMI I MADH ---
-                // Rregullojmë formatet e të dhënave nga Firebase
-                let fixedData = fixFirebaseArrays(data);
-                
-                systemData = fixedData;
+                var data = snapshot.val();
+                if (!data) return;
+                systemData = fixFirebaseArrays(data);
                 ensureSystemDataFields();
-                
                 localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                console.log("✅ Të dhënat u ngarkuan nga cloud (me formatet e rregulluara)");
                 if (currentUser) refreshDisplay();
-                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-            } else {
-                console.log("ℹ️ Nuk ka të dhëna në cloud.");
-                var hasLocal = loadFromLocal();
-                if (!hasLocal) {
-                    initializeDemoData();
-                }
-            }
-        })
-        .catch(function(err) {
-            console.error("❌ Gabim në ngarkimin e të dhënave:", err);
-            loadFromLocal();
-        });
-}
+            });
+        }
 
         function loadFromLocal() {
             var data = localStorage.getItem('schoolSystemFinalV5_4');
@@ -9310,6 +9386,16 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         function initTabelariFirebase() {
             try {
+                // RREGULLIM: më parë krijohej KËTU një lidhje/status i DYTË i veçantë
+                // Firebase (window.tabelariDb / window.tabelariConnected), ndonëse në
+                // fakt firebase.database() kthen gjithmonë TË NJËJTËN bazë të dhënash.
+                // Kjo krijonte konfuzion (dy statuse lidhjeje që mund të "ndryshonin").
+                // Tani thjesht ripërdorim lidhjen kryesore `db` / `isConnected`.
+                if (db) {
+                    window.tabelariDb = db;
+                    window.tabelariConnected = isConnected;
+                    return true;
+                }
                 if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                     window.tabelariDb = firebase.database();
                     console.log("☁️ Tabelari: Firebase u lidh");
@@ -9324,7 +9410,7 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         function syncTabelariToCloud() {
-            if (!window.tabelariDb || !window.tabelariConnected) {
+            if (!window.tabelariDb || !isConnected) {
                 window.tabelariData.pendingSync = true;
                 saveTabelariToLocal();
                 return;
@@ -9350,7 +9436,7 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         function loadTabelariFromCloud() {
-            if (!window.tabelariDb || !window.tabelariConnected) { loadTabelariFromLocal(); return; }
+            if (!window.tabelariDb || !isConnected) { loadTabelariFromLocal(); return; }
             window.tabelariDb.ref('tabelariData').once('value')
                 .then(function(snapshot) {
                     var cloudData = snapshot.val();
@@ -9584,7 +9670,7 @@ if (systemData.classes && systemData.classes.length > 0) {
 
             var lastSyncText = window.tabelariData.lastSynced ? new Date(window.tabelariData.lastSynced)
                 .toLocaleString('sq-AL') : 'Nuk është sinkronizuar';
-            var syncStatus = (window.tabelariConnected) ? '☁️ Online' : (window.tabelariDb ?
+            var syncStatus = (isConnected) ? '☁️ Online' : (window.tabelariDb ?
                 '☁️ Duke u lidhur...' : '⚠️ Firebase jo gati');
             html +=
                 '<div class="date-badge" style="margin-top:15px; padding:10px; background:#e8f5e9; border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">';
@@ -9695,7 +9781,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (confirm(
                     "⚠️ A jeni i sigurt që doni të rivendosni të gjitha vlerat e tabelarit në gjendjen fillestare (të zbrazëta)?\n\nKjo do të ndikojë për TË GJITHË përdoruesit!"
                     )) {
-                if (window.tabelariDb && window.tabelariConnected) {
+                if (window.tabelariDb && isConnected) {
                     window.tabelariDb.ref('tabelariData').remove().catch(function(err) { console.error("Gabim:",
                             err); });
                 }
@@ -10387,47 +10473,25 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== FILLIMI I SISTEMIT ====================
 function init() {
-    console.log("🚀 Duke inicializuar sistemin për 25 mësimdhënës (Cloud-First)...");
+    console.log("🚀 Duke inicializuar sistemin (Cloud-First)...");
 
-    // 1. Kontrollo a ka lidhje me Cloud
-    if (!isConnected || !db) {
-        console.warn("⚠️ Nuk ka lidhje me Cloud. Duke u përpjekur të ngarkohen të dhënat lokale...");
-        // Nëse nuk ka internet, ngarko lokal (për përdorim offline)
-        var hasLocalData = loadFromLocal();
-        if (!hasLocalData) {
-            initializeDemoData(); // Nëse as lokali nuk ka, krijo demo
-        }
+    // RREGULLIM: më parë këtu kontrollohej `isConnected` MENJËHERË, por lidhja
+    // me Firebase është ASINKRONE (i duhen ca çaste/sekonda) — kështu që
+    // `isConnected` ishte GJITHMONË `false` në këtë moment, edhe kur interneti
+    // ishte krejt në rregull, dhe shfaqej pa nevojë paralajmërimi "s'ka lidhje".
+    // Tani: ngarko lokalin menjëherë (për UI të shpejtë/offline), dhe lëre
+    // dëgjuesin e '.info/connected' (më lart në skedar) të bëjë ngarkimin real
+    // nga cloud + sinkronizimin në kohë reale sapo lidhja të konfirmohet.
+    var hasLocalData = loadFromLocal();
+    if (!hasLocalData) {
+        initializeDemoData();
+    }
+    if (isConnected && db) {
+        console.log("☁️ Lidhja ishte tashmë aktive, duke ngarkuar nga Cloud...");
+        loadAllDataFromCloud();
+        startRealtimeSync();
     } else {
-        // 2. Nëse ka internet, PJESËMARRËSIT (Mësimdhënësit) NGARKOJNË VETËM NGA CLOUD
-        console.log("☁️ Lidhur me Cloud. Duke ngarkuar të dhënat e fundit për të gjithë...");
-        
-        db.ref('schoolData_v5_4').once('value')
-            .then(function(snapshot) {
-                var data = snapshot.val();
-                if (data && data.classes && data.classes.length > 0) {
-                    systemData = data;
-                    ensureSystemDataFields();
-                    
-                    // Ruajmë një kopje lokale për shpejtësi (por burimi kryesor mbetet Cloud-i)
-                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                    
-                    console.log("✅ Të dhënat u ngarkuan me sukses nga Cloud-i!");
-                    if (currentUser) refreshDisplay();
-                } else {
-                    console.log("ℹ️ Nuk ka të dhëna në Cloud. Duke krijuar të dhënat fillestare...");
-                    initializeDemoData();
-                    // Ruajini në Cloud që mësimdhënësit e tjerë t'i shohin
-                    syncAllDataToCloud();
-                }
-            })
-            .catch(function(err) {
-                console.error("❌ Gabim në ngarkimin nga Cloud:", err);
-                // Rast i rrallë: bie në backup lokal
-                var hasLocalData = loadFromLocal();
-                if (!hasLocalData) {
-                    initializeDemoData();
-                }
-            });
+        console.log("⏳ Ende duke pritur konfirmimin e lidhjes me Cloud (mund të marrë 1-2 sekonda)...");
     }
 
     // Lidh butonat
@@ -12190,130 +12254,23 @@ function showCloudStatus() {
     alert(msg);
 }
 
-// ==================== 2. FUNKSIONI syncAllDataToCloud ====================
-function syncAllDataToCloud() {
-    if (!requireAdmin()) return;
-    
-    if (!db || !isConnected) {
-        showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-        return;
-    }
-
-    showNotification("☁️ Duke sinkronizuar të dhënat...");
-
-    db.ref('schoolData_v5_4').set(systemData)
-        .then(function() {
-            showNotification("✅ Të dhënat u sinkronizuan me cloud!");
-            console.log("✅ Sinkronizimi i plotë u krye");
-            localStorage.setItem('lastCloudSync', new Date().toISOString());
-        })
-        .catch(function(err) {
-            showNotification("❌ Gabim në sinkronizim: " + err.message);
-            console.error("❌ Gabim:", err);
-        });
-
-    systemData.teachers.forEach(function(teacher) {
-        db.ref('users/' + teacher.id).set(teacher)
-            .catch(function(err) {
-                console.warn("⚠️ Gabim në ruajtjen e përdoruesit:", err);
-            });
-    });
-}
-
-// ==================== 3. FUNKSIONI loadAllDataFromCloud ====================
-function loadAllDataFromCloud() {
-    if (!requireAdmin()) return;
-    
-    if (!db || !isConnected) {
-        showNotification("⚠️ Nuk ka lidhje me cloud! Duke punuar offline.");
-        return;
-    }
-
-    console.log("☁️ Duke ngarkuar të dhënat nga cloud...");
-
-    db.ref('schoolData_v5_4').once('value')
-        .then(function(snapshot) {
-            var data = snapshot.val();
-            if (data) {
-                systemData = data;
-                if (!systemData.actives) systemData.actives = [
-                    { id: "active_ix", name: "KLASA IX", code: "IX", order: 1 },
-                    { id: "active_viii", name: "KLASA VIII", code: "VIII", order: 2 },
-                    { id: "active_vii", name: "KLASA VII", code: "VII", order: 3 },
-                    { id: "active_vi", name: "KLASA VI", code: "VI", order: 4 }
-                ];
-                if (!systemData.curriculum) systemData.curriculum = { weeksSem1: 16, weeksSem2: 21 };
-                if (!systemData.holidays) systemData.holidays = [];
-                if (!systemData.semesterDates) systemData.semesterDates = {
-                    schoolStart: "2025-09-01", schoolEnd: "2026-06-15",
-                    semester1Start: "2025-09-01", semester1End: "2025-12-20",
-                    semester2Start: "2026-01-10", semester2End: "2026-06-15"
-                };
-                if (!systemData.adminPassword) systemData.adminPassword = "admin123";
-                if (!systemData.schoolInfo) systemData.schoolInfo = {
-                    name: "SHFMU 'EMIN DURAKU' KACANIK",
-                    year: "2025-2026",
-                    principal: "DIANA REKA"
-                };
-                if (!systemData.archivedYears) systemData.archivedYears = [];
-                if (!systemData.manualTranscripts) systemData.manualTranscripts = {};
-                if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
-                systemData.appVersion = APP_VERSION;
-
-                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                console.log("✅ Të dhënat u ngarkuan nga cloud");
-                if (currentUser) refreshDisplay();
-                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-            } else {
-                console.log("ℹ️ Nuk ka të dhëna në cloud, duke përdorur lokalin");
-                syncAllDataToCloud();
-            }
-        })
-        .catch(function(err) {
-            console.error("❌ Gabim në ngarkimin e të dhënave:", err);
-            showNotification("⚠️ Gabim në lidhje me cloud!");
-        });
-
-    db.ref('users').once('value')
-        .then(function(snapshot) {
-            var users = snapshot.val();
-            if (users) {
-                var teachers = [];
-                for (var id in users) {
-                    var user = users[id];
-                    if (user.role === 'teacher') {
-                        teachers.push({
-                            id: user.id,
-                            name: user.name,
-                            username: user.username,
-                            password: user.password,
-                            classId: user.classId,
-                            role: user.role
-                        });
-                    }
-                }
-                if (teachers.length > 0) {
-                    systemData.teachers = teachers;
-                    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                    if (currentUser) refreshDisplay();
-                    console.log("✅ " + teachers.length + " mësimdhënës u ngarkuan nga cloud");
-                }
-            }
-        })
-        .catch(function(err) {
-            console.warn("⚠️ Gabim në ngarkimin e përdoruesve:", err);
-        });
-}
+// ==================== 2/3. syncAllDataToCloud / loadAllDataFromCloud ====================
+// SHËNIM: këto DY funksione ishin rikopjuar këtu për herë të dytë (dhe këtu
+// kishin edhe një gabim - kërkonin "requireAdmin()" edhe kur ngarkoheshin
+// automatikisht, gjë që mund të bllokonte mësimdhënësit). Tani përdoret
+// vetëm versioni i vetëm i përcaktuar më lart në skedar (ai me
+// fixFirebaseArrays + mergeAndPushToCloud), kështu që nuk i rishkruajmë më.
 
 // ==================== 4. FUNKSIONI forceSaveData ====================
 function forceSaveData() {
     if (!requireAdmin()) return;
-    
+
     try {
         localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
         sessionStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
         if (db && isConnected) {
-            db.ref('schoolData_v5_4').set(systemData);
+            _suppressNextRemoteRefresh = true;
+            mergeAndPushToCloud(function() {});
         }
         showNotification("✅ Të dhënat u ruajtën me forcë!");
         return true;
@@ -12429,7 +12386,14 @@ function showMainApp() {
     
     console.log("👤 Përdoruesi:", currentUser);
     console.log("📋 Duke thirrur refreshDisplay...");
-    
+
+    // Sapo dikush hyn në sistem, merr të dhënat më të fundit nga cloud dhe fillo
+    // të dëgjosh ndryshimet në kohë reale (për admin DHE për mësimdhënës).
+    if (db && isConnected) {
+        loadAllDataFromCloud();
+        startRealtimeSync();
+    }
+
     // Thirr refreshDisplay menjëherë
     refreshDisplay();
     
@@ -12761,113 +12725,30 @@ window.updateCloudStatusUI = window.updateCloudStatusUI;
 
 console.log("✅ Fix-i për pullat e dyfishta u aplikua!");
 console.log("📌 Tani do të ketë vetëm një pullë 'Online' në header!");
-// Ruaj të dhënat aktuale në cloud
-db.ref('schoolData_v5_4').set(systemData)
-    .then(function() {
-        console.log("✅ Të dhënat u ruajtën në cloud!");
-        console.log("📊 Të dhënat:", {
-            klasa: systemData.classes.length,
-            mesimdhenes: systemData.teachers.length,
-            nxenes: systemData.classes.reduce(function(acc, c) { return acc + c.students.length; }, 0)
-        });
-    })
-    .catch(function(err) {
-        console.error("❌ Gabim në ruajtje:", err);
-    });
-// =====================================================================
-//  FIX PËR SINKRONIZIMIN AUTOMATIK ME CLOUD
-// =====================================================================
 
-// 1. RREGULLO FUNKSIONIN SAVE TO LOCAL QË TË SINKRONIZOJË GJITHMONË
-var originalSaveToLocal = window.saveToLocal || function() {};
+// =====================================================================
+//  SINKRONIZIMI ME CLOUD (v6 - konsoliduar, pa mbishkrime të verbra)
+// =====================================================================
+// SHËNIM: versionet e vjetra këtu poshtë (që bënin set() të verbër mbi
+// gjithë bazën e të dhënave sapo hapej faqja, çdo 30 sekonda, dhe sapo
+// rikthehej lidhja) u hoqën, sepse pikërisht ato ishin shkaku kryesor
+// i "humbjes" së të dhënave: një përdorues mund të fshinte pa dashje
+// punën e një përdoruesi tjetër. Tani përdoret vetëm:
+//   - saveToLocal() -> scheduleCloudSave() (bashkon me cloud para se të shkruajë)
+//   - startRealtimeSync() -> të gjithë përdoruesit marrin ndryshimet menjëherë
+// (të dyja të përcaktuara më lart në skedar).
 
 window.saveToLocal = function() {
-    // Ruaj lokal
-    localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-    
-    // Sinkronizo me cloud AUTOMATIKISHT
-    if (db && isConnected) {
-        db.ref('schoolData_v5_4').set(systemData)
-            .then(function() {
-                console.log("☁️✅ Sinkronizim automatik i kryer!");
-                localStorage.setItem('lastCloudSync', new Date().toISOString());
-            })
-            .catch(function(err) {
-                console.warn("☁️⚠️ Sinkronizim automatik dështoi:", err.message);
-                // Të dhënat ruhen lokal, do të sinkronizohen kur lidhja të kthehet
-            });
-    } else {
-        console.log("📱 Offline mode - të dhënat ruhen lokalisht");
-    }
-    
-    // Përditëso statusin manual
+    scheduleCloudSave();
     updateManualStatus(true);
 };
 
-// 2. KRIJO NJË FUNKSION PËR SINKRONIZIM PERIODIK
+// Mbahet për pajtueshmëri me kodin e vjetër që mund ta thërrasë ende,
+// por tani thjesht thërret bashkimin e sigurt në vend të mbishkrimit.
 window.autoSync = function() {
     if (!db || !isConnected) return;
-    
-    console.log("☁️ Auto-sync periodik...");
-    db.ref('schoolData_v5_4').set(systemData)
-        .then(function() {
-            console.log("☁️✅ Auto-sync i kryer!");
-            localStorage.setItem('lastCloudSync', new Date().toISOString());
-        })
-        .catch(function(err) {
-            console.warn("☁️⚠️ Auto-sync dështoi:", err.message);
-        });
-};
-
-// 3. VENDOS AUTO-SYNC ÇDO 30 SEKONDA (VETËM NËSE ADMIN)
-if (isAdmin()) {
-    setInterval(function() {
-        if (isConnected && db) {
-            window.autoSync();
-        }
-    }, 30000); // 30 sekonda
-}
-
-// 4. SINKRONIZO KUR KTHEHET LIDHJA
-if (db) {
-    db.ref('.info/connected').on('value', function(snap) {
-        if (snap.val() === true) {
-            console.log("☁️ Lidhja u kthye! Duke sinkronizuar...");
-            setTimeout(function() {
-                if (systemData && systemData.classes) {
-                    db.ref('schoolData_v5_4').set(systemData)
-                        .then(function() {
-                            console.log("☁️✅ Sinkronizim pas rifillimit të lidhjes!");
-                        });
-                }
-            }, 1000);
-        }
-    });
-}
-
-// 5. RREGULLO FUNKSIONIN PËR TË NGARKUAR TË DHËNAT NGA CLOUD
-window.loadAllDataFromCloud = function() {
-    if (!db || !isConnected) {
-        showNotification("⚠️ Nuk ka lidhje me cloud!");
-        return;
-    }
-
-    db.ref('schoolData_v5_4').once('value')
-        .then(function(snapshot) {
-            var data = snapshot.val();
-            if (data && data.classes && data.classes.length > 0) {
-                systemData = data;
-                ensureSystemDataFields();
-                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-                refreshDisplay();
-                showNotification("✅ Të dhënat u ngarkuan nga cloud!");
-            } else {
-                showNotification("⚠️ Nuk ka të dhëna në cloud!");
-            }
-        })
-        .catch(function(err) {
-            showNotification("❌ Gabim në ngarkim: " + err.message);
-        });
+    _suppressNextRemoteRefresh = true;
+    mergeAndPushToCloud(function() {});
 };
 
 console.log("✅ Fix-i për sinkronizimin automatik u aplikua!");
