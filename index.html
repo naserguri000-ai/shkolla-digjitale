@@ -1941,6 +1941,23 @@
             return merged;
         }
 
+        // Firebase e refuzon shkrimin nëse ndonjë fushë ka vlerë "undefined" (jo null,
+        // "undefined" fjalë për fjalë). Meqë ky sistem ka pasur shumë arnime, disa objekte
+        // mund të kenë fusha të tilla — kjo i pastron rekursivisht para se të dërgohen.
+        function stripUndefinedDeep(value) {
+            if (Array.isArray(value)) {
+                return value.map(stripUndefinedDeep);
+            }
+            if (value && typeof value === 'object') {
+                var out = {};
+                Object.keys(value).forEach(function(k) {
+                    if (value[k] !== undefined) out[k] = stripUndefinedDeep(value[k]);
+                });
+                return out;
+            }
+            return value;
+        }
+
         // Lexon momentalisht të dhënat nga cloud dhe i bashkon me ato lokale përpara se
         // të shkruajë, në vend që të fshijë gjithçka me set() të verbër.
         function mergeAndPushToCloud(onDone) {
@@ -1955,9 +1972,10 @@
                 systemData.actives = mergeById(systemData.actives, remote.actives);
                 if (remote.holidays) systemData.holidays = mergeById(systemData.holidays, remote.holidays);
                 systemData.lastUpdated = new Date().toISOString();
-                systemData.lastUpdatedBy = currentUser ? currentUser.username : 'panjohur';
+                systemData.lastUpdatedBy = (currentUser && currentUser.name) ? currentUser.name : 'panjohur';
 
-                db.ref('schoolData_v5_4').set(systemData).then(function() {
+                var cleanData = stripUndefinedDeep(systemData);
+                db.ref('schoolData_v5_4').set(cleanData).then(function() {
                     localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
                     localStorage.setItem('lastCloudSync', new Date().toISOString());
                     if (onDone) onDone(true);
