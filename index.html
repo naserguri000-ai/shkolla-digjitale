@@ -12280,6 +12280,32 @@ function showCloudStatus() {
 // fixFirebaseArrays + mergeAndPushToCloud), kështu që nuk i rishkruajmë më.
 
 // ==================== 4. FUNKSIONI forceSaveData ====================
+// Krijon dhe shkarkon një skedar .json me GJITHË të dhënat aktuale të
+// sistemit (klasa, mësimdhënës, nxënës, etj.) — një kopje sigurie e plotë
+// që mund ta ruash lokalisht pa pasur nevojë të hapësh Console-n.
+function downloadBackup() {
+    try {
+        var dataStr = JSON.stringify(systemData, null, 2);
+        var blob = new Blob([dataStr], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var now = new Date();
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        var stamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+            + '_' + pad(now.getHours()) + '-' + pad(now.getMinutes());
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'backup-shkolla-' + stamp + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification("✅ Backup u shkarkua!");
+    } catch (e) {
+        console.error("❌ Gabim në krijimin e backup-it:", e);
+        showNotification("❌ Gabim në shkarkimin e backup-it: " + e.message);
+    }
+}
+
 function forceSaveData() {
     if (!requireAdmin()) return;
 
@@ -12474,8 +12500,10 @@ function renderAdminDashboard() {
                     <button class="btn btn-cloud btn-sm" onclick="syncAllDataToCloud()" style="background:#1a237e; color:white; border:2px solid #0d47a1;">☁️ Sinkronizo</button>
                     <button class="btn btn-info btn-sm" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko</button>
                     <button class="btn btn-warning btn-sm" onclick="showCloudStatus()" style="background:#ed6c02; color:white;">📊 Statusi</button>
-<button class="btn btn-success btn-sm" onclick="syncAllDataToCloud()" style="background:#2e7d32; color:white; border:2px solid #1b5e20;">💾 Ruaj në Cloud</button>
+                    <button class="btn btn-sm" onclick="downloadBackup()" style="background:#6a1b9a; color:white; border:2px solid #4a148c;">⬇️ Shkarko Backup</button>
                     <button class="btn btn-danger btn-sm" onclick="forceCacheClear()" style="background:#c62828; color:white; border:2px solid #b71c1c;">🔄 Pastro Cache</button>
+                    <button class="btn btn-danger btn-sm" onclick="openResetModal()" style="background:#c62828; color:white; border:2px solid #b71c1c;">🔄 Rivendos Sistemin</button>
+                    <button class="btn btn-admin btn-sm" onclick="openYearModal()">📅 Ndrysho Vitin</button>
                 </div>
             </div>
             
@@ -12487,10 +12515,8 @@ function renderAdminDashboard() {
             </div>
             
             <div class="report-actions">
-                <button class="btn btn-admin" onclick="changeSchoolYearManually()">📅 Ndrysho Vitin Manual</button>
                 <button class="btn btn-admin" onclick="openPrincipalModal()">👤 Ndrysho Administratorin</button>
                 <button class="btn btn-admin" onclick="openPasswordModal()">🔑 Ndrysho Fjalëkalimet</button>
-                <button class="btn btn-admin" onclick="openYearModal()">📅 Ndrysho Vitin</button>
                 <button class="btn btn-admin" onclick="openAdminCurriculumModal()">📚 Plani Mësimor</button>
                 <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
                 <button class="btn btn-admin" onclick="openSubjectsModalGlobal()">📚 Menaxho Lëndët</button>
@@ -12506,10 +12532,6 @@ function renderAdminDashboard() {
                 <button class="btn btn-warning" onclick="printDirectorReport()">📄 Raporti i Drejtorisë</button>
                 <button class="btn btn-admin" onclick="showAllClassesHoursSummary()">📊 Përmbledhja e Orëve</button>
                 <button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha Vitet)</button>
-                <button class="btn btn-danger" onclick="openResetModal()">🔄 Rivendos Sistemin</button>
-                <button class="btn btn-success" onclick="syncAllDataToCloud()" style="background:#2e7d32; color:white;">☁️ Sinkronizo me Cloud</button>
-                <button class="btn btn-info" onclick="loadAllDataFromCloud()" style="background:#0288d1; color:white;">📥 Ngarko nga Cloud</button>
-                <button class="btn btn-danger" onclick="forceCacheClear()" style="background:#c62828; color:white;">🔄 Pastro Cache</button>
             </div>
             
             ${renderArchiveSection()}
