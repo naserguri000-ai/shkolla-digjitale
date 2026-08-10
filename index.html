@@ -4735,6 +4735,97 @@ if (systemData.classes && systemData.classes.length > 0) {
             saveToLocal();
         }
 
+        // ==================== ZBRITJA E ORËVE NGA FESTAT + ORARI (metodë e saktë) ====================
+        // Në vend të llogaritjes përafërt me "javë", këtu numërojmë SAKTËSISHT sa herë
+        // bie dita e caktuar e orarit të një lënde mes datave të gjysmëvjetorit, dhe
+        // zbresim vetëm festat që bien pikërisht në atë ditë të javës — kështu një lëndë
+        // që mësohet vetëm të hënën prekët nga festat e hënës, jo nga festa e ndonjë dite
+        // tjetër që nuk e prek fare atë orar.
+        var DAY_KEY_TO_JS_DOW = { ehene: 1, emarte: 2, emerKure: 3, eenjte: 4, epremte: 5 };
+
+        function countWeekdayOccurrences(dow, startStr, endStr) {
+            if (!startStr || !endStr) return 0;
+            var start = new Date(startStr + 'T00:00:00');
+            var end = new Date(endStr + 'T00:00:00');
+            if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return 0;
+            var count = 0;
+            var d = new Date(start);
+            while (d <= end) {
+                if (d.getDay() === dow) count++;
+                d.setDate(d.getDate() + 1);
+            }
+            return count;
+        }
+
+        function countHolidaysOnWeekday(dow, startStr, endStr, semesterKey) {
+            if (!startStr || !endStr) return 0;
+            var start = new Date(startStr + 'T00:00:00');
+            var end = new Date(endStr + 'T00:00:00');
+            var count = 0;
+            (systemData.holidays || []).forEach(function(h) {
+                if (!h[semesterKey]) return;
+                var hd = new Date(h.date + 'T00:00:00');
+                if (isNaN(hd.getTime())) return;
+                if (hd >= start && hd <= end && hd.getDay() === dow) count++;
+            });
+            return count;
+        }
+
+        // Për një lëndë të caktuar, mbledh çdo qelizë të orarit ku mësohet, dhe për secilën
+        // llogarit: (sa herë bie ajo ditë e javës mes datave) minus (sa festa bien pikërisht
+        // në atë ditë të javës, brenda atij gjysmëvjetori).
+        function computeExactSessionsForSubject(classObj, subjectKey, startStr, endStr, semesterKey) {
+            if (!classObj || !classObj.schedule) return 0;
+            var total = 0;
+            Object.keys(classObj.schedule).forEach(function(dayKey) {
+                var dow = DAY_KEY_TO_JS_DOW[dayKey];
+                if (dow === undefined) return;
+                var dayObj = classObj.schedule[dayKey] || {};
+                Object.keys(dayObj).forEach(function(hour) {
+                    if (dayObj[hour] === subjectKey) {
+                        var occ = countWeekdayOccurrences(dow, startStr, endStr);
+                        var missed = countHolidaysOnWeekday(dow, startStr, endStr, semesterKey);
+                        total += Math.max(0, occ - missed);
+                    }
+                });
+            });
+            return total;
+        }
+
+        // Për çdo lëndë të klasës, rillogarit orët e planifikuara SAKTA për të dy
+        // gjysmëvjetorët (bazuar në Orarin real + Festat), dhe i ruan si "override" që
+        // tabela e planit mësimor i përdor në vend të formulës hoursPerWeek × javë.
+        function subtractHoursFromHolidaysAndSchedule(classId) {
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) return;
+            if (!classObj.schedule) {
+                showNotification("⚠️ Kjo klasë s'ka ende Orar (⏰ Orari) të plotësuar!");
+                return;
+            }
+            var sd = systemData.semesterDates || {};
+            if (!sd.semester1Start || !sd.semester1End || !sd.semester2Start || !sd.semester2End) {
+                showNotification("⚠️ Vendos më parë Datat e Gjysmëvjetorëve (📅 Vendos Datat)!");
+                return;
+            }
+            if (!systemData.curriculum[classId]) systemData.curriculum[classId] = {};
+            var updated = 0;
+            classObj.subjectsOrder.forEach(function(sub) {
+                var sessions1 = computeExactSessionsForSubject(classObj, sub.key, sd.semester1Start, sd.semester1End, 'semester1');
+                var sessions2 = computeExactSessionsForSubject(classObj, sub.key, sd.semester2Start, sd.semester2End, 'semester2');
+                if (sessions1 > 0 || sessions2 > 0) {
+                    if (!systemData.curriculum[classId][sub.key]) {
+                        systemData.curriculum[classId][sub.key] = { hoursPerWeek: 0, hoursDoneSem1: 0, hoursDoneSem2: 0 };
+                    }
+                    systemData.curriculum[classId][sub.key].plannedOverride1 = sessions1;
+                    systemData.curriculum[classId][sub.key].plannedOverride2 = sessions2;
+                    updated++;
+                }
+            });
+            saveToLocal();
+            renderClassCurriculumTable(classId);
+            showNotification("✅ " + updated + " lëndë u përditësuan me orët e sakta (pas zbritjes së festave)!");
+        }
+
         function getClassStats(classObj, semester) {
             var students = classObj.students.filter(function(s) { return s.name && s.name.trim(); });
             var sumAvg = 0,
@@ -6244,7 +6335,9 @@ if (systemData.classes && systemData.classes.length > 0) {
                 weeksSem1 + '" style="width:70px;" onchange="updateWeeksFromModal()"></div>' +
                 '<div><label>📅 Javët Gjysmevjetori II:</label> <input type="number" id="weeksSem2Input" value="' +
                 weeksSem2 + '" style="width:70px;" onchange="updateWeeksFromModal()"></div>' +
-                '<button class="btn btn-info" onclick="updateWeeksFromModal()">Përditëso</button>';
+                '<button class="btn btn-info" onclick="updateWeeksFromModal()">Përditëso</button>' +
+                '<button class="btn btn-admin" onclick="openSemesterDatesModal()" title="Vendos datat e fillimit/mbarimit të gjysmëvjetorëve">📅 Vendos Datat</button>' +
+                '<button class="btn btn-warning" onclick="subtractHoursFromHolidaysAndSchedule(\'' + classId + '\')" title="Llogarit orët e sakta për çdo lëndë nga Orari, duke zbritur festat që bien në ditën e saj">🔄 Zbrit Orët nga Festat dhe Orari</button>';
             var activeInfo = systemData.actives.find(function(a) { return a.id === activeId; });
             html += '<span style="margin-left:15px; font-size:13px; color:#555;">🏷️ Aktiv: ' + (activeInfo ?
                 activeInfo
@@ -6267,8 +6360,8 @@ if (systemData.classes && systemData.classes.length > 0) {
 
             classObj.subjectsOrder.forEach(function(sub) {
                 var cur = curriculum[sub.key] || { hoursPerWeek: 2, hoursDoneSem1: 0, hoursDoneSem2: 0 };
-                var planned1 = cur.hoursPerWeek * weeksSem1;
-                var planned2 = cur.hoursPerWeek * weeksSem2;
+                var planned1 = (typeof cur.plannedOverride1 === 'number') ? cur.plannedOverride1 : cur.hoursPerWeek * weeksSem1;
+                var planned2 = (typeof cur.plannedOverride2 === 'number') ? cur.plannedOverride2 : cur.hoursPerWeek * weeksSem2;
                 var done1 = cur.hoursDoneSem1 || 0;
                 var done2 = cur.hoursDoneSem2 || 0;
                 var lost1 = planned1 - done1;
@@ -6426,7 +6519,8 @@ if (systemData.classes && systemData.classes.length > 0) {
             var html =
                 '<div class="weeks-control"><div><label>📅 Javët Default:</label> <span style="margin-left:10px;">I: ' +
                 systemData.curriculum.weeksSem1 + ' | II: ' + systemData.curriculum.weeksSem2 +
-                '</span></div></div>';
+                '</span></div>' +
+                '</div>';
 
             systemData.classes.forEach(function(cls) {
                 initClassCurriculum(cls.id);
@@ -6455,8 +6549,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 cls.subjectsOrder.forEach(function(sub) {
                     var cur = curriculum[sub.key] || { hoursPerWeek: 2, hoursDoneSem1: 0,
                         hoursDoneSem2: 0 };
-                    var planned1 = cur.hoursPerWeek * clsWeeksSem1;
-                    var planned2 = cur.hoursPerWeek * clsWeeksSem2;
+                    var planned1 = (typeof cur.plannedOverride1 === 'number') ? cur.plannedOverride1 : cur.hoursPerWeek * clsWeeksSem1;
+                    var planned2 = (typeof cur.plannedOverride2 === 'number') ? cur.plannedOverride2 : cur.hoursPerWeek * clsWeeksSem2;
                     var done1 = cur.hoursDoneSem1 || 0;
                     var done2 = cur.hoursDoneSem2 || 0;
                     var lost1 = planned1 - done1;
@@ -6609,6 +6703,12 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         function initClassSchedule(classId) {
             var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) return;
+            // Mbrojtje: nëse klasa (p.sh. e importuar nga backup i vjetër) s'ka fare
+            // subjectsOrder, orari dështonte në heshtje (modal bosh, pa gabim të dukshëm).
+            if (!classObj.subjectsOrder || classObj.subjectsOrder.length === 0) {
+                classObj.subjectsOrder = ALL_SUBJECTS.slice();
+            }
             if (classObj && !classObj.schedule) {
                 classObj.schedule = {};
                 var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
