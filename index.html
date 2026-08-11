@@ -558,6 +558,104 @@
             -webkit-appearance: none !important;
             margin: 0 !important;
         }
+
+        /* TABELA E PLANIT MESIMOR */
+        #curriculumContent,
+        #adminCurriculumContent {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 10px;
+        }
+        .curriculum-table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+            margin: 8px 0 16px 0;
+            font-size: clamp(9px, 1vw, 12px);
+        }
+        .curriculum-table th,
+        .curriculum-table td {
+            border: 1px solid #d0d7de;
+            padding: 6px 4px;
+            text-align: center;
+        }
+        .curriculum-table thead th {
+            background: #0b4b6e;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .curriculum-table tbody tr:nth-child(even) {
+            background: #f5f8fa;
+        }
+        .curriculum-table tbody tr:hover {
+            background: #eaf2f8;
+        }
+        .curriculum-table input[type="number"] {
+            width: 55px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 3px;
+            font-size: inherit;
+        }
+        .curriculum-table input[type="number"]:focus {
+            outline: none;
+            border-color: #0b4b6e;
+            box-shadow: 0 0 3px rgba(11, 75, 110, 0.3);
+            background-color: #fff3e0;
+        }
+
+        /* KALENDARI SHKOLLOR DINAMIK */
+        .cal-legend-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 4px;
+            vertical-align: middle;
+            border: 1px solid rgba(0,0,0,0.15);
+        }
+        .cal-day-school { background: #ffffff; }
+        .cal-day-holiday { background: #ffcdd2; }
+        .cal-day-weekend { background: #eceff1; }
+        .cal-day-outside { background: #f5f5f5; }
+        .cal-month-card {
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fafbfc;
+        }
+        .cal-month-title {
+            text-align: center;
+            font-weight: bold;
+            color: #0b4b6e;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            font-size: 10px;
+        }
+        .cal-grid .cal-dow {
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            padding: 2px 0;
+        }
+        .cal-grid .cal-cell {
+            text-align: center;
+            padding: 3px 0;
+            border-radius: 3px;
+            cursor: default;
+        }
+        .cal-grid .cal-cell.cal-day-holiday { color: #b71c1c; font-weight: bold; }
+        .cal-grid .cal-cell.cal-day-weekend { color: #90a4ae; }
+        .cal-grid .cal-cell.cal-day-outside { color: #bbb; }
+        .cal-grid .cal-cell.cal-empty { visibility: hidden; }
         .grade-input {
             -moz-appearance: textfield !important;
             appearance: textfield !important;
@@ -1477,14 +1575,20 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeHolidayModal()">×</button>
             <h2 style="color:#0b4b6e; margin-bottom:20px;">Festat (Data qe nuk mesohet)</h2>
+            <div style="background:#e8f5e9; border:1px solid #66bb6a; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
+                <button class="btn btn-success" onclick="confirmImportOfficialCalendar()">📥 Importo Kalendarin Zyrtar 2025-2026</button>
+                <small style="display:block; margin-top:6px; color:#2e7d32;">Fut automatikisht pushimet (vjeshtor, dimëror, pranveror) dhe 17 festat shtetërore sipas kalendarit zyrtar të Ministrisë, si dhe datat e gjysmëvjetorëve.</small>
+            </div>
             <div class="form-group"><label>Shto feste te re</label>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <input type="text" id="holidayDate" placeholder="Data (DD/MM/YYYY)" style="width:150px;">
+                    <input type="date" id="holidayDate" style="width:150px;">
+                    <input type="date" id="holidayDateEnd" title="Deri më (opsionale, për pushime shumëditore)" style="width:150px;">
                     <input type="text" id="holidayName" placeholder="Emri i festes" style="flex:2;">
                     <label style="display:flex; align-items:center;"><input type="checkbox" id="holidaySem1"> Gjysmevjetori I</label>
                     <label style="display:flex; align-items:center;"><input type="checkbox" id="holidaySem2"> Gjysmevjetori II</label>
                     <button class="btn btn-success" onclick="addHoliday()">Shto</button>
                 </div>
+                <small style="color:#666;">Fusha e dytë e datës (Deri më) është opsionale — plotësoje vetëm për pushime shumëditore si vjeshtoret, dimëroret ose pranveroret.</small>
             </div>
             <div id="holidaysList"></div>
             <div class="print-btn-group no-print">
@@ -1492,6 +1596,26 @@
                 <button class="btn btn-primary" onclick="saveHolidays()">Ruaj ndryshimet</button>
                 <button class="btn btn-warning" onclick="closeHolidayModal()">Anulo</button>
             </div>
+        </div>
+    </div>
+
+    <div id="schoolCalendarModal" class="modal">
+        <div class="modal-content" style="max-width:1100px;">
+            <button class="modal-close" onclick="closeSchoolCalendarModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📆 Kalendari Shkollor</h2>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+                <label style="font-size:13px;">Shfaq për:
+                    <select id="schoolCalendarActiveSelect" onchange="renderSchoolCalendarModal()" style="margin-left:6px;"></select>
+                </label>
+                <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:12px;">
+                    <span><span class="cal-legend-box cal-day-school"></span> Ditë mësimi</span>
+                    <span><span class="cal-legend-box cal-day-holiday"></span> Festë/Pushim</span>
+                    <span><span class="cal-legend-box cal-day-weekend"></span> Fundjavë</span>
+                    <span><span class="cal-legend-box cal-day-outside"></span> Jashtë gjysmëvjetorit</span>
+                </div>
+            </div>
+            <div id="schoolCalendarStats" style="background:#e3f2fd; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; color:#0b4b6e;"></div>
+            <div id="schoolCalendarContent" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px;"></div>
         </div>
     </div>
 
@@ -1522,7 +1646,8 @@
     <div id="semesterDatesModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeSemesterDatesModal()">×</button>
-            <h2 style="color:#0b4b6e; margin-bottom:20px;">Datat e Gjysmevjetoreve dhe Vitit Shkollor</h2>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">Datat e Gjysmevjetoreve dhe Vitit Shkollor</h2>
+            <div id="semesterDatesActiveLabel" style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:8px 12px; margin-bottom:15px; font-size:13px; color:#5d4037;"></div>
             <div class="date-badge">
                 <h3>📅 Viti Shkollor</h3>
                 <div class="form-group"><label>Data e fillimit</label><input type="date" id="schoolStartDate" value=""></div>
@@ -1804,6 +1929,7 @@
                 semester1Start: "2025-09-01", semester1End: "2025-12-20",
                 semester2Start: "2026-01-10", semester2End: "2026-06-15"
             },
+            semesterDatesByActive: {},
             appVersion: APP_VERSION,
             archivedYears: [],
             manualTranscripts: {},
@@ -2493,6 +2619,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                         <div class="date-status">📘 Gjysmevjetori I: ${dateInfo.sem1Start} - ${dateInfo.sem1End}</div>
                         <div class="date-status">📙 Gjysmevjetori II: ${dateInfo.sem2Start} - ${dateInfo.sem2End}</div>
                         <button class="btn btn-info" style="margin-top:8px;" onclick="openSemesterDatesModal()">📅 Vendos Datat</button>
+                        <button class="btn btn-success" style="margin-top:8px;" onclick="openSchoolCalendarModal()">📆 Kalendari Shkollor</button>
                     </div>
                     
                     <div class="report-actions">
@@ -2766,7 +2893,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<button class="btn btn-info" onclick="openClassCurriculumModal(\'' + classObj.id +
                 '\')">📚 Plani Mësimor</button>' +
                 '<button class="btn btn-info" onclick="openScheduleModal(\'' + classObj.id +
-                '\")">⏰ Orari</button>' +
+                '\')">⏰ Orari</button>' +
+                '<button class="btn btn-info" onclick="openSemesterDatesModal(\'' + (classObj.activeId || '') +
+                '\')">📅 Vendos Datat</button>' +
+                '<button class="btn btn-success" onclick="openSchoolCalendarModal(\'' + (classObj.activeId || '') + '\')">📆 Kalendari Shkollor</button>' +
                 '<button class="btn btn-info" onclick="openTabelariModal()">📊 Tabelari i Mungesave ☁️</button>' +
                 '<button class="btn btn-info" onclick="printSubjectSuccessTable(getCurrentClass())">🖨️ Tabela e Lëndëve</button>' +
                 '<button class="btn btn-info" onclick="printSuccessSummaryTable(getCurrentClass())">🖨️ Përmbledhja</button>' +
@@ -4735,6 +4865,65 @@ if (systemData.classes && systemData.classes.length > 0) {
             saveToLocal();
         }
 
+        // Disa klasa (p.sh. Klasa IX) e mbyllin vitin shkollor më herët se të tjerat (p.sh. VI, VII, VIII).
+        // Prandaj datat e gjysmëvjetorëve ruhen VEÇ PËR ÇDO AKTIV; nëse një aktiv s'ka datat e veta
+        // të vendosura ende, përdoren datat e përgjithshme (globale) si rezervë.
+        function getSemesterDatesForActive(activeId) {
+            var globalDates = systemData.semesterDates || {};
+            if (activeId && systemData.semesterDatesByActive && systemData.semesterDatesByActive[activeId]) {
+                var d = systemData.semesterDatesByActive[activeId];
+                return {
+                    schoolStart: d.schoolStart || globalDates.schoolStart || '',
+                    schoolEnd: d.schoolEnd || globalDates.schoolEnd || '',
+                    semester1Start: d.semester1Start || globalDates.semester1Start || '',
+                    semester1End: d.semester1End || globalDates.semester1End || '',
+                    semester2Start: d.semester2Start || globalDates.semester2Start || '',
+                    semester2End: d.semester2End || globalDates.semester2End || ''
+                };
+            }
+            return {
+                schoolStart: globalDates.schoolStart || '',
+                schoolEnd: globalDates.schoolEnd || '',
+                semester1Start: globalDates.semester1Start || '',
+                semester1End: globalDates.semester1End || '',
+                semester2Start: globalDates.semester2Start || '',
+                semester2End: globalDates.semester2End || ''
+            };
+        }
+
+        function setSemesterDatesForActive(activeId, dates) {
+            if (!activeId) {
+                systemData.semesterDates = dates;
+                return;
+            }
+            if (!systemData.semesterDatesByActive) systemData.semesterDatesByActive = {};
+            systemData.semesterDatesByActive[activeId] = dates;
+        }
+
+        function confirmClearScheduleOverrides(classId) {
+            if (confirm("A je i sigurt? Kjo do t'i kthejë të gjitha lëndët e kësaj klase te formula e thjeshtë (Orë/javë × Javët).")) {
+                clearScheduleOverrides(classId);
+            }
+        }
+
+        function clearScheduleOverrides(classId) {
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) return;
+            if (!systemData.curriculum[classId]) return;
+            var cleared = 0;
+            Object.keys(systemData.curriculum[classId]).forEach(function(subKey) {
+                var cur = systemData.curriculum[classId][subKey];
+                if (typeof cur.plannedOverride1 === 'number' || typeof cur.plannedOverride2 === 'number') {
+                    delete cur.plannedOverride1;
+                    delete cur.plannedOverride2;
+                    cleared++;
+                }
+            });
+            saveToLocal();
+            renderClassCurriculumTable(classId);
+            showNotification("↩️ U anuluan " + cleared + " llogaritje të sakta - u kthye te formula Orë/javë × Javët!");
+        }
+
         // ==================== ZBRITJA E ORËVE NGA FESTAT + ORARI (metodë e saktë) ====================
         // Në vend të llogaritjes përafërt me "javë", këtu numërojmë SAKTËSISHT sa herë
         // bie dita e caktuar e orarit të një lënde mes datave të gjysmëvjetorit, dhe
@@ -4757,6 +4946,139 @@ if (systemData.classes && systemData.classes.length > 0) {
             return count;
         }
 
+        // Pranon si "YYYY-MM-DD" (ISO, normale) ashtu edhe "DD/MM/YYYY" (format i vjetër,
+        // ruajtur para se fusha e festave të bëhej kalendar) — kthen gjithmonë Date valide ose null.
+        function parseFlexibleDate(str) {
+            if (!str) return null;
+            str = String(str).trim();
+            var iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+            if (iso) {
+                var d1 = new Date(str + 'T00:00:00');
+                return isNaN(d1.getTime()) ? null : d1;
+            }
+            var dmy = /^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/.exec(str);
+            if (dmy) {
+                var day = parseInt(dmy[1], 10),
+                    month = parseInt(dmy[2], 10),
+                    year = parseInt(dmy[3], 10);
+                var d2 = new Date(year, month - 1, day);
+                return isNaN(d2.getTime()) ? null : d2;
+            }
+            return null;
+        }
+
+        // ==================== KALENDARI SHKOLLOR DINAMIK ====================
+        // Ndërton një hartë datë->emër feste, duke shpalosur çdo diapazon (date -> dateEnd) në ditë të veçanta.
+        function buildHolidayDateMap() {
+            var map = {};
+            (systemData.holidays || []).forEach(function(h) {
+                var hStart = parseFlexibleDate(h.date);
+                if (!hStart) return;
+                var hEnd = h.dateEnd ? parseFlexibleDate(h.dateEnd) : hStart;
+                if (!hEnd || hEnd < hStart) hEnd = hStart;
+                var d = new Date(hStart);
+                while (d <= hEnd) {
+                    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    if (!map[key]) map[key] = [];
+                    map[key].push(h.name);
+                    d.setDate(d.getDate() + 1);
+                }
+            });
+            return map;
+        }
+
+        function buildMonthCalendarHTML(year, month, opts) {
+            // month: 0-11. Java fillon të hënën (si në kalendarin zyrtar).
+            var monthNames = ['Janar', 'Shkurt', 'Mars', 'Prill', 'Maj', 'Qershor', 'Korrik', 'Gusht', 'Shtator', 'Tetor', 'Nëntor', 'Dhjetor'];
+            var firstDay = new Date(year, month, 1);
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
+            var startOffset = (firstDay.getDay() + 6) % 7; // 0=E Hënë
+            var html = '<div class="cal-month-card"><div class="cal-month-title">' + monthNames[month] + ' ' + year + '</div><div class="cal-grid">';
+            ['H', 'M', 'Më', 'E', 'P', 'Sh', 'D'].forEach(function(d) { html += '<div class="cal-dow">' + d + '</div>'; });
+            for (var i = 0; i < startOffset; i++) html += '<div class="cal-cell cal-empty">-</div>';
+            for (var day = 1; day <= daysInMonth; day++) {
+                var d = new Date(year, month, day);
+                var key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                var dow = d.getDay();
+                var cls = 'cal-day-school';
+                var title = '';
+                if (d < opts.rangeStart || d > opts.rangeEnd) {
+                    cls = 'cal-day-outside';
+                } else if (opts.holidayMap[key]) {
+                    cls = 'cal-day-holiday';
+                    title = opts.holidayMap[key].join(', ');
+                } else if (dow === 0 || dow === 6) {
+                    cls = 'cal-day-weekend';
+                }
+                html += '<div class="cal-cell ' + cls + '" title="' + escapeHtml(title) + '">' + day + '</div>';
+            }
+            html += '</div></div>';
+            return html;
+        }
+
+        function renderSchoolCalendarModal() {
+            var select = document.getElementById('schoolCalendarActiveSelect');
+            var activeId = select.value || null;
+            var sd = getSemesterDatesForActive(activeId);
+            var content = document.getElementById('schoolCalendarContent');
+            var statsEl = document.getElementById('schoolCalendarStats');
+            if (!sd.schoolStart || !sd.schoolEnd) {
+                content.innerHTML = '<p>Vendos më parë datat e vitit shkollor te "📅 Vendos Datat".</p>';
+                statsEl.innerHTML = '';
+                return;
+            }
+            var rangeStart = new Date(sd.schoolStart + 'T00:00:00');
+            var rangeEnd = new Date(sd.schoolEnd + 'T00:00:00');
+            var holidayMap = buildHolidayDateMap();
+
+            // Statistikat: numëro ditët e mësimit (jashtë fundjavash, festash, jashtë diapazonit) për secilin gjysmëvjetor
+            function countSchoolDays(startStr, endStr) {
+                if (!startStr || !endStr) return 0;
+                var s = new Date(startStr + 'T00:00:00'), e = new Date(endStr + 'T00:00:00'), c = 0;
+                var d = new Date(s);
+                while (d <= e) {
+                    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    var dow = d.getDay();
+                    if (dow !== 0 && dow !== 6 && !holidayMap[key]) c++;
+                    d.setDate(d.getDate() + 1);
+                }
+                return c;
+            }
+            var days1 = countSchoolDays(sd.semester1Start, sd.semester1End);
+            var days2 = countSchoolDays(sd.semester2Start, sd.semester2End);
+            statsEl.innerHTML = '📊 Ditë mësimi (E Hënë-E Premte, pa festa): Gjysmevjetori I = <strong>' + days1 +
+                '</strong> ditë (~' + (days1 / 5).toFixed(1) + ' javë) &nbsp;|&nbsp; Gjysmevjetori II = <strong>' + days2 +
+                '</strong> ditë (~' + (days2 / 5).toFixed(1) + ' javë)';
+
+            var opts = { rangeStart: rangeStart, rangeEnd: rangeEnd, holidayMap: holidayMap };
+            var html = '';
+            var cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+            var last = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+            var guard = 0;
+            while (cursor <= last && guard < 24) {
+                html += buildMonthCalendarHTML(cursor.getFullYear(), cursor.getMonth(), opts);
+                cursor.setMonth(cursor.getMonth() + 1);
+                guard++;
+            }
+            content.innerHTML = html;
+        }
+
+        function openSchoolCalendarModal(activeId) {
+            var select = document.getElementById('schoolCalendarActiveSelect');
+            var optionsHtml = '<option value="">-- Kalendari i përgjithshëm --</option>';
+            (systemData.actives || []).sort(function(a, b) { return a.order - b.order; }).forEach(function(a) {
+                optionsHtml += '<option value="' + a.id + '">' + escapeHtml(a.name) + '</option>';
+            });
+            select.innerHTML = optionsHtml;
+            select.value = activeId || '';
+            renderSchoolCalendarModal();
+            showModal('schoolCalendarModal');
+        }
+
+        function closeSchoolCalendarModal() {
+            hideModal('schoolCalendarModal');
+        }
+
         function countHolidaysOnWeekday(dow, startStr, endStr, semesterKey) {
             if (!startStr || !endStr) return 0;
             var start = new Date(startStr + 'T00:00:00');
@@ -4764,9 +5086,15 @@ if (systemData.classes && systemData.classes.length > 0) {
             var count = 0;
             (systemData.holidays || []).forEach(function(h) {
                 if (!h[semesterKey]) return;
-                var hd = new Date(h.date + 'T00:00:00');
-                if (isNaN(hd.getTime())) return;
-                if (hd >= start && hd <= end && hd.getDay() === dow) count++;
+                var hStart = parseFlexibleDate(h.date);
+                if (!hStart) return;
+                var hEnd = h.dateEnd ? parseFlexibleDate(h.dateEnd) : hStart;
+                if (!hEnd || hEnd < hStart) hEnd = hStart;
+                var d = new Date(hStart);
+                while (d <= hEnd) {
+                    if (d >= start && d <= end && d.getDay() === dow) count++;
+                    d.setDate(d.getDate() + 1);
+                }
             });
             return count;
         }
@@ -4802,9 +5130,9 @@ if (systemData.classes && systemData.classes.length > 0) {
                 showNotification("⚠️ Kjo klasë s'ka ende Orar (⏰ Orari) të plotësuar!");
                 return;
             }
-            var sd = systemData.semesterDates || {};
+            var sd = getSemesterDatesForActive(classObj.activeId);
             if (!sd.semester1Start || !sd.semester1End || !sd.semester2Start || !sd.semester2End) {
-                showNotification("⚠️ Vendos më parë Datat e Gjysmëvjetorëve (📅 Vendos Datat)!");
+                showNotification("⚠️ Vendos më parë Datat e Gjysmëvjetorëve (📅 Vendos Datat) për këtë aktiv ose në përgjithësi!");
                 return;
             }
             if (!systemData.curriculum[classId]) systemData.curriculum[classId] = {};
@@ -6205,7 +6533,8 @@ if (systemData.classes && systemData.classes.length > 0) {
             var html =
                 '<h3>Lista e festave</h3><table class="holiday-table"><thead><th>Data</th><th>Emri i festës</th><th>Gjysmevjetori I</th><th>Gjysmevjetori II</th><th></th></thead><tbody>';
             systemData.holidays.forEach(function(holiday, idx) {
-                html += '<tr><td style="white-space:nowrap;">' + holiday.date +
+                var dateLabel = holiday.date + (holiday.dateEnd ? (' — ' + holiday.dateEnd) : '');
+                html += '<tr><td style="white-space:nowrap;">' + dateLabel +
                     '</td><td style="text-align:left;">' +
                     escapeHtml(holiday.name) + '</td>';
                 html += '<td style="text-align:center;"><input type="checkbox" class="holiday-sem1" data-idx="' +
@@ -6232,17 +6561,86 @@ if (systemData.classes && systemData.classes.length > 0) {
             });
         }
 
+        function confirmImportOfficialCalendar() {
+            if (!requireAdmin()) return;
+            if (confirm("Kjo do të shtojë pushimet dhe festat zyrtare 2025-2026 (nëse s'ekzistojnë ende) dhe do të vendosë datat e gjysmëvjetorëve. Të dhënat ekzistuese nuk fshihen. Vazhdo?")) {
+                importOfficialCalendar();
+            }
+        }
+
+        // Të dhëna të nxjerra nga kalendari zyrtar shkollor 2025-2026 (Kalendari_025-026.xlsx).
+        function importOfficialCalendar() {
+            if (!systemData.holidays) systemData.holidays = [];
+            var toAdd = [
+                { date: '2025-10-29', dateEnd: '2025-10-31', name: 'Pushimi vjeshtor', semester1: true, semester2: false },
+                { date: '2025-12-26', dateEnd: '2026-01-07', name: 'Pushimi dimëror', semester1: true, semester2: true },
+                { date: '2026-04-07', dateEnd: '2026-04-10', name: 'Pushimi pranveror', semester1: false, semester2: true },
+                { date: '2025-11-28', name: 'Dita e shqiptarëve', semester1: true, semester2: false },
+                { date: '2025-12-25', name: 'Krishtlindjet', semester1: true, semester2: false },
+                { date: '2026-01-01', name: 'Viti i ri', semester1: false, semester2: true },
+                { date: '2026-01-02', name: 'Festa e vitit të ri', semester1: false, semester2: true },
+                { date: '2026-01-07', name: 'Krishtlindjet Ortodokse', semester1: false, semester2: true },
+                { date: '2026-02-17', name: 'Dita e pavarësisë', semester1: false, semester2: true },
+                { date: '2026-03-20', name: 'Fitër Bajrami', semester1: false, semester2: true },
+                { date: '2026-04-06', name: 'Pashkët katolike', semester1: false, semester2: true },
+                { date: '2026-04-09', name: 'Dita e kushtetutës', semester1: false, semester2: true },
+                { date: '2026-04-13', name: 'Pashkët ortodokse', semester1: false, semester2: true },
+                { date: '2026-05-01', name: 'Dita e punës', semester1: false, semester2: true },
+                { date: '2026-05-09', name: 'Dita e Evropës', semester1: false, semester2: true },
+                { date: '2026-05-11', name: 'Dita e Evropës (festa)', semester1: false, semester2: true },
+                { date: '2026-05-27', name: 'Kurban Bajrami', semester1: false, semester2: true },
+                { date: '2026-06-10', name: 'Dita e shkollës', semester1: false, semester2: true },
+                { date: '2026-06-11', name: 'Dita e çlirimit', semester1: false, semester2: true },
+                { date: '2026-06-12', name: 'Dita e paqës', semester1: false, semester2: true }
+            ];
+            var added = 0;
+            toAdd.forEach(function(h) {
+                var exists = systemData.holidays.some(function(existing) {
+                    return existing.date === h.date && existing.name.trim().toLowerCase() === h.name.trim().toLowerCase();
+                });
+                if (!exists) {
+                    systemData.holidays.push({ date: h.date, dateEnd: h.dateEnd || null, name: h.name, semester1: h.semester1, semester2: h.semester2 });
+                    added++;
+                }
+            });
+            // Datat e gjysmëvjetorëve (të përgjithshme - rezervë për aktivet pa data të veta)
+            systemData.semesterDates = {
+                schoolStart: '2025-09-01', schoolEnd: '2026-06-22',
+                semester1Start: '2025-09-01', semester1End: '2025-12-24',
+                semester2Start: '2026-01-08', semester2End: '2026-06-22'
+            };
+            // Klasa IX mbaron më herët - e vendosim automatikisht si përjashtim për këtë aktiv
+            if (!systemData.semesterDatesByActive) systemData.semesterDatesByActive = {};
+            var grade9 = (systemData.actives || []).find(function(a) {
+                return /\bIX\b/i.test(a.code || '') || /\bIX\b/i.test(a.name || '') || /nënt/i.test(a.name || '');
+            });
+            if (grade9) {
+                systemData.semesterDatesByActive[grade9.id] = {
+                    schoolStart: '2025-09-01', schoolEnd: '2026-06-05',
+                    semester1Start: '2025-09-01', semester1End: '2025-12-24',
+                    semester2Start: '2026-01-08', semester2End: '2026-06-05'
+                };
+            }
+            saveToLocal();
+            renderHolidaysList();
+            showNotification("📥 U importuan " + added + " festa/pushime të reja! Datat e gjysmëvjetorëve u vendosën" +
+                (grade9 ? " (Klasa IX me datë të veçantë mbarimi: 5 qershor)." : "."));
+        }
+
         function addHoliday() {
             if (!requireAdmin()) return;
             var date = document.getElementById('holidayDate').value.trim();
+            var dateEnd = document.getElementById('holidayDateEnd').value.trim();
             var name = document.getElementById('holidayName').value.trim();
             var sem1 = document.getElementById('holidaySem1').checked;
             var sem2 = document.getElementById('holidaySem2').checked;
             if (!date || !name) { alert("Plotësoni datën dhe emrin e festës!"); return; }
+            if (dateEnd && dateEnd < date) { alert("Data 'Deri më' nuk mund të jetë para datës së fillimit!"); return; }
             if (!sem1 && !sem2) { alert("Zgjidhni së paku një gjysmëvjetor!"); return; }
             if (!systemData.holidays) systemData.holidays = [];
-            systemData.holidays.push({ date: date, name: name, semester1: sem1, semester2: sem2 });
+            systemData.holidays.push({ date: date, dateEnd: dateEnd || null, name: name, semester1: sem1, semester2: sem2 });
             document.getElementById('holidayDate').value = '';
+            document.getElementById('holidayDateEnd').value = '';
             document.getElementById('holidayName').value = '';
             document.getElementById('holidaySem1').checked = false;
             document.getElementById('holidaySem2').checked = false;
@@ -6336,8 +6734,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<div><label>📅 Javët Gjysmevjetori II:</label> <input type="number" id="weeksSem2Input" value="' +
                 weeksSem2 + '" style="width:70px;" onchange="updateWeeksFromModal()"></div>' +
                 '<button class="btn btn-info" onclick="updateWeeksFromModal()">Përditëso</button>' +
-                '<button class="btn btn-admin" onclick="openSemesterDatesModal()" title="Vendos datat e fillimit/mbarimit të gjysmëvjetorëve">📅 Vendos Datat</button>' +
-                '<button class="btn btn-warning" onclick="subtractHoursFromHolidaysAndSchedule(\'' + classId + '\')" title="Llogarit orët e sakta për çdo lëndë nga Orari, duke zbritur festat që bien në ditën e saj">🔄 Zbrit Orët nga Festat dhe Orari</button>';
+                '<button class="btn btn-admin" onclick="openSemesterDatesModal(\'' + (activeId || '') + '\')" title="Vendos datat e fillimit/mbarimit të gjysmëvjetorëve për këtë aktiv">📅 Vendos Datat</button>' +
+                '<button class="btn btn-success" onclick="openSchoolCalendarModal(\'' + (activeId || '') + '\')" title="Shfaq kalendarin vizual të vitit shkollor për këtë aktiv">📆 Kalendari Shkollor</button>' +
+                '<button class="btn btn-warning" onclick="subtractHoursFromHolidaysAndSchedule(\'' + classId + '\')" title="Llogarit orët e sakta për çdo lëndë nga Orari, duke zbritur festat që bien në ditën e saj">🔄 Zbrit Orët nga Festat dhe Orari</button>' +
+                '<button class="btn btn-danger" onclick="confirmClearScheduleOverrides(\'' + classId + '\')" title="Anulo llogaritjen e saktë dhe kthehu te formula e thjeshtë Orë/javë × Javët">↩️ Anulo Zbritjen e Orarit</button>';
             var activeInfo = systemData.actives.find(function(a) { return a.id === activeId; });
             html += '<span style="margin-left:15px; font-size:13px; color:#555;">🏷️ Aktiv: ' + (activeInfo ?
                 activeInfo
@@ -6802,14 +7202,28 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         // ==================== FUNKSIONET PËR OPEN SEMESTER DATES ====================
-        function openSemesterDatesModal() {
-            if (!requireAdmin()) return;
-            document.getElementById('schoolStartDate').value = systemData.semesterDates?.schoolStart || '';
-            document.getElementById('schoolEndDate').value = systemData.semesterDates?.schoolEnd || '';
-            document.getElementById('semester1StartDate').value = systemData.semesterDates?.semester1Start || '';
-            document.getElementById('semester1EndDate').value = systemData.semesterDates?.semester1End || '';
-            document.getElementById('semester2StartDate').value = systemData.semesterDates?.semester2Start || '';
-            document.getElementById('semester2EndDate').value = systemData.semesterDates?.semester2End || '';
+        var currentSemesterDatesActiveId = null;
+
+        function openSemesterDatesModal(activeId) {
+            if (!requireTeacher()) return;
+            currentSemesterDatesActiveId = activeId || null;
+            var dates = getSemesterDatesForActive(currentSemesterDatesActiveId);
+            document.getElementById('schoolStartDate').value = dates.schoolStart || '';
+            document.getElementById('schoolEndDate').value = dates.schoolEnd || '';
+            document.getElementById('semester1StartDate').value = dates.semester1Start || '';
+            document.getElementById('semester1EndDate').value = dates.semester1End || '';
+            document.getElementById('semester2StartDate').value = dates.semester2Start || '';
+            document.getElementById('semester2EndDate').value = dates.semester2End || '';
+            var labelEl = document.getElementById('semesterDatesActiveLabel');
+            if (labelEl) {
+                if (currentSemesterDatesActiveId) {
+                    var activeInfo = systemData.actives.find(function(a) { return a.id === currentSemesterDatesActiveId; });
+                    labelEl.textContent = '🏷️ Duke vendosur datat për: ' + (activeInfo ? activeInfo.name : 'këtë aktiv') +
+                        ' (nëse i lë bosh, do të përdoren datat e përgjithshme)';
+                } else {
+                    labelEl.textContent = '🏷️ Duke vendosur datat E PËRGJITHSHME (rezervë për aktivet pa data të veta)';
+                }
+            }
             showModal('semesterDatesModal');
         }
 
@@ -6818,14 +7232,20 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         function saveSemesterDates() {
-            if (!requireAdmin()) return;
-            if (!systemData.semesterDates) systemData.semesterDates = {};
-            systemData.semesterDates.schoolStart = document.getElementById('schoolStartDate').value;
-            systemData.semesterDates.schoolEnd = document.getElementById('schoolEndDate').value;
-            systemData.semesterDates.semester1Start = document.getElementById('semester1StartDate').value;
-            systemData.semesterDates.semester1End = document.getElementById('semester1EndDate').value;
-            systemData.semesterDates.semester2Start = document.getElementById('semester2StartDate').value;
-            systemData.semesterDates.semester2End = document.getElementById('semester2EndDate').value;
+            if (!requireTeacher()) return;
+            if (isAdminViewingTeacherPanel()) {
+                showNotification("⛔ Jeni në modalitet shikimi - nuk mund të ruani ndryshime!");
+                return;
+            }
+            var dates = {
+                schoolStart: document.getElementById('schoolStartDate').value,
+                schoolEnd: document.getElementById('schoolEndDate').value,
+                semester1Start: document.getElementById('semester1StartDate').value,
+                semester1End: document.getElementById('semester1EndDate').value,
+                semester2Start: document.getElementById('semester2StartDate').value,
+                semester2End: document.getElementById('semester2EndDate').value
+            };
+            setSemesterDatesForActive(currentSemesterDatesActiveId, dates);
             saveToLocal();
             closeSemesterDatesModal();
             refreshDisplay();
@@ -12612,6 +13032,7 @@ function renderAdminDashboard() {
                 <div class="date-status">📘 Gjysmevjetori I: ${dateInfo.sem1Start} - ${dateInfo.sem1End}</div>
                 <div class="date-status">📙 Gjysmevjetori II: ${dateInfo.sem2Start} - ${dateInfo.sem2End}</div>
                 <button class="btn btn-info" style="margin-top:8px;" onclick="openSemesterDatesModal()">📅 Vendos Datat</button>
+                <button class="btn btn-success" style="margin-top:8px;" onclick="openSchoolCalendarModal()">📆 Kalendari Shkollor</button>
             </div>
             
             <div class="report-actions">
