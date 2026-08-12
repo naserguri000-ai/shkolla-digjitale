@@ -2108,6 +2108,12 @@
                 localStorage.setItem('lastKnownGoodCounts', JSON.stringify({ classes: classes, students: students }));
             }
         }
+        // Ndryshe nga updateKnownGoodCounts (që vetëm RRIT bazën), kjo e RIVENDOS pa kushte -
+        // përdoret vetëm kur vetë përdoruesi ka kërkuar shprehimisht një veprim që zvogëlon
+        // qëllimisht të dhënat (p.sh. "Undo"), ku mburoja s'duhet ta bllokojë vetveten.
+        function forceSetKnownGoodCounts(classes, students) {
+            localStorage.setItem('lastKnownGoodCounts', JSON.stringify({ classes: classes, students: students }));
+        }
 
         // Funksion i përbashkët: heq klasat e njohura demo (incidenti 11.8.2026) DHE çdo dyfishim
         // tjetër sipas emrit të klasës (mburojë e përgjithshme). Përdoret kudo që të dhënat
@@ -2154,6 +2160,33 @@
                 }
             });
             return deduped;
+        }
+
+        // Për veprime ku qëllimi është ZËVENDËSIM I PLOTË i gjendjes (Restauro nga Backup,
+        // Undo, Arkivo Vitin) - JO bashkim (merge) gradual. Bashkimi është i papërshtatshëm
+        // këtu: të dhënat e rikthyera/restauruara zakonisht s'kanë vulë kohore (promotedAt/
+        // createdAt), dhe do të "humbisnin" gabimisht kundrejt gjendjes ekzistuese në cloud
+        // gjatë bashkimit (defekti i 12.8.2026 - Restauro nga Backup nuk "zinte vend").
+        // Shkruan systemData AASHTU SIÇ ËSHTË, direkt, pa u përzier me çka ka cloud-i tani.
+        function forcePushToCloud(onDone) {
+            if (!db || !isConnected) {
+                if (onDone) onDone(false);
+                return;
+            }
+            systemData.lastUpdated = new Date().toISOString();
+            systemData.lastUpdatedBy = (currentUser && currentUser.name) ? currentUser.name : 'panjohur';
+            var newClassCount = (systemData.classes || []).length;
+            var newStudentCount = (systemData.classes || []).reduce(function(sum, c) { return sum + (c.students || []).length; }, 0);
+            var cleanData = stripUndefinedDeep(systemData);
+            db.ref('schoolData_v5_4').set(cleanData).then(function() {
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+                localStorage.setItem('lastCloudSync', new Date().toISOString());
+                forceSetKnownGoodCounts(newClassCount, newStudentCount);
+                if (onDone) onDone(true);
+            }).catch(function(err) {
+                console.error("❌ Gabim në shkrimin te cloud:", err);
+                if (onDone) onDone(false);
+            });
         }
 
         function mergeAndPushToCloud(onDone) {
@@ -5722,9 +5755,23 @@ if (systemData.classes && systemData.classes.length > 0) {
                 // gjendje që e thyen rendering-un menjëherë ("Gabim në sistem").
                 ensureSystemDataFields();
 
-                saveToLocal();
+                // RREGULLIM: "Undo" shpesh e ULE qëllimisht numrin e klasave/nxënësve (p.sh.
+                // kthimi nga viti i ri te i vjetri) - mburoja kundër humbjes së të dhënave nuk
+                // duhet ta bllokojë këtë veprim të kërkuar shprehimisht nga përdoruesi.
+                var undoClassCount = (systemData.classes || []).length;
+                var undoStudentCount = (systemData.classes || []).reduce(function(sum, c) { return sum + (c.students || []).length; }, 0);
+                forceSetKnownGoodCounts(undoClassCount, undoStudentCount);
+                localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+
+                // Përdorim forcePushToCloud (ZËVENDËSIM I PLOTË, jo bashkim) - gjendja e rikthyer
+                // shpesh s'ka vulë kohore (promotedAt/createdAt) dhe do të "humbiste" gabimisht
+                // gjatë një bashkimi (merge) kundrejt gjendjes ekzistuese në cloud.
                 refreshDisplay();
-                showNotification("✅ Gjendja u kthye mbrapa me sukses!");
+                _suppressNextRemoteRefresh = true;
+                forcePushToCloud(function(ok) {
+                    showNotification(ok ? "✅ Gjendja u kthye mbrapa dhe u ruajt në cloud!" :
+                        "⚠️ Gjendja u kthye mbrapa lokalisht, por ruajtja në cloud dështoi.");
+                });
             } catch (e) {
                 console.error("Gabim në undo:", e);
                 showNotification("❌ Gabim gjatë kthimit të gjendjes!");
@@ -5791,6 +5838,15 @@ if (systemData.classes && systemData.classes.length > 0) {
             var newClasses = [];
             var promotedCount = 0;
             var graduatedCount = 0;
+            // Hartë ID-e-vjetër -> ID-e-re, që t'i përditësojmë referencat e mësimdhënësve
+            // (teacher.classId) pas promovimit - përndryshe mësimdhënësit "humbin" lidhjen me
+            // klasën e tyre të re dhe s'mund të hyjnë më në panelin e tyre (defekti i 12.8.2026).
+            var oldToNewClassId = {};
+            // Kujdestari i klasës IX që diplomohet "kthehet" automatikisht kujdestar i klasës
+            // së re VI me TË NJËJTIN numër (p.sh. kujdestari i IX-3 -> kujdestar i VI-3 i ri) -
+            // praktika e zakonshme e ndjekjes së një grupi nxënësish nga VI deri IX.
+            var graduatedTeacherIdByNumber = {};
+            var graduatedClassIdByNumber = {};
 
             systemData.classes.forEach(function(cls) {
                 var parts = cls.className.split('-');
@@ -5799,6 +5855,11 @@ if (systemData.classes && systemData.classes.length > 0) {
 
                 if (level === 'IX') {
                     graduatedCount++;
+                    oldToNewClassId[cls.id] = null; // klasa u diplomua - s'ekziston më (rishikohet poshtë nëse kujdestari vazhdon te VI e re)
+                    if (cls.teacherId) {
+                        graduatedTeacherIdByNumber[number] = cls.teacherId;
+                        graduatedClassIdByNumber[number] = cls.id;
+                    }
                     return;
                 }
 
@@ -5844,14 +5905,16 @@ if (systemData.classes && systemData.classes.length > 0) {
                 };
 
                 newClasses.push(newClass);
+                oldToNewClassId[cls.id] = newClass.id;
                 promotedCount++;
             });
 
             for (var i = 1; i <= 6; i++) {
+                var newVITeacherId = graduatedTeacherIdByNumber[String(i)] || null;
                 var newVI = {
                     id: 'class_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                     className: 'VI-' + i,
-                    teacherId: null,
+                    teacherId: newVITeacherId,
                     activeId: 'active_vi',
                     students: [],
                     subjectsOrder: ALL_SUBJECTS.slice(),
@@ -5859,10 +5922,24 @@ if (systemData.classes && systemData.classes.length > 0) {
                     createdAt: new Date().toISOString()
                 };
                 newClasses.push(newVI);
+                var oldIxIdForThisNumber = graduatedClassIdByNumber[String(i)];
+                if (oldIxIdForThisNumber) {
+                    // Kujdestari i ish-IX-N ndjek klasën e re VI-N, jo më "pa klasë".
+                    oldToNewClassId[oldIxIdForThisNumber] = newVI.id;
+                }
             }
 
             systemData.classes = newClasses;
             systemData.schoolInfo.year = nextYear;
+
+            // Përditëso referencat e mësimdhënësve (teacher.classId) që t'i ndjekin klasat e
+            // reja të promovuara. Mësimdhënësit e klasave IX (të diplomuara) mbeten pa klasë
+            // (null) - admini duhet t'i riemërojë manualisht te një klasë e re nëse vazhdojnë.
+            (systemData.teachers || []).forEach(function(t) {
+                if (t.classId && Object.prototype.hasOwnProperty.call(oldToNewClassId, t.classId)) {
+                    t.classId = oldToNewClassId[t.classId];
+                }
+            });
 
             var oldCurriculum = systemData.curriculum || {};
             systemData.curriculum = {
@@ -5871,13 +5948,27 @@ if (systemData.classes && systemData.classes.length > 0) {
                 activeWeeks: oldCurriculum.activeWeeks || {}
             };
 
-            saveToLocal();
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
             refreshDisplay();
 
             showNotification('✅ Arkivimi i vitit ' + currentYear + ' u krye me sukses!');
             showNotification('📊 ' + promotedCount + ' klasa u ngritën një nivel lart');
             showNotification('🎓 ' + graduatedCount + ' klasa IX mbaruan shkollën');
             showNotification('🆕 6 klasa të reja VI u krijuan nga cikli fillor');
+            var rotatedCount = Object.keys(graduatedTeacherIdByNumber).length;
+            if (rotatedCount > 0) {
+                showNotification('🔄 ' + rotatedCount + ' kujdestarë të ish-klasave IX u bënë automatikisht kujdestarë të klasave të reja VI me të njëjtin numër');
+            }
+            // Përdorim forcePushToCloud (ZËVENDËSIM I PLOTË, jo bashkim) - njësoj si te Restauro/
+            // Undo, që klasat/mësimdhënësit e sapopromovuar të mos "përzihen" gabimisht me
+            // gjendjen e vjetër që mund të ketë ende cloud-i.
+            var arcClassCount = (systemData.classes || []).length;
+            var arcStudentCount = (systemData.classes || []).reduce(function(sum, c) { return sum + (c.students || []).length; }, 0);
+            forceSetKnownGoodCounts(arcClassCount, arcStudentCount);
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ U ruajt në cloud!" : "⚠️ Ruajtja në cloud dështoi - kontakto mbështetjen.");
+            });
 
             showUndoButton();
         }
@@ -11313,6 +11404,12 @@ function ensureSystemDataFields() {
     if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
     if (!systemData.semesterDatesByActive) systemData.semesterDatesByActive = {};
     if (!Array.isArray(systemData.teachers)) systemData.teachers = [];
+    // SHËNIM (rregulluar 12.8.2026): më parë këtu ekzistonte një filtër automatik që fshinte
+    // mësimdhënës bazuar te modeli i emrit të përdoruesit (username) - por kjo doli e rrezikshme,
+    // sepse shkolla mund të përdorë username si "arbesa" ose "kujdestari_ix1" për mësimdhënës
+    // KREJTËSISHT REALË (nuk ka mënyrë të sigurt për sistemin ta dallojë vetë "demo" nga "real"
+    // thjesht nga emri). U hoq qëllimisht - fshirja e mësimdhënësve demo tani bëhet vetëm
+    // MANUALISHT nga administratori (p.sh. duke i fshirë një nga një nga "Menaxho Kujdestarët").
     // Riparim i PËRHERSHËM (incidenti 11.8.2026 + mburojë e përgjithshme): heq çdo klasë
     // demo të njohur dhe çdo dyfishim sipas emrit të klasës, në ÇDO ngarkim - jo vetëm një herë.
     if (Array.isArray(systemData.classes)) {
@@ -12430,12 +12527,15 @@ function restoreFromFile() {
                 // KRITIKE: presim që shkrimi në cloud të MBAROJË plotësisht përpara se ta
                 // rifreskojmë faqen - përndryshe faqja e re rilexon cloud-in ende bosh dhe
                 // "e anulon" në heshtje restaurimin (kjo ishte shkaku i defektit të mëparshëm).
+                // Përdorim forcePushToCloud (ZËVENDËSIM I PLOTË), JO mergeAndPushToCloud - sepse
+                // bashkimi (merge) e "humbiste" backup-in e restauruar kundrejt gjendjes së
+                // ndotur në cloud (defekti i 12.8.2026).
                 _suppressNextRemoteRefresh = true;
-                mergeAndPushToCloud(function(ok) {
+                forcePushToCloud(function(ok) {
                     if (ok) {
                         showNotification("✅ Restaurimi u ruajt në cloud! Faqja po rifreskohet...");
                     } else {
-                        showNotification("⚠️ Restaurimi është lokal, por ruajtja në cloud dështoi/u ndal. Mos e mbyll faqen - kontakto mbështetjen përpara se të rifreskosh.");
+                        showNotification("⚠️ Restaurimi është lokal, por ruajtja në cloud dështoi. Mos e mbyll faqen - kontakto mbështetjen përpara se të rifreskosh.");
                         return;
                     }
                     setTimeout(function() { location.reload(); }, 1000);
@@ -12452,9 +12552,16 @@ function undoChanges() {
     if (backupData) {
         systemData = JSON.parse(JSON.stringify(backupData));
         ensureSystemDataFields();
-        saveToLocal();
+        var undoClassCount2 = (systemData.classes || []).length;
+        var undoStudentCount2 = (systemData.classes || []).reduce(function(sum, c) { return sum + (c.students || []).length; }, 0);
+        forceSetKnownGoodCounts(undoClassCount2, undoStudentCount2);
+        localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
         refreshDisplay();
-        showNotification("Ndryshimet u kthyen mbrapa!");
+        _suppressNextRemoteRefresh = true;
+        forcePushToCloud(function(ok) {
+            showNotification(ok ? "Ndryshimet u kthyen mbrapa dhe u ruajtën në cloud!" :
+                "Ndryshimet u kthyen mbrapa lokalisht, por ruajtja në cloud dështoi.");
+        });
     } else {
         alert("Nuk ka backup të ruajtur. Përdorni butonin 'Backup në Memorie' për të ruajtur gjendjen aktuale.");
     }
