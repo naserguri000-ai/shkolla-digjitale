@@ -1583,6 +1583,10 @@
                 <button class="btn btn-success" onclick="confirmImportOfficialCalendar()">📥 Importo Kalendarin Zyrtar 2025-2026</button>
                 <small style="display:block; margin-top:6px; color:#2e7d32;">Fut automatikisht pushimet (vjeshtor, dimëror, pranveror) dhe 17 festat shtetërore sipas kalendarit zyrtar të Ministrisë, si dhe datat e gjysmëvjetorëve.</small>
             </div>
+            <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
+                <button class="btn btn-warning" onclick="confirmGenerateMovingHolidays()">🕌 Gjenero Festat Fetare Lëvizëse (për çdo vit)</button>
+                <small style="display:block; margin-top:6px; color:#e65100;">Llogarit vetë Pashkët katolike/ortodokse (saktë 100%) dhe Fitër/Kurban Bajrami (afërsisht, ±1 ditë - konfirmo me BIK) për çdo vit që zgjedh - e dobishme kur nuk ka ende kalendar zyrtar për vitin e ardhshëm. Data e shtunë/diel zhvendoset automatikisht te e hëna për çdo festë njëditore.</small>
+            </div>
             <div class="form-group"><label>Shto feste te re</label>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <input type="date" id="holidayDate" style="width:150px;">
@@ -5038,21 +5042,152 @@ if (systemData.classes && systemData.classes.length > 0) {
             return null;
         }
 
+        // ==================== KALENDARËT FETARË (për festat "lëvizëse") ====================
+        // Llogaritin datat e sakta për çdo vit të festave fetare që lëvizin çdo vit, në vend që
+        // të mbeten fikse nga një kalendar i vjetër. Të gjitha janë algoritme standarde,
+        // të vlefshme për shekullin 20-21 (1900-2099).
+
+        // Pashkët Katolike (e diela) - algoritmi Gregorian standard (Meeus/Anonymous).
+        function computeCatholicEasterSunday(year) {
+            var a = year % 19, b = Math.floor(year / 100), c = year % 100;
+            var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+            var g = Math.floor((b - f + 1) / 3);
+            var h = (19 * a + b - d - g + 15) % 30;
+            var i = Math.floor(c / 4), k = c % 4;
+            var l = (32 + 2 * e + 2 * i - h - k) % 7;
+            var m = Math.floor((a + 11 * h + 22 * l) / 451);
+            var month = Math.floor((h + l - 7 * m + 114) / 31);
+            var day = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(year, month - 1, day);
+        }
+        // Pashkët Ortodokse (e diela) - algoritmi Julian standard, i kthyer në kalendar Gregorian
+        // (+13 ditë, i vlefshëm 1900-2099).
+        function computeOrthodoxEasterSunday(year) {
+            var a = year % 4, b = year % 7, c = year % 19;
+            var d = (19 * c + 15) % 30, e = (2 * a + 4 * b - d + 34) % 7;
+            var month = Math.floor((d + e + 114) / 31);
+            var day = ((d + e + 114) % 31) + 1;
+            var dt = new Date(year, month - 1, day);
+            dt.setDate(dt.getDate() + 13);
+            return dt;
+        }
+        // Kthen datën Gregoriane për një datë të kalendarit Hixhri (Islam), duke përdorur
+        // kalendarin tabular/aritmetik standard (saktësi tipike ±1 ditë kundrejt shpalljes zyrtare
+        // të BIK-ut, e cila bazohet edhe në vëzhgimin e hënës - prandaj rekomandohet konfirmim).
+        function islamicToGregorian(hYear, hMonth, hDay) {
+            var jd = Math.floor(hDay + Math.ceil(29.5 * (hMonth - 1)) + (hYear - 1) * 354 +
+                Math.floor((3 + 11 * hYear) / 30) + 1948440) - 1;
+            var a = jd + 32044, b = Math.floor((4 * a + 3) / 146097);
+            var c = a - Math.floor((146097 * b) / 4);
+            var d = Math.floor((4 * c + 3) / 1461);
+            var e = c - Math.floor((1461 * d) / 4);
+            var m = Math.floor((5 * e + 2) / 153);
+            var day = e - Math.floor((153 * m + 2) / 5) + 1;
+            var month = m + 3 - 12 * Math.floor(m / 10);
+            var year = 100 * b + d - 4800 + Math.floor(m / 10);
+            return new Date(year, month - 1, day);
+        }
+        // Gjen daten e 1 Shevalit (Fitër Bajrami) ose 10 Dhul Hixhes (Kurban Bajrami) që bie
+        // brenda vitit Gregorian të dhënë, duke provuar disa vite Hixhri kandidate.
+        function findIslamicHolidayInGregorianYear(gYear, hMonth, hDay) {
+            var approxHYear = Math.round((gYear - 622) * 33 / 32);
+            for (var hy = approxHYear - 1; hy <= approxHYear + 1; hy++) {
+                var g = islamicToGregorian(hy, hMonth, hDay);
+                if (g.getFullYear() === gYear) return g;
+            }
+            return null;
+        }
+        function computeFiterBajrami(gYear) { return findIslamicHolidayInGregorianYear(gYear, 10, 1); }
+        function computeKurbanBajrami(gYear) { return findIslamicHolidayInGregorianYear(gYear, 12, 10); }
+
+        function toISODate(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        // Gjeneron festat fetare "lëvizëse" për një vit Gregorian të dhënë (Pashkët katolike dhe
+        // ortodokse - e hëna e Pashkëve, dita zyrtare jo-pune; Fitër dhe Kurban Bajrami).
+        function generateMovingReligiousHolidays(gYear) {
+            var catholicEasterMonday = new Date(computeCatholicEasterSunday(gYear));
+            catholicEasterMonday.setDate(catholicEasterMonday.getDate() + 1);
+            var orthodoxEasterMonday = new Date(computeOrthodoxEasterSunday(gYear));
+            orthodoxEasterMonday.setDate(orthodoxEasterMonday.getDate() + 1);
+            var fiter = computeFiterBajrami(gYear);
+            var kurban = computeKurbanBajrami(gYear);
+            var list = [
+                { date: toISODate(catholicEasterMonday), name: 'Pashkët katolike (e hëna e Pashkëve)' },
+                { date: toISODate(orthodoxEasterMonday), name: 'Pashkët ortodokse (e hëna e Pashkëve)' }
+            ];
+            if (fiter) list.push({ date: toISODate(fiter), name: 'Fitër Bajrami (e llogaritur - konfirmo me BIK)' });
+            if (kurban) list.push({ date: toISODate(kurban), name: 'Kurban Bajrami (e llogaritur - konfirmo me BIK)' });
+            return list;
+        }
+
+        function confirmGenerateMovingHolidays() {
+            if (!requireAdmin()) return;
+            var yearStr = prompt("Për cilin vit Gregorian t'i gjenerojmë festat fetare lëvizëse (Pashkët, Fitër Bajrami, Kurban Bajrami)?", new Date().getFullYear());
+            if (!yearStr) return;
+            var year = parseInt(yearStr, 10);
+            if (isNaN(year) || year < 1900 || year > 2099) {
+                alert("Vit i pavlefshëm. Përdor një vit mes 1900 dhe 2099.");
+                return;
+            }
+            var generated = generateMovingReligiousHolidays(year);
+            var preview = generated.map(function(h) { return h.date + ' — ' + h.name; }).join('\n');
+            if (!confirm("Datat e llogaritura për " + year + ":\n\n" + preview +
+                    "\n\n⚠️ Datat islame (Fitër/Kurban Bajrami) janë të llogaritura astronomikisht dhe mund të ndryshojnë ±1 ditë nga shpallja zyrtare e Bashkësisë Islame të Kosovës (BIK) - konfirmoji kur BIK e shpall zyrtarisht. Datat e Pashkëve janë të sakta 100%.\n\nT'i shtojmë te lista e festave (do t'i caktosh vetë gjysmëvjetorin nëse duhet ndryshuar)?")) {
+                return;
+            }
+            if (!systemData.holidays) systemData.holidays = [];
+            var added = 0;
+            generated.forEach(function(h) {
+                var exists = systemData.holidays.some(function(existing) {
+                    return existing.date === h.date && existing.name === h.name;
+                });
+                if (!exists) {
+                    // Semestri caktohet automatikisht sipas muajit (S1: shtator-dhjetor, S2: janar-qershor).
+                    var month = parseInt(h.date.split('-')[1], 10);
+                    var inSem1 = month >= 9 && month <= 12;
+                    systemData.holidays.push({ date: h.date, dateEnd: null, name: h.name, semester1: inSem1, semester2: !inSem1 });
+                    added++;
+                }
+            });
+            saveToLocal();
+            renderHolidaysList();
+            showNotification("🕌 U shtuan " + added + " festa fetare të llogaritura për " + year + "!");
+        }
+
         // ==================== KALENDARI SHKOLLOR DINAMIK ====================
-        // Ndërton një hartë datë->emër feste, duke shpalosur çdo diapazon (date -> dateEnd) në ditë të veçanta.
+        // Ndërton një hartë datë->emër feste, duke shpalosur çdo diapazon (date -> dateEnd) në ditë
+        // të veçanta. RREGULL: kur një festë NJË-DITORE (jo pushim shumëditor si vjeshtor/dimëror/
+        // pranveror) bie të shtunën ose të dielën, dita e pushimit zhvendoset automatikisht te e
+        // hëna pasuese (praktikë standarde në Kosovë) - kjo llogaritet këtu automatikisht, pa
+        // pasur nevojë të shtohet dorazi si rresht i veçantë.
         function buildHolidayDateMap() {
             var map = {};
+            function addDate(d, name) {
+                var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                if (!map[key]) map[key] = [];
+                map[key].push(name);
+            }
             (systemData.holidays || []).forEach(function(h) {
                 var hStart = parseFlexibleDate(h.date);
                 if (!hStart) return;
                 var hEnd = h.dateEnd ? parseFlexibleDate(h.dateEnd) : hStart;
                 if (!hEnd || hEnd < hStart) hEnd = hStart;
+                var isSingleDay = hStart.getTime() === hEnd.getTime();
                 var d = new Date(hStart);
                 while (d <= hEnd) {
-                    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    if (!map[key]) map[key] = [];
-                    map[key].push(h.name);
+                    addDate(d, h.name);
                     d.setDate(d.getDate() + 1);
+                }
+                if (isSingleDay) {
+                    var dow = hStart.getDay();
+                    if (dow === 0 || dow === 6) {
+                        var shift = dow === 6 ? 2 : 1; // e shtunë -> +2 ditë; e diel -> +1 ditë = e hënë
+                        var observed = new Date(hStart);
+                        observed.setDate(observed.getDate() + shift);
+                        addDate(observed, h.name + ' (pushim i shtyrë)');
+                    }
                 }
             });
             return map;
@@ -5161,10 +5296,21 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (!hStart) return;
                 var hEnd = h.dateEnd ? parseFlexibleDate(h.dateEnd) : hStart;
                 if (!hEnd || hEnd < hStart) hEnd = hStart;
+                var isSingleDay = hStart.getTime() === hEnd.getTime();
                 var d = new Date(hStart);
                 while (d <= hEnd) {
                     if (d >= start && d <= end && d.getDay() === dow) count++;
                     d.setDate(d.getDate() + 1);
+                }
+                // Njësoj si te buildHolidayDateMap: festë njëditore që bie të shtunën/dielën ->
+                // dita e pushimit zhvendoset te e hëna pasuese.
+                if (isSingleDay) {
+                    var wd = hStart.getDay();
+                    if (wd === 0 || wd === 6) {
+                        var observed = new Date(hStart);
+                        observed.setDate(observed.getDate() + (wd === 6 ? 2 : 1));
+                        if (observed >= start && observed <= end && observed.getDay() === dow) count++;
+                    }
                 }
             });
             return count;
@@ -5569,6 +5715,12 @@ if (systemData.classes && systemData.classes.length > 0) {
                 }
                 systemData.undoState = currentBackup;
                 delete systemData.undoState.undoState;
+
+                // RREGULLIM: gjendja e vjetër e ruajtur mund të mos ketë kaluar kurrë nëpër
+                // riparimet automatike (p.sh. nëse u ruajt para se ato riparime të ekzistonin,
+                // ose vetë ka ndonjë fushë të munguar). Pa këtë, "undo" mund të rikthente një
+                // gjendje që e thyen rendering-un menjëherë ("Gabim në sistem").
+                ensureSystemDataFields();
 
                 saveToLocal();
                 refreshDisplay();
@@ -12299,6 +12451,7 @@ function undoChanges() {
     if (!requireAdmin()) return;
     if (backupData) {
         systemData = JSON.parse(JSON.stringify(backupData));
+        ensureSystemDataFields();
         saveToLocal();
         refreshDisplay();
         showNotification("Ndryshimet u kthyen mbrapa!");
