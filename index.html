@@ -67,6 +67,8 @@
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
 </script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+</script>
 
     <style>
         * {
@@ -1801,19 +1803,33 @@
                 firebase.initializeApp(firebaseConfig);
             }
             db = firebase.database();
-            isCloudConfigured = true;
-            db.ref('.info/connected').on('value', function(snap) {
-                isConnected = snap.val() === true;
-                console.log(isConnected ? "🔌 Firebase: ✅ Lidhur me cloud" : "🔌 Firebase: ❌ Shkëputur nga cloud");
-                updateConnectionStatusUI();
-                updateCloudStatusUI();
-                if (isConnected) {
-                    // Ngarko dhe fillo dëgjimin në kohë reale sapo lidhemi, PA pritur
-                    // që dikush të jetë kyçur — kështu të dhënat janë gati që në fillim.
-                    loadAllDataFromCloud();
-                    startRealtimeSync();
-                    if (currentUser) refreshDisplay();
-                }
+            // SIGURI (shtuar 12.8.2026): baza e të dhënave ishte plotësisht e hapur - çdokush
+            // që gjente adresën e Firebase-it (e dukshme në kod) mund të lexonte/shkruante
+            // direkt, duke anashkaluar faqen dhe fjalëkalimin krejtësisht. Identifikimi anonim
+            // është hapi i parë minimal: kërkon që rregullat e Firebase-it të kërkojnë
+            // "auth != null", duke ndaluar aksesin e drejtpërdrejtë nga jashtë aplikacionit
+            // (skriptë, robotë, kërkesa të rastësishme) - ende jo identifikim i plotë real,
+            // por një pengesë reale kundër ndërhyrjeve të thjeshta.
+            firebase.auth().signInAnonymously().then(function() {
+                isCloudConfigured = true;
+                db.ref('.info/connected').on('value', function(snap) {
+                    isConnected = snap.val() === true;
+                    console.log(isConnected ? "🔌 Firebase: ✅ Lidhur me cloud" : "🔌 Firebase: ❌ Shkëputur nga cloud");
+                    updateConnectionStatusUI();
+                    updateCloudStatusUI();
+                    if (isConnected) {
+                        // Ngarko dhe fillo dëgjimin në kohë reale sapo lidhemi, PA pritur
+                        // që dikush të jetë kyçur — kështu të dhënat janë gati që në fillim.
+                        loadAllDataFromCloud();
+                        startRealtimeSync();
+                        if (currentUser) refreshDisplay();
+                    }
+                });
+            }).catch(function(authErr) {
+                console.error("Gabim në identifikimin anonim Firebase:", authErr);
+                isCloudConfigured = false;
+                document.getElementById('loginStatusMsg').innerHTML = "⚠️ Firebase gabim identifikimi! Duke punuar lokalisht.";
+                document.getElementById('loginStatusMsg').style.color = "orange";
             });
         } catch (e) {
             console.error("Gabim në Firebase:", e);
@@ -11879,12 +11895,7 @@ function setupButtons() {
 
         console.log("🚀 Sistemi Shkollor Cloud Edition v5.4 është inicializuar!");
         console.log("☁️ Të gjitha të dhënat do të sinkronizohen me cloud!");
-        console.log("👑 Administrator: admin / admin123");
-        console.log("📌 Butoni 'Pastro Cache' është aktiv për të zgjidhur problemet e cache!");
-        console.log("👨‍🏫 Mësimdhënësit e paracaktuar:");
-        systemData.teachers.forEach(function(t) {
-            console.log("  • " + t.username + " / " + t.password + " (" + t.name + ")");
-        });
+                console.log("📌 Butoni 'Pastro Cache' është aktiv për të zgjidhur problemet e cache!");
 // =====================================================================
 //  FIX PËRFUNDIMTAR PËR BUTONIN HYR
 // =====================================================================
@@ -12069,7 +12080,6 @@ window.logout = logout;
 window.showMainApp = showMainApp;
 
 console.log("✅ Fix-i për butonin HYR u aplikua!");
-console.log("👑 Administrator: admin / admin123");
 console.log("📌 Tani mund të hyni në sistem!");
 // =====================================================================
 //  FIX PËRFUNDIMTAR PËR BUTONIN HYR
@@ -12255,7 +12265,6 @@ window.logout = logout;
 window.showMainApp = showMainApp;
 
 console.log("✅ Fix-i për butonin HYR u aplikua!");
-console.log("👑 Administrator: admin / admin123");
 console.log("📌 Tani mund të hyni në sistem!");
 // =====================================================================
 //  FIX PËR TË GJITHA FUNKSIONET QË MANGOJNË
@@ -13142,7 +13151,6 @@ window.closeArchiveModal = closeArchiveModal;
 window.printTranscriptSimple = printTranscriptSimple;
 
 console.log("✅ Të gjitha funksionet u përcaktuan!");
-console.log("👑 Administrator: admin / admin123");
 console.log("📌 Tani të gjithë butonat duhet të funksionojnë!");
 // =====================================================================
 //  FIX PËR FUNKSIONET E CLOUD
@@ -13554,7 +13562,6 @@ window.showMainApp = showMainApp;
 window.renderAdminDashboard = renderAdminDashboard;
 
 console.log("✅ Fix-i për faqen e zbrazët u aplikua!");
-console.log("👑 Administrator: admin / admin123");
 console.log("📌 Tani paneli duhet të shfaqet plotësisht!");
 // =====================================================================
 //  FIX PËR PULLAT E DYFISHTA ONLINE
