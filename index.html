@@ -2105,6 +2105,53 @@
             }
         }
 
+        // Funksion i përbashkët: heq klasat e njohura demo (incidenti 11.8.2026) DHE çdo dyfishim
+        // tjetër sipas emrit të klasës (mburojë e përgjithshme). Përdoret kudo që të dhënat
+        // mund të "shfaqen" (ngarkim, bashkim/merge në cloud) - jo vetëm në një vend të vetëm.
+        function dedupeClasses(classes) {
+            if (!Array.isArray(classes)) return [];
+            var afterIncidentFilter = classes.filter(function(c) {
+                return !(c.id && c.id.indexOf('class_1786267064') === 0);
+            });
+            var seenByName = {};
+            var deduped = [];
+            afterIncidentFilter.forEach(function(c) {
+                var name = c.className;
+                if (!name) { deduped.push(c); return; }
+                if (!seenByName[name]) {
+                    seenByName[name] = c;
+                    deduped.push(c);
+                    return;
+                }
+                var existing = seenByName[name];
+                // RREGULL (rregulluar 12.8.2026): një klasë e "promovuar" ose e sapokrijuar nga
+                // "Arkivo Vitin" ka GJITHMONË promotedAt/createdAt të vendosur - edhe kur fillon
+                // ende bosh (0 nxënës, p.sh. klasat e reja VI). Klasa e VJETËR që po zëvendësohet
+                // NUK ka këto fusha. Nëse krahasojmë vetëm "sa nxënës ka", klasa e re bosh do të
+                // "humbiste" gabimisht ndaj së vjetrës (siç ndodhi më 12.8.2026) - kështu që një
+                // vulë kohore fiton GJITHMONË ndaj mungesës së saj, para se të shohim numrin e
+                // nxënësve. Vetëm kur ASNJËRA s'ka vulë kohore (rasti origjinal i incidentit të
+                // 11.8.2026, demo kundër reales - të dyja pa vulë) kthehemi te "më shumë nxënës".
+                var existingStamp = existing.promotedAt || existing.createdAt || '';
+                var newStamp = c.promotedAt || c.createdAt || '';
+                var newIsBetter;
+                if (!!newStamp !== !!existingStamp) {
+                    newIsBetter = !!newStamp;
+                } else if (newStamp && existingStamp) {
+                    newIsBetter = newStamp > existingStamp;
+                } else {
+                    newIsBetter = (c.students || []).length > (existing.students || []).length;
+                }
+                if (newIsBetter) {
+                    var idx = deduped.indexOf(existing);
+                    if (idx !== -1) deduped.splice(idx, 1);
+                    seenByName[name] = c;
+                    deduped.push(c);
+                }
+            });
+            return deduped;
+        }
+
         function mergeAndPushToCloud(onDone) {
             if (!db || !isConnected) {
                 if (onDone) onDone(false);
@@ -2116,16 +2163,11 @@
                 systemData.classes = mergeById(systemData.classes, remote.classes);
                 systemData.actives = mergeById(systemData.actives, remote.actives);
                 if (remote.holidays) systemData.holidays = mergeById(systemData.holidays, remote.holidays);
-                // Mburojë e vazhdueshme: bashkimi (merge) mund ta rikthejë pa dashje një grup
-                // klasash demo të njohura si të prishura (incidenti i 11.8.2026, ID që fillojnë
-                // me "class_1786267064..."), nëse cloud-i ende i kishte këto në atë moment. I
-                // heqim përsëri KËTU, menjëherë pas bashkimit dhe përpara se të llogaritet ose
-                // shkruhet çdo gjë - jo vetëm në ngarkim fillestar.
-                if (Array.isArray(systemData.classes)) {
-                    systemData.classes = systemData.classes.filter(function(c) {
-                        return !(c.id && c.id.indexOf('class_1786267064') === 0);
-                    });
-                }
+                // Mburojë e vazhdueshme: bashkimi (merge) mund ta rikthejë pa dashje klasa të
+                // dyfishuara nëse cloud-i ende i kishte në atë moment (p.sh. nga një ruajtje e
+                // ndërprerë). I pastrojmë përsëri KËTU, menjëherë pas bashkimit dhe përpara se
+                // të llogaritet ose shkruhet çdo gjë - jo vetëm në ngarkim fillestar.
+                systemData.classes = dedupeClasses(systemData.classes);
                 systemData.lastUpdated = new Date().toISOString();
                 systemData.lastUpdatedBy = (currentUser && currentUser.name) ? currentUser.name : 'panjohur';
 
@@ -5703,7 +5745,11 @@ if (systemData.classes && systemData.classes.length > 0) {
             } else {
                 systemData.archivedYears.push(yearData);
             }
-            saveToLocal();
+            // SHËNIM: qëllimisht s'ka saveToLocal() këtu - archiveFullYear() e thërret këtë
+            // funksion PARA se t'i zëvendësojë klasat me setin e ri të promovuar. Ruajtja duhet
+            // të ndodhë VETËM NJËHERË, në fund, pasi GJITHÇKA (arkiva + klasat e reja) të jetë
+            // gati - përndryshe dy ruajtje të veçanta (një me klasat e vjetra, një me të rejat)
+            // bashkohen (merge) në cloud dhe i DYFISHOJNË klasat (defekti i 12.8.2026).
         }
 
         function showUndoButton() {
@@ -11115,20 +11161,13 @@ function ensureSystemDataFields() {
     if (!systemData.transcriptManualData) systemData.transcriptManualData = {};
     if (!systemData.semesterDatesByActive) systemData.semesterDatesByActive = {};
     if (!Array.isArray(systemData.teachers)) systemData.teachers = [];
-    // Riparim i PËRHERSHËM: më 11.8.2026 një incident (cloud i zbrazur + rikuperim) krijoi
-    // 24 klasa demo me ID që fillojnë "class_1786267064..." (gjithmonë saktësisht 20 nxënës),
-    // të cilat u dyfishuan mbi klasat REALE (ID më e vjetër, p.sh. "class_IX_1_1781688623..").
-    // I heqim këto ID specifike NË ÇDO NGARKIM, që edhe nëse një dritare/skedë tjetër e vjetër
-    // i rikthen (nëpërmjet bashkimit shtues), të hiqen sërish herës tjetër - në vend që të
-    // mbështetemi te një pastrim i vetëm që një sinkronizim tjetër mund ta anulojë.
+    // Riparim i PËRHERSHËM (incidenti 11.8.2026 + mburojë e përgjithshme): heq çdo klasë
+    // demo të njohur dhe çdo dyfishim sipas emrit të klasës, në ÇDO ngarkim - jo vetëm një herë.
     if (Array.isArray(systemData.classes)) {
-        var beforeDemoFilter = systemData.classes.length;
-        systemData.classes = systemData.classes.filter(function(c) {
-            return !(c.id && c.id.indexOf('class_1786267064') === 0);
-        });
-        if (systemData.classes.length !== beforeDemoFilter) {
-            console.warn("🧹 U hoqën automatikisht " + (beforeDemoFilter - systemData.classes.length) +
-                " klasa demo të dyfishuara (incidenti i 11.8.2026).");
+        var beforeDedup = systemData.classes.length;
+        systemData.classes = dedupeClasses(systemData.classes);
+        if (systemData.classes.length !== beforeDedup) {
+            console.warn("🧹 U hoqën " + (beforeDedup - systemData.classes.length) + " klasa të dyfishuara.");
         }
     }
     // Riparim: disa klasa mund të kenë mbetur pa 'students' ose 'subjectsOrder' (p.sh. nga
