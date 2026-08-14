@@ -1581,18 +1581,22 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeHolidayModal()">×</button>
             <h2 style="color:#0b4b6e; margin-bottom:20px;">Festat (Data qe nuk mesohet)</h2>
-            <div style="background:#e8f5e9; border:1px solid #66bb6a; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
-                <button class="btn btn-success" onclick="confirmImportOfficialCalendar()">📥 Importo Kalendarin Zyrtar 2025-2026</button>
-                <small style="display:block; margin-top:6px; color:#2e7d32;">Fut automatikisht pushimet (vjeshtor, dimëror, pranveror) dhe 17 festat shtetërore sipas kalendarit zyrtar të Ministrisë, si dhe datat e gjysmëvjetorëve.</small>
+            <div id="officialCalendarImportBox" style="background:#e8f5e9; border:1px solid #66bb6a; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
+                <button class="btn btn-success" id="importOfficialCalendarBtn" onclick="confirmImportOfficialCalendar()">📥 Importo Kalendarin Zyrtar 2025-2026</button>
+                <small id="officialCalendarImportNote" style="display:block; margin-top:6px; color:#2e7d32;">Fut automatikisht pushimet (vjeshtor, dimëror, pranveror) dhe 17 festat shtetërore sipas kalendarit zyrtar të Ministrisë, si dhe datat e gjysmëvjetorëve.</small>
             </div>
             <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
                 <button class="btn btn-warning" onclick="confirmGenerateMovingHolidays()">🕌 Gjenero Festat Fetare Lëvizëse (për çdo vit)</button>
                 <small style="display:block; margin-top:6px; color:#e65100;">Llogarit vetë Pashkët katolike/ortodokse (saktë 100%) dhe Fitër/Kurban Bajrami (afërsisht, ±1 ditë - konfirmo me BIK) për çdo vit që zgjedh - e dobishme kur nuk ka ende kalendar zyrtar për vitin e ardhshëm. Data e shtunë/diel zhvendoset automatikisht te e hëna për çdo festë njëditore.</small>
             </div>
+            <div style="background:#e3f2fd; border:1px solid #64b5f6; border-radius:6px; padding:10px 12px; margin-bottom:15px;">
+                <button class="btn btn-info" onclick="confirmUpdateHolidaysForCurrentYear()">📅 Përditëso Festat për Vitin Aktual</button>
+                <small style="display:block; margin-top:6px; color:#1565c0;">Zhvendos festat/pushimet dhe datat e gjysmëvjetorëve ekzistuese te viti shkollor aktual (p.sh. pas "Arkivo Vitin"), duke mbajtur muajin/ditën. Pashkët/Bajrami rillogariten saktësisht; pushimet shumëditore zhvendosen si përafrim - konfirmoji kur të dalë kalendari i ri zyrtar.</small>
+            </div>
             <div class="form-group"><label>Shto feste te re</label>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <input type="date" id="holidayDate" style="width:150px;">
-                    <input type="date" id="holidayDateEnd" title="Deri më (opsionale, për pushime shumëditore)" style="width:150px;">
+                    <input type="text" id="holidayDate" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" maxlength="10" style="width:150px;">
+                    <input type="text" id="holidayDateEnd" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" maxlength="10" title="Deri më (opsionale, për pushime shumëditore)" style="width:150px;">
                     <input type="text" id="holidayName" placeholder="Emri i festes" style="flex:2;">
                     <label style="display:flex; align-items:center;"><input type="checkbox" id="holidaySem1"> Gjysmevjetori I</label>
                     <label style="display:flex; align-items:center;"><input type="checkbox" id="holidaySem2"> Gjysmevjetori II</label>
@@ -2937,8 +2941,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                         '<div class="year-label">' + arch.year + '</div>' +
                         '<div class="year-status-label">📚 ' + classesCount + ' klasa | 👨‍🎓 ' +
                         studentsCount + ' nxënës</div>' +
-                        '<div style="font-size:10px; color:#666;">' + (arch.archivedAt ? new Date(arch
-                            .archivedAt).toLocaleDateString() : '') + '</div>' +
+                        '<div style="font-size:10px; color:#666;">' + (arch.archivedAt ? formatDisplayDate(arch
+                            .archivedAt) : '') + '</div>' +
                         '</div>';
                 });
             }
@@ -2998,19 +3002,6 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '<button class="btn btn-admin-view" disabled>➕ Shto nxënës</button>'
                 ) +
                 '<button class="btn btn-purple" onclick="openTeacherSubjectsModal()">📚 Menaxho Lëndët</button>' +
-                '<button class="btn btn-info" onclick="exportClassCSV()">📎 Eksporto CSV</button>' +
-                (!isAdminViewing ?
-                    (canUserEdit ?
-                        '<button class="btn btn-offline" onclick="exportTeacherClassData()">💾 Eksporto Offline</button>' +
-                        '<button class="btn btn-offline" onclick="importTeacherClassData()">📂 Importo Offline</button>' +
-                        '<button class="btn btn-success" onclick="syncTeacherDataWithMain()">🔄 Sinkronizo Offline</button>' :
-                        ''
-                    ) :
-                    '<button class="btn btn-offline" onclick="exportClassDataById(\'' + classObj.id +
-                    '\')">💾 Eksporto Offline (Admin)</button>' +
-                    '<button class="btn btn-offline" onclick="importClassDataById(\'' + classObj.id +
-                    '\')">📂 Importo Offline (Admin)</button>'
-                ) +
                 '<button class="btn btn-success" onclick="printCurrentClassReport()">📄 Raporti</button>' +
                 '<button class="btn btn-warning" onclick="showClassStats()" style="font-size:11px;">📊 Statistikat</button>' +
                 '<button class="btn btn-info" onclick="printSchoolCertificates()">📜 Dëftesat</button>' +
@@ -3032,6 +3023,28 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '<button class="btn btn-admin" onclick="openTranscriptForCurrentClass()">📜 Fletëkalimet (Të gjitha)</button>' :
                     ''
                 ) +
+                '</div>' +
+                '</div>' +
+                '<div style="margin-top:10px; border:1px solid #cfd8e3; border-radius:8px; overflow:hidden;">' +
+                '<div onclick="toggleExportImportGroup(this)" style="cursor:pointer; padding:8px 12px; background:#e3eaf2; font-size:12px; font-weight:bold; color:#0b4b6e; display:flex; justify-content:space-between; align-items:center;">' +
+                '<span>📁 EKSPORTO / IMPORTO TË DHËNAT</span><span class="export-group-arrow">▶</span>' +
+                '</div>' +
+                '<div class="export-group-body" style="display:none; padding:10px 12px; background:#f0f4f8;">' +
+                '<button class="btn btn-info" onclick="exportClassCSV()">📎 Eksporto CSV</button>' +
+                (!isAdminViewing ?
+                    (canUserEdit ?
+                        '<button class="btn btn-offline" onclick="exportTeacherClassData()">💾 Eksporto Offline</button>' +
+                        '<button class="btn btn-offline" onclick="importTeacherClassData()">📂 Importo Offline</button>' +
+                        '<button class="btn btn-success" onclick="syncTeacherDataWithMain()">🔄 Sinkronizo Offline</button>' :
+                        ''
+                    ) :
+                    '<button class="btn btn-offline" onclick="exportClassDataById(\'' + classObj.id +
+                    '\')">💾 Eksporto Offline (Admin)</button>' +
+                    '<button class="btn btn-offline" onclick="importClassDataById(\'' + classObj.id +
+                    '\')">📂 Importo Offline (Admin)</button>'
+                ) +
+                '<button class="btn btn-admin" onclick="exportClassGrades(\'' + classObj.id + '\')" title="Shkarko notat/mungesat e kësaj klase në Excel">📎 Shkarko Excel</button>' +
+                '<button class="btn btn-admin" onclick="importAllDataFromFile()" title="Ngarko sërish skedarin Excel për të përditësuar notat/mungesat">📤 Ngarko Excel</button>' +
                 '</div>' +
                 '</div>' +
                 '<div class="teacher-stats-container">' +
@@ -3096,7 +3109,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 }
 
                 html += '<tr style="background:' + rowBg + '" data-row="' + idx + '">' +
-                    '<td>' + s.id + '</td>' +
+                    '<td>' + (idx + 1) + '</td>' +
                     '<td><input type="text" class="student-name-input" data-row="' + idx + '" value="' +
                     escapeHtml(s.name) + '" onchange="' + (canUserEdit ? 'updateStudentName(' + idx +
                     ', this.value)' : '') + '" ' + (isReadOnly || isViewOnly ? 'readonly' : '') +
@@ -4957,7 +4970,10 @@ if (systemData.classes && systemData.classes.length > 0) {
         function formatDisplayDate(dateStr) {
             if (!dateStr) return 'N/A';
             var d = new Date(dateStr);
-            return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+            if (isNaN(d.getTime())) return 'N/A';
+            var dd = String(d.getDate()).padStart(2, '0');
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            return dd + '/' + mm + '/' + d.getFullYear();
         }
 
         function getWeeksForActive(activeId) {
@@ -5573,6 +5589,14 @@ if (systemData.classes && systemData.classes.length > 0) {
             `;
         }
 
+        function toggleExportImportGroup(headerEl) {
+            var body = headerEl.nextElementSibling;
+            var arrow = headerEl.querySelector('.export-group-arrow');
+            var isOpen = body.style.display !== 'none';
+            body.style.display = isOpen ? 'none' : 'block';
+            if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+        }
+
         function toggleManualEditMode() {
             if (!canEdit()) {
                 showNotification("⛔ Nuk keni të drejtë të aktivizoni modalitetin manual!");
@@ -5927,12 +5951,20 @@ if (systemData.classes && systemData.classes.length > 0) {
 
             for (var i = 1; i <= 6; i++) {
                 var newVITeacherId = graduatedTeacherIdByNumber[String(i)] || null;
+                // 20 rreshta bosh gati për t'u plotësuar (emra bosh) - kujdestari thjesht
+                // shkruan emrat, pa pasur nevojë t'i shtojë nxënësit një nga një.
+                var blankStudents = [];
+                for (var s = 0; s < 20; s++) {
+                    var blankStu = createEmptyStudent('student_' + Date.now() + '_' + s + '_' + Math.random().toString(36).substr(2, 4), '', 'M');
+                    blankStu.name = ''; // e lëmë vërtet bosh (createEmptyStudent vendos "Nxënës i ri" si parazgjedhje)
+                    blankStudents.push(blankStu);
+                }
                 var newVI = {
                     id: 'class_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                     className: 'VI-' + i,
                     teacherId: newVITeacherId,
                     activeId: 'active_vi',
-                    students: [],
+                    students: blankStudents,
                     subjectsOrder: ALL_SUBJECTS.slice(),
                     schedule: null,
                     createdAt: new Date().toISOString()
@@ -5953,7 +5985,24 @@ if (systemData.classes && systemData.classes.length > 0) {
             // (null) - admini duhet t'i riemërojë manualisht te një klasë e re nëse vazhdojnë.
             (systemData.teachers || []).forEach(function(t) {
                 if (t.classId && Object.prototype.hasOwnProperty.call(oldToNewClassId, t.classId)) {
-                    t.classId = oldToNewClassId[t.classId];
+                    var newClassId = oldToNewClassId[t.classId];
+                    t.classId = newClassId;
+                    // Nëse username-i ndjek modelin "kujdestari_<nivel><numër>" (p.sh.
+                    // kujdestari_vi1), e ripërshtasim automatikisht për klasën e re, që
+                    // identifikuesi i hyrjes të mbetet kuptimplotë (kujdestari_vi1 ->
+                    // kujdestari_vii1). Username-at realë (jo në këtë model, p.sh. "arbesa")
+                    // NUK preken - do të ishte rrezik i panevojshëm t'u ndryshohej identifikuesi.
+                    if (newClassId && t.username && /^kujdestari_[a-z]+[1-6]$/.test(t.username)) {
+                        var newClassForTeacher = newClasses.find(function(c) { return c.id === newClassId; });
+                        if (newClassForTeacher) {
+                            var cnParts = newClassForTeacher.className.split('-');
+                            var newUsername = 'kujdestari_' + cnParts[0].toLowerCase() + cnParts[1];
+                            var usernameTaken = systemData.teachers.some(function(other) {
+                                return other !== t && other.username === newUsername;
+                            });
+                            if (!usernameTaken) t.username = newUsername;
+                        }
+                    }
                 }
             });
 
@@ -6076,7 +6125,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '📈 ' + promotedClasses + ' klasa u ngritën një nivel' +
                     '</div>' +
                     '<div style="margin-top:5px; font-size:10px; color:#999;">' +
-                    'Arkivuar më: ' + (yearData.archivedAt ? new Date(yearData.archivedAt).toLocaleDateString() +
+                    'Arkivuar më: ' + (yearData.archivedAt ? formatDisplayDate(yearData.archivedAt) +
                         ' ' + new Date(yearData.archivedAt).toLocaleTimeString() : '-') +
                     '</div>' +
                     '</div>';
@@ -6136,7 +6185,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                             (cls.teacherName ? '👨‍🏫 ' + cls.teacherName : '') +
                             '</div>' +
                             '<div style="font-size:10px; color:#999; margin-top:3px;">' +
-                            'Arkivuar më: ' + (cls.archivedAt ? new Date(cls.archivedAt).toLocaleDateString() :
+                            'Arkivuar më: ' + (cls.archivedAt ? formatDisplayDate(cls.archivedAt) :
                                 '-') +
                             '</div>' +
                             '<button class="btn btn-info" onclick="viewClassTranscripts(\'' + year +
@@ -6367,7 +6416,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                         (cls.teacherName ? ' | 👨‍🏫 ' + cls.teacherName : '') + '</h3>' +
                         '<table><thead><tr><th>#</th><th>Emri</th><th>Gjinia</th><th>Mesatarja</th></tr></thead><tbody>';
 
-                    cls.students.forEach(function(s) {
+                    cls.students.forEach(function(s, sIdx) {
                         var sum = 0,
                             count = 0;
                         cls.subjectsOrder.forEach(function(sub) {
@@ -6376,7 +6425,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                                 count++; }
                         });
                         var avg = count > 0 ? (sum / count).toFixed(2) : "0.00";
-                        printHtml += '<tr><td>' + s.id + '</td><td>' + escapeHtml(s.name) +
+                        printHtml += '<tr><td>' + (sIdx + 1) + '</td><td>' + escapeHtml(s.name) +
                             '</td><td>' + s.gender + '</td><td><strong>' + avg +
                         '</strong></td></tr>';
                     });
@@ -6853,7 +6902,31 @@ if (systemData.classes && systemData.classes.length > 0) {
         function openHolidayModal() {
             if (!requireAdmin()) return;
             renderHolidaysList();
+            updateOfficialCalendarImportUI();
             showModal('holidayModal');
+        }
+
+        // Butoni "Importo Kalendarin Zyrtar" ka të dhëna FIKSE, reale për vitin 2025-2026
+        // (nga Excel-i zyrtar që u ngarkua). Kur viti aktual s'është më 2025-2026, e
+        // qartësojmë që ky buton është për të dhëna HISTORIKE, dhe drejtojmë te "Përditëso
+        // Festat për Vitin Aktual" (llogaritje/zhvendosje) për vitin real në përdorim.
+        function updateOfficialCalendarImportUI() {
+            var btn = document.getElementById('importOfficialCalendarBtn');
+            var note = document.getElementById('officialCalendarImportNote');
+            var box = document.getElementById('officialCalendarImportBox');
+            if (!btn || !note || !box) return;
+            var currentYear = systemData.schoolInfo.year || '';
+            if (currentYear === '2025-2026' || !currentYear) {
+                btn.textContent = '📥 Importo Kalendarin Zyrtar 2025-2026';
+                btn.disabled = false;
+                box.style.opacity = '1';
+                note.textContent = 'Fut automatikisht pushimet (vjeshtor, dimëror, pranveror) dhe 17 festat shtetërore sipas kalendarit zyrtar të Ministrisë, si dhe datat e gjysmëvjetorëve.';
+            } else {
+                btn.textContent = '📥 Importo Kalendarin 2025-2026 (histori)';
+                box.style.opacity = '0.75';
+                note.innerHTML = '⚠️ Ky buton fut vetëm të dhëna FIKSE të 2025-2026 (nga Excel-i zyrtar) - viti aktual është <strong>' +
+                    escapeHtml(currentYear) + '</strong>. Për vitin aktual, përdor më poshtë "📅 Përditëso Festat për Vitin Aktual" në vend të këtij butoni.';
+            }
         }
 
         function closeHolidayModal() {
@@ -6867,7 +6940,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             var html =
                 '<h3>Lista e festave</h3><table class="holiday-table"><thead><th>Data</th><th>Emri i festës</th><th>Gjysmevjetori I</th><th>Gjysmevjetori II</th><th></th></thead><tbody>';
             systemData.holidays.forEach(function(holiday, idx) {
-                var dateLabel = holiday.date + (holiday.dateEnd ? (' — ' + holiday.dateEnd) : '');
+                var dateLabel = formatDisplayDate(holiday.date) + (holiday.dateEnd ? (' — ' + formatDisplayDate(holiday.dateEnd)) : '');
                 html += '<tr><td style="white-space:nowrap;">' + dateLabel +
                     '</td><td style="text-align:left;">' +
                     escapeHtml(holiday.name) + '</td>';
@@ -6893,6 +6966,104 @@ if (systemData.classes && systemData.classes.length > 0) {
                     }
                 });
             });
+        }
+
+        function confirmUpdateHolidaysForCurrentYear() {
+            if (!requireAdmin()) return;
+            var year = systemData.schoolInfo.year || '';
+            if (!confirm("Kjo do t'i zhvendosë festat/pushimet ekzistuese (dhe datat e gjysmëvjetorëve) te viti shkollor aktual (" + year +
+                    "), duke mbajtur muajin/ditën e njëjtë por duke përditësuar vitin. Festat fetare lëvizëse " +
+                    "(Pashkët, Bajrami) do të rillogariten saktësisht. Pushimet shumëditore (vjeshtor/dimëror/pranveror) " +
+                    "zhvendosen si përafrim - konfirmoji kur të dalë kalendari zyrtar i ri. Vazhdo?")) {
+                return;
+            }
+            updateHolidaysForCurrentYear();
+        }
+
+        // Zhvendos festat/pushimet EKZISTUESE (dhe datat e gjysmëvjetorëve) te viti shkollor
+        // aktual (systemData.schoolInfo.year, p.sh. "2026-2027"), duke mbajtur muajin/ditën
+        // por duke përditësuar vitin - që të mos duhet t'i rifusësh dorazi çdo vit.
+        // Për një festë "lëvizëse" (funksioni i llogaritjes merr vitin Gregorian dhe kthen
+        // Date), zgjedh cilin nga dy vitet e vitit shkollor (startYear ose endYear) e jep
+        // datën që bie REALISHT brenda vitit shkollor (gusht i startYear deri korrik i
+        // endYear) - i domosdoshëm sepse kalendari Hixhri "rrëshqet" ~11 ditë çdo vit dhe
+        // festa mund të bjerë në cilindo prej dy viteve.
+        function pickInSchoolYear(computeFn, startYear, endYear) {
+            var schoolStart = new Date(startYear, 7, 1); // 1 gusht
+            var schoolEnd = new Date(endYear, 6, 31); // 31 korrik
+            var candidates = [computeFn(startYear), computeFn(endYear)].filter(function(d) { return d; });
+            for (var i = 0; i < candidates.length; i++) {
+                if (candidates[i] >= schoolStart && candidates[i] <= schoolEnd) return candidates[i];
+            }
+            return candidates[0] || null;
+        }
+
+        function updateHolidaysForCurrentYear() {
+            var yearParts = (systemData.schoolInfo.year || '').split('-').map(function(y) { return parseInt(y, 10); });
+            var startYear = yearParts[0];
+            var endYear = yearParts[1];
+            if (!startYear || !endYear) {
+                showNotification("⚠️ Viti shkollor (" + systemData.schoolInfo.year + ") s'është në formatin YYYY-YYYY - s'mund të vazhdoj.");
+                return;
+            }
+
+            function shiftDate(dateStr) {
+                var d = parseFlexibleDate(dateStr);
+                if (!d) return dateStr;
+                var month = d.getMonth() + 1;
+                // Gusht-Dhjetor -> gjysmëvjetori I -> viti i parë; Janar-Korrik -> gjysmëvjetori II -> viti i dytë.
+                var newYear = (month >= 8) ? startYear : endYear;
+                return newYear + '-' + String(month).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+
+            var movedCount = 0;
+            (systemData.holidays || []).forEach(function(h) {
+                var lowerName = (h.name || '').toLowerCase();
+                var recomputedDate = null;
+                // Identifikim i saktë (jo thjesht fjala e parë, që i ngatërronte Pashkët
+                // katolike me ato ortodokse) - kontrollon fjalë dalluese specifike, dhe zgjedh
+                // vitin (startYear ose endYear) që bie realisht brenda vitit shkollor aktual.
+                if (lowerName.indexOf('pashkët') !== -1 && lowerName.indexOf('katolik') !== -1) {
+                    recomputedDate = pickInSchoolYear(function(y) {
+                        var d = new Date(computeCatholicEasterSunday(y)); d.setDate(d.getDate() + 1); return d;
+                    }, startYear, endYear);
+                } else if (lowerName.indexOf('pashkët') !== -1 && lowerName.indexOf('ortodoks') !== -1) {
+                    recomputedDate = pickInSchoolYear(function(y) {
+                        var d = new Date(computeOrthodoxEasterSunday(y)); d.setDate(d.getDate() + 1); return d;
+                    }, startYear, endYear);
+                } else if (lowerName.indexOf('fitër') !== -1 || lowerName.indexOf('fiter') !== -1) {
+                    recomputedDate = pickInSchoolYear(computeFiterBajrami, startYear, endYear);
+                } else if (lowerName.indexOf('kurban') !== -1) {
+                    recomputedDate = pickInSchoolYear(computeKurbanBajrami, startYear, endYear);
+                }
+                if (recomputedDate) { h.date = toISODate(recomputedDate); h.dateEnd = null; movedCount++; return; }
+                h.date = shiftDate(h.date);
+                if (h.dateEnd) h.dateEnd = shiftDate(h.dateEnd);
+                movedCount++;
+            });
+
+            // Zhvendos edhe datat e gjysmëvjetorëve (globale) njësoj.
+            if (systemData.semesterDates) {
+                ['schoolStart', 'semester1Start', 'semester1End'].forEach(function(k) {
+                    if (systemData.semesterDates[k]) systemData.semesterDates[k] = shiftDate(systemData.semesterDates[k]);
+                });
+                ['schoolEnd', 'semester2Start', 'semester2End'].forEach(function(k) {
+                    if (systemData.semesterDates[k]) systemData.semesterDates[k] = shiftDate(systemData.semesterDates[k]);
+                });
+            }
+            // Dhe çdo datë të veçantë të vendosur për aktive specifike (p.sh. Klasa IX).
+            if (systemData.semesterDatesByActive) {
+                Object.keys(systemData.semesterDatesByActive).forEach(function(activeId) {
+                    var d = systemData.semesterDatesByActive[activeId];
+                    ['schoolStart', 'semester1Start', 'semester1End', 'schoolEnd', 'semester2Start', 'semester2End'].forEach(function(k) {
+                        if (d[k]) d[k] = shiftDate(d[k]);
+                    });
+                });
+            }
+
+            saveToLocal();
+            renderHolidaysList();
+            showNotification("📅 U përditësuan " + movedCount + " festa/pushime dhe datat e gjysmëvjetorëve për vitin " + systemData.schoolInfo.year + "!");
         }
 
         function confirmImportOfficialCalendar() {
@@ -6963,16 +7134,25 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         function addHoliday() {
             if (!requireAdmin()) return;
-            var date = document.getElementById('holidayDate').value.trim();
-            var dateEnd = document.getElementById('holidayDateEnd').value.trim();
+            var dateRaw = document.getElementById('holidayDate').value.trim();
+            var dateEndRaw = document.getElementById('holidayDateEnd').value.trim();
             var name = document.getElementById('holidayName').value.trim();
             var sem1 = document.getElementById('holidaySem1').checked;
             var sem2 = document.getElementById('holidaySem2').checked;
-            if (!date || !name) { alert("Plotësoni datën dhe emrin e festës!"); return; }
-            if (dateEnd && dateEnd < date) { alert("Data 'Deri më' nuk mund të jetë para datës së fillimit!"); return; }
+            if (!dateRaw || !name) { alert("Plotësoni datën (DD/MM/YYYY) dhe emrin e festës!"); return; }
+            var dateObj = parseFlexibleDate(dateRaw);
+            if (!dateObj) { alert("Data '" + dateRaw + "' s'është e vlefshme. Përdor formatin DD/MM/YYYY (p.sh. 25/12/2026)."); return; }
+            var date = toISODate(dateObj);
+            var dateEnd = null;
+            if (dateEndRaw) {
+                var dateEndObj = parseFlexibleDate(dateEndRaw);
+                if (!dateEndObj) { alert("Data 'Deri më' (" + dateEndRaw + ") s'është e vlefshme. Përdor formatin DD/MM/YYYY."); return; }
+                dateEnd = toISODate(dateEndObj);
+                if (dateEnd < date) { alert("Data 'Deri më' nuk mund të jetë para datës së fillimit!"); return; }
+            }
             if (!sem1 && !sem2) { alert("Zgjidhni së paku një gjysmëvjetor!"); return; }
             if (!systemData.holidays) systemData.holidays = [];
-            systemData.holidays.push({ date: date, dateEnd: dateEnd || null, name: name, semester1: sem1, semester2: sem2 });
+            systemData.holidays.push({ date: date, dateEnd: dateEnd, name: name, semester1: sem1, semester2: sem2 });
             document.getElementById('holidayDate').value = '';
             document.getElementById('holidayDateEnd').value = '';
             document.getElementById('holidayName').value = '';
@@ -6982,6 +7162,24 @@ if (systemData.classes && systemData.classes.length > 0) {
             saveToLocal();
             showNotification("Festa u shtua!");
         }
+
+        // Formatim automatik "ndërsa shkruan" për fusha teksti të datave (DD/MM/YYYY) -
+        // shton vetë "/" dhe lejon vetëm shifra, që admini të mos duhet të shtypë vetë "/".
+        function autoFormatDateInput(inputEl) {
+            inputEl.addEventListener('input', function() {
+                var digits = inputEl.value.replace(/\D/g, '').slice(0, 8);
+                var formatted = digits;
+                if (digits.length > 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+                else if (digits.length > 2) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+                inputEl.value = formatted;
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            ['holidayDate', 'holidayDateEnd'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) autoFormatDateInput(el);
+            });
+        });
 
         function removeHoliday(idx) {
             if (!requireAdmin()) return;
@@ -8595,7 +8793,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             classObj.subjectsOrder.forEach(function(s) { studentsHtml += '<th>' + s.code + '</th>'; });
             studentsHtml +=
                 '<th>Mes.</th><th>Statusi</th><th>Mung.Total</th><th>Nota1</th><th>Sjellja</th></tr></thead><tbody>';
-            classObj.students.forEach(function(s) {
+            classObj.students.forEach(function(s, sIdx) {
                 var avg = getStudentAvg(s, classObj.subjectsOrder, semester);
                 var cat = getSuccessCategory(s, classObj.subjectsOrder, semester);
                 var catText = cat === 'excellent' ? 'Shkëlq.' : cat === 'verygood' ? 'Sh.mirë' : cat ===
@@ -8604,7 +8802,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 var abs = getTotalAbsences(s, semester);
                 var ones = countOnes(s, classObj.subjectsOrder, semester);
                 var behavior = s.behavior || 'Shembullore';
-                studentsHtml += '<tr><td>' + s.id + '</td><td>' + escapeHtml(s.name) + '</td><td>' + s
+                studentsHtml += '<tr><td>' + (sIdx + 1) + '</td><td>' + escapeHtml(s.name) + '</td><td>' + s
                     .gender +
                     '</td>';
                 classObj.subjectsOrder.forEach(function(sub) {
@@ -10678,8 +10876,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 );
             printWindow.document.write(
                 '<div class="print-header"><h2>📊 TABELARI - MUNGESAT DHE PLANIFIKIMI I ORËVE</h2>');
-            printWindow.document.write('<p>SHFMU "EMIN DURAKU" KACANIK | Data: ' + new Date().toLocaleDateString(
-                'sq-AL') + '</p></div>');
+            printWindow.document.write('<p>SHFMU "EMIN DURAKU" KACANIK | Data: ' + formatDisplayDate(new Date()
+                .toISOString()) + '</p></div>');
             printWindow.document.write(content.replace(/<input[^>]*>/g, '').replace(/<button[^>]*>.*?<\/button>/g,
                 ''));
             printWindow.document.write('</body></html>');
@@ -11017,8 +11215,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (isSynced && teacherOfflineData.lastSync) {
                     var lastSyncDate = new Date(teacherOfflineData.lastSync);
                     statusDiv.className = 'teacher-data-status synced';
-                    statusDiv.innerHTML = '📱 Të dhënat offline: të sinkronizuara më ' + lastSyncDate
-                        .toLocaleDateString() + ' ' + lastSyncDate.toLocaleTimeString();
+                    statusDiv.innerHTML = '📱 Të dhënat offline: të sinkronizuara më ' + formatDisplayDate(lastSyncDate
+                        .toISOString()) + ' ' + lastSyncDate.toLocaleTimeString();
                     statusDiv.style.display = 'block';
                 } else {
                     statusDiv.className = 'teacher-data-status offline';
@@ -12577,28 +12775,180 @@ function undoChanges() {
 }
 
 // ==================== 5. FUNKSIONET PËR EXPORT ====================
-function exportAllData() {
-    if (!requireAdmin()) return;
-    var rows = [
-        ["Klasa", "Aktivi", "Nxënësi", "Gjinia", "Mesatarja", "Mungesa", "Nota1", "Sjellja"]
-    ];
-    systemData.classes.forEach(function(cls) {
-        var active = systemData.actives.find(function(a) { return a.id === cls.activeId; });
-        var activeName = active ? active.name : "Pa aktiv";
+// Eksport i PLOTË, dyanshëm (mund të rihapet dhe të riimportohet) - çdo notë, mungesë
+// dhe vërejtje për çdo lëndë e gjysmëvjetor, jo thjesht mesatare si më parë.
+// Kolonat përputhen me emërtimet e shabllonit tuaj (Fleta 1/Statistikat): lëndët sipas
+// emrit, mesatarja, suksesi, mungesat (me arsye/pa arsye/gjithsej), sjellja - ndarë në dy
+// blloqe, Gjysmëvjetori I dhe Gjysmëvjetori II (si te fletët e veçanta të shabllonit tuaj).
+// Kolonat "ID_Klase"/"ID_Nxenesi" janë të fshehta teknikisht të nevojshme për importin e
+// saktë - mos i fshi/ndrysho nëse do ta rikthesh skedarin më vonë. Kolonat "Mesatarja"/
+// "Suksesi"/"Gjithsej Mungesa" janë vetëm për lexim (llogariten automatikisht nga sistemi
+// vetë) - ndryshimi i tyre në Excel s'ka efekt kur riimportohet.
+function buildFullDataHeaders() {
+    var headers = ["Nr", "ID_Klase", "Klasa", "ID_Nxenesi", "Emri dhe Mbiemri", "Gjinia"];
+    ALL_SUBJECTS.forEach(function(sub) { headers.push(sub.name.toUpperCase() + " (GJI)"); });
+    headers.push("Mesatarja (GJI)", "Suksesi (GJI)", "Me Arsye (GJI)", "Pa Arsye (GJI)", "Gjithsej Mungesa (GJI)", "Sjellja (GJI)", "Vërejtje (GJI)");
+    ALL_SUBJECTS.forEach(function(sub) { headers.push(sub.name.toUpperCase() + " (GJII)"); });
+    headers.push("Mesatarja (GJII)", "Suksesi (GJII)", "Me Arsye (GJII)", "Pa Arsye (GJII)", "Gjithsej Mungesa (GJII)", "Sjellja (GJII)", "Vërejtje (GJII)");
+    return headers;
+}
+
+function csvEscapeCell(val) {
+    var s = (val === undefined || val === null) ? '' : String(val);
+    return '"' + s.replace(/"/g, '""') + '"';
+}
+
+// Parser i thjeshtë por i saktë për CSV - respekton thonjëzat (fusha me presje/thonjëza
+// brenda, si vërejtjet e lira) dhe rreshtat e ndara me \r\n ose \n.
+function parseCSV(text) {
+    var rows = [];
+    var row = [];
+    var field = '';
+    var inQuotes = false;
+    var i = 0;
+    while (i < text.length) {
+        var c = text[i];
+        if (inQuotes) {
+            if (c === '"') {
+                if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                inQuotes = false; i++; continue;
+            }
+            field += c; i++; continue;
+        } else {
+            if (c === '"') { inQuotes = true; i++; continue; }
+            if (c === ',') { row.push(field); field = ''; i++; continue; }
+            if (c === '\r') { i++; continue; }
+            if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+            field += c; i++; continue;
+        }
+    }
+    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+    return rows.filter(function(r) { return !(r.length === 1 && r[0] === ''); });
+}
+
+// classIdFilter opsional: nëse jepet, eksporton VETËM atë klasë (për butonin te çdo klasë);
+// përndryshe eksporton gjithë shkollën (butoni te paneli i administratorit).
+function exportAllData(classIdFilter) {
+    if (!requireAdmin() && !isTeacher()) return;
+    var classesToExport = classIdFilter ?
+        systemData.classes.filter(function(c) { return c.id === classIdFilter; }) :
+        systemData.classes;
+    if (classesToExport.length === 0) { showNotification("Klasa nuk u gjet!"); return; }
+
+    var headers = buildFullDataHeaders();
+    var rows = [headers];
+    var nr = 1;
+    classesToExport.forEach(function(cls) {
         cls.students.forEach(function(s) {
-            var avg = getStudentAvg(s, cls.subjectsOrder, 'final');
-            var abs = getTotalAbsences(s, 'final');
-            var ones = countOnes(s, cls.subjectsOrder, 'final');
-            var behavior = s.behavior || 'Shembullore';
-            rows.push([cls.className, activeName, s.name, s.gender, avg, abs.total, ones, behavior]);
+            var row = [nr++, cls.id, cls.className, s.id, s.name, s.gender];
+            ALL_SUBJECTS.forEach(function(sub) { row.push((s.grades && s.grades[sub.key]) || ''); });
+            var abs1 = getTotalAbsences(s, 'semester1');
+            row.push(getStudentAvg(s, cls.subjectsOrder || ALL_SUBJECTS, 'semester1'),
+                calculateSuccess(getStudentAvg(s, cls.subjectsOrder || ALL_SUBJECTS, 'semester1')),
+                abs1.withReason, abs1.withoutReason, abs1.total,
+                s.behavior || 'Shembullore', (s.notes && s.notes.note1) || '');
+            ALL_SUBJECTS.forEach(function(sub) { row.push((s.gradesSemester2 && s.gradesSemester2[sub.key]) || ''); });
+            var abs2 = getTotalAbsences(s, 'semester2');
+            row.push(getStudentAvg(s, cls.subjectsOrder || ALL_SUBJECTS, 'semester2'),
+                calculateSuccess(getStudentAvg(s, cls.subjectsOrder || ALL_SUBJECTS, 'semester2')),
+                abs2.withReason, abs2.withoutReason, abs2.total,
+                s.behavior || 'Shembullore', (s.notesSemester2 && s.notesSemester2.note1) || '');
+            rows.push(row);
         });
     });
-    var csv = rows.map(function(r) { return r.map(function(c) { return '"' + c + '"'; }).join(","); }).join("\n");
+    var csv = rows.map(function(r) { return r.map(csvEscapeCell).join(","); }).join("\r\n");
+    var fileLabel = classIdFilter ? classesToExport[0].className : 'te_gjitha_klasat';
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
-    a.download = 'te_dhenat_te_gjitha.csv';
+    a.download = 'statistikat_' + fileLabel + '_' + (systemData.schoolInfo.year || '') + '.csv';
+    document.body.appendChild(a);
     a.click();
-    showNotification("Eksporti u krye");
+    setTimeout(function() { document.body.removeChild(a); }, 100);
+    showNotification("📎 Eksporti u krye - ky skedar mund të rihapet dhe riimportohet më vonë!");
+}
+
+// Thirret nga butoni te secila klasë - eksporton vetëm atë klasë.
+function exportClassGrades(classId) {
+    exportAllData(classId);
+}
+
+function importAllDataFromFile() {
+    if (!requireAdmin() && !isTeacher()) return;
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.csv';
+    inp.onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                var text = ev.target.result.replace(/^\uFEFF/, '');
+                var rows = parseCSV(text);
+                if (rows.length < 2) { alert("Skedari duket bosh ose i pavlefshëm."); return; }
+                var headers = rows[0];
+                var expectedHeaders = buildFullDataHeaders();
+                if (headers.indexOf("ID_Klase") === -1 || headers.indexOf("ID_Nxenesi") === -1) {
+                    alert("Ky skedar s'i ka kolonat e nevojshme (ID_Klase, ID_Nxenesi) - s'mund të importohet. Përdor një skedar të eksportuar nga vetë sistemi.");
+                    return;
+                }
+                var subjectColsGJI = ALL_SUBJECTS.map(function(sub) {
+                    return { key: sub.key, idx: headers.indexOf(sub.name.toUpperCase() + " (GJI)") };
+                });
+                var subjectColsGJII = ALL_SUBJECTS.map(function(sub) {
+                    return { key: sub.key, idx: headers.indexOf(sub.name.toUpperCase() + " (GJII)") };
+                });
+                var idxClassId = headers.indexOf("ID_Klase");
+                var idxStudentId = headers.indexOf("ID_Nxenesi");
+                var idxBehavior1 = headers.indexOf("Sjellja (GJI)");
+                var idxAbsR1 = headers.indexOf("Me Arsye (GJI)");
+                var idxAbsNR1 = headers.indexOf("Pa Arsye (GJI)");
+                var idxNote1 = headers.indexOf("Vërejtje (GJI)");
+                var idxBehavior2 = headers.indexOf("Sjellja (GJII)");
+                var idxAbsR2 = headers.indexOf("Me Arsye (GJII)");
+                var idxAbsNR2 = headers.indexOf("Pa Arsye (GJII)");
+                var idxNote2 = headers.indexOf("Vërejtje (GJII)");
+
+                var updated = 0, unmatched = [];
+                for (var r = 1; r < rows.length; r++) {
+                    var row = rows[r];
+                    if (row.length < 2) continue;
+                    var cls = systemData.classes.find(function(c) { return c.id === row[idxClassId]; });
+                    if (!cls) { unmatched.push("Rreshti " + (r + 1) + ": klasa (ID=" + row[idxClassId] + ") nuk u gjet"); continue; }
+                    var stu = cls.students.find(function(s) { return String(s.id) === String(row[idxStudentId]); });
+                    if (!stu) { unmatched.push("Rreshti " + (r + 1) + ": nxënësi (ID=" + row[idxStudentId] + ") nuk u gjet te " + cls.className); continue; }
+                    if (!stu.grades) stu.grades = {};
+                    if (!stu.gradesSemester2) stu.gradesSemester2 = {};
+                    subjectColsGJI.forEach(function(sc) { if (sc.idx !== -1 && row[sc.idx] !== undefined) stu.grades[sc.key] = row[sc.idx]; });
+                    subjectColsGJII.forEach(function(sc) { if (sc.idx !== -1 && row[sc.idx] !== undefined) stu.gradesSemester2[sc.key] = row[sc.idx]; });
+                    if (idxBehavior1 !== -1 && row[idxBehavior1]) stu.behavior = row[idxBehavior1];
+                    else if (idxBehavior2 !== -1 && row[idxBehavior2]) stu.behavior = row[idxBehavior2];
+                    if (idxAbsR1 !== -1) stu.absencesWithReason = parseInt(row[idxAbsR1], 10) || 0;
+                    if (idxAbsNR1 !== -1) stu.absencesWithoutReason = parseInt(row[idxAbsNR1], 10) || 0;
+                    if (idxNote1 !== -1) { if (!stu.notes) stu.notes = {}; stu.notes.note1 = row[idxNote1] || ''; }
+                    if (idxAbsR2 !== -1) stu.absencesWithReasonSemester2 = parseInt(row[idxAbsR2], 10) || 0;
+                    if (idxAbsNR2 !== -1) stu.absencesWithoutReasonSemester2 = parseInt(row[idxAbsNR2], 10) || 0;
+                    if (idxNote2 !== -1) { if (!stu.notesSemester2) stu.notesSemester2 = {}; stu.notesSemester2.note1 = row[idxNote2] || ''; }
+                    updated++;
+                }
+
+                var summary = "U përditësuan " + updated + " nxënës.";
+                if (unmatched.length > 0) {
+                    summary += "\n\n⚠️ " + unmatched.length + " rreshta NUK u gjetën/përputhën:\n" +
+                        unmatched.slice(0, 10).join("\n") + (unmatched.length > 10 ? "\n... (dhe " + (unmatched.length - 10) + " të tjerë)" : "");
+                }
+                if (!confirm(summary + "\n\nA doni t'i ruani këto ndryshime?")) return;
+
+                saveToLocal();
+                refreshDisplay();
+                showNotification("✅ Importi u krye: " + updated + " nxënës u përditësuan!");
+            } catch (err) {
+                alert("Gabim gjatë leximit të skedarit: " + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    inp.click();
 }
 
 // ==================== 6. FUNKSIONET E OPEN CLASS EDIT ====================
@@ -12654,7 +13004,7 @@ function printClassReport(classObj, semester) {
     classObj.subjectsOrder.forEach(function(s) { studentsHtml += '<th>' + s.code + '</th>'; });
     studentsHtml +=
         '<th>Mes.</th><th>Statusi</th><th>Mung.Total</th><th>Nota1</th><th>Sjellja</th></tr></thead><tbody>';
-    classObj.students.forEach(function(s) {
+    classObj.students.forEach(function(s, sIdx) {
         var avg = getStudentAvg(s, classObj.subjectsOrder, semester);
         var cat = getSuccessCategory(s, classObj.subjectsOrder, semester);
         var catText = cat === 'excellent' ? 'Shkëlq.' : cat === 'verygood' ? 'Sh.mirë' : cat === 'good' ?
@@ -12662,7 +13012,7 @@ function printClassReport(classObj, semester) {
         var abs = getTotalAbsences(s, semester);
         var ones = countOnes(s, classObj.subjectsOrder, semester);
         var behavior = s.behavior || 'Shembullore';
-        studentsHtml += '<tr><td>' + s.id + '</td><td>' + escapeHtml(s.name) + '</td><td>' + s.gender +
+        studentsHtml += '<tr><td>' + (sIdx + 1) + '</td><td>' + escapeHtml(s.name) + '</td><td>' + s.gender +
             '</td>';
         classObj.subjectsOrder.forEach(function(sub) {
             var gradeVal = getStudentGradeForSemester(s, sub.key, semester);
@@ -12955,8 +13305,8 @@ function openArchivePanel() {
         html += '<tr><td style="padding:6px;">' + yearData.year + '</td>' +
             '<td style="padding:6px;">' + totalClasses + '</td>' +
             '<td style="padding:6px;">' + totalStudents + '</td>' +
-            '<td style="padding:6px; font-size:10px;">' + (yearData.archivedAt ? new Date(yearData
-                .archivedAt).toLocaleDateString() : '-') + '</td>' +
+            '<td style="padding:6px; font-size:10px;">' + (yearData.archivedAt ? formatDisplayDate(yearData
+                .archivedAt) : '-') + '</td>' +
             '</tr>';
     });
 
@@ -13104,7 +13454,8 @@ function printTranscriptSimple(studentId, classId) {
     printHtml += '<div style="font-size:14px; font-weight:bold;">REPUBLIKA E KOSOVËS</div>';
     printHtml += '<div style="font-size:13px; font-weight:bold;">' + systemData.schoolInfo.name + '</div>';
     printHtml += '<h1>FLETËKALIMI</h1>';
-    printHtml += '<p>Viti Shkollor: ' + systemData.schoolInfo.year + ' | Data: ' + new Date().toLocaleDateString() +
+    printHtml += '<p>Viti Shkollor: ' + systemData.schoolInfo.year + ' | Data: ' + formatDisplayDate(new Date()
+        .toISOString()) +
         '</p></div>';
     printHtml += '<div class="info"><div><strong>📛 Nxënësi:</strong> ' + student.name + '</div>';
     printHtml += '<div><strong>🏫 Klasa Aktuale:</strong> ' + classObj.className + '</div>';
@@ -13319,6 +13670,12 @@ function refreshDisplay() {
             document.getElementById('userNameDisplay').innerHTML = '👨‍🏫 KUJDESTARI | ' + currentUser.name;
             document.getElementById('principalDisplay').innerHTML = '';
             document.getElementById('schoolYearDisplay').innerHTML = systemData.schoolInfo.year;
+            // RREGULLIM: mungonte këtu - butoni "Aktiv" (kalimi automatik i qelizave pas
+            // vendosjes së notës) varet nga ky funksion; pa të, veçoria s'punonte fare kur
+            // kujdestari hynte drejtpërdrejt (funksiononte vetëm kur admini shikonte klasën).
+            setTimeout(function() {
+                setupTableNavigation();
+            }, 300);
         }
         console.log("✅ Faqja u rifreskua me sukses!");
     } catch (error) {
@@ -13439,6 +13796,7 @@ function renderAdminDashboard() {
                 <button class="btn btn-admin" onclick="restoreFromFile()">📂 Restauro nga Backup</button>
                 <button class="btn btn-admin" onclick="undoChanges()">↩ Undo</button>
                 <button class="btn btn-admin" onclick="exportAllData()">📎 Shkarko excel</button>
+                <button class="btn btn-admin" onclick="importAllDataFromFile()" title="Ngarko sërish skedarin CSV të eksportuar për të përditësuar notat/mungesat/vërejtjet">📤 Ngarko excel</button>
                 <button class="btn btn-admin" onclick="openActiveHoursEditor()">⏱️ Orët sipas Aktiveve</button>
                 <button class="btn btn-info" onclick="openTabelariModal()">📊 Tabelari i Mungesave ☁️</button>
                 <button class="btn btn-warning" onclick="printDirectorReport()">📄 Raporti i Drejtorisë</button>
