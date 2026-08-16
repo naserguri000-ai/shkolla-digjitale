@@ -1536,6 +1536,7 @@
             </div>
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
                 <button class="btn btn-primary" onclick="saveCurrentClassSubjects()">Ruaj ndryshimet (vetëm kjo klasë)</button>
+                <button class="btn btn-success" onclick="saveCurrentClassSubjectsToWholeActive()">Apliko te i gjithë Aktivi</button>
                 <button class="btn btn-warning" onclick="closeSubjectsModal()">Anulo</button>
             </div>
         </div>
@@ -1611,17 +1612,6 @@
         </div>
     </div>
 
-    <div id="missingSubjectsModal" class="modal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeMissingSubjectsModal()">×</button>
-            <h2 style="color:#0b4b6e; margin-bottom:10px;">⚠️ Klasat me Lëndë pa Mësimdhënës</h2>
-            <div id="missingSubjectsContainer" style="max-height:60vh; overflow-y:auto;"></div>
-            <div class="print-btn-group no-print">
-                <button class="btn btn-warning" onclick="closeMissingSubjectsModal()">Mbyll</button>
-            </div>
-        </div>
-    </div>
-
     <div id="teacherScheduleModal" class="modal">
         <div class="modal-content" style="max-width:95vw;">
             <button class="modal-close" onclick="closeTeacherScheduleModal()">×</button>
@@ -1649,6 +1639,7 @@
             <button class="modal-close" onclick="closeMissingSubjectsModal()">×</button>
             <h2 style="color:#c62828; margin-bottom:10px;">⚠️ Klasat me Lëndë Pa Mësimdhënës</h2>
             <p style="font-size:13px; color:#666; margin-bottom:15px;">Kjo dritare qëndron e hapur derisa ta mbyllësh vetë. Cakto mësimdhënësit e munguar te "👥 Lista e Mësimdhënësve".</p>
+            <button class="btn btn-success" onclick="autoFillMissingSubjectsUnder20Hours()" style="margin-bottom:12px;">🤖 Plotëso Automatikisht (mësimdhënës nën 20 orë/javë)</button>
             <div id="missingSubjectsContainer" style="max-height:60vh; overflow-y:auto;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeMissingSubjectsModal()">Mbyll</button>
@@ -1668,6 +1659,43 @@
         </div>
     </div>
 
+    <div id="subjectsDiagnosticModal" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <button class="modal-close" onclick="closeSubjectsDiagnosticModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">🔍 Diagnostikimi i Lëndëve sipas Klasës</h2>
+            <p style="font-size:13px; color:#666; margin-bottom:15px;">Lista e plotë, e drejtpërdrejtë nga sistemi - për të verifikuar cilat lëndë ka çdo klasë dhe cilit aktiv i takon.</p>
+            <div id="subjectsDiagnosticContainer" style="max-height:65vh; overflow-y:auto;"></div>
+            <div class="print-btn-group no-print">
+                <button class="btn btn-warning" onclick="closeSubjectsDiagnosticModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="activeSubjectsModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeActiveSubjectsModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">🏷️ Menaxho Lëndët sipas Aktivit</h2>
+            <p style="font-size:13px; color:#666; margin-bottom:10px;">Zgjidh aktivin, redakto lëndët, ruaj - ndryshimi aplikohet automatikisht te të gjitha klasat e atij aktivi.</p>
+            <div id="activeSubjectsPickerContainer" style="margin-bottom:15px;"></div>
+            <div id="activeSubjectsListContainer" class="subjects-list-container"></div>
+            <div id="activeSubjectsAddRow" class="form-group" style="margin-top:10px; display:none;">
+                <label>Shto lëndë te ky aktiv</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="activeNewSubjectName" placeholder="Emri i lëndës" style="flex:2;">
+                    <input type="text" id="activeNewSubjectCode" placeholder="Kodi" style="width:80px;">
+                    <button class="btn btn-success" onclick="addSubjectToActiveEditing()">Shto</button>
+                </div>
+            </div>
+            <div id="activeSubjectsSaveRow" class="print-btn-group no-print" style="display:none;">
+                <button class="btn btn-primary" onclick="saveActiveSubjects()">Ruaj (aplikohet te i gjithë aktivi)</button>
+                <button class="btn btn-warning" onclick="closeActiveSubjectsModal()">Anulo</button>
+            </div>
+            <div class="print-btn-group no-print" style="margin-top:10px;">
+                <button class="btn btn-warning" onclick="closeActiveSubjectsModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
     <div id="teacherRosterModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeTeacherRosterModal()">×</button>
@@ -1675,6 +1703,7 @@
             <p style="font-size:13px; color:#666; margin-bottom:15px;">Lista e plotë e stafit mësimor (kujdestarë + mësimdhënës lëndësh) - që të gjithë përdoren më pas te "🗂️ Mësimdhënësit e Lëndëve" për t'i caktuar te klasat.</p>
             <button class="btn btn-success" onclick="addSubjectOnlyTeacher()" style="margin-bottom:12px;">➕ Shto Mësimdhënës</button>
             <button class="btn btn-info" onclick="openElectiveByActiveModal()" style="margin-bottom:12px;">🎯 Lënda Zgjedhore sipas Aktiveve</button>
+            <button class="btn btn-warning" onclick="openSubjectsDiagnosticModal()" style="margin-bottom:12px;">🔍 Diagnostikimi i Lëndëve</button>
             <div id="teacherRosterContainer" style="max-height:60vh; overflow-y:auto;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeTeacherRosterModal()">Mbyll</button>
@@ -1964,6 +1993,12 @@
         function showModal(id) {
             var modal = document.getElementById(id);
             if (modal) {
+                // RREGULLIM: modalet me z-index të barabartë renditen sipas vendit në DOM - nëse
+                // një dritare (si "Klasat pa Lëndë") ishte deklaruar PARA një tjetre (si "Orari i
+                // Mësimdhënësve") në kod burimor, mbetej gabimisht PAS saj vizualisht kur hapej
+                // njëra mbi tjetrën. Zgjidhje e përgjithshme: sa herë hapet një dritare, e
+                // zhvendos në FUND të <body> - kështu është gjithmonë "më e re" dhe del sipër.
+                document.body.appendChild(modal);
                 modal.classList.add('show');
                 modal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
@@ -2913,7 +2948,6 @@ if (systemData.classes && systemData.classes.length > 0) {
                         <button class="btn btn-admin" onclick="openYearModal()">📅 Ndrysho Vitin</button>
                         <button class="btn btn-admin" onclick="openAdminCurriculumModal()">📚 Plani Mësimor</button>
                         <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
-                        <button class="btn btn-admin" onclick="openSubjectsModalGlobal()">📚 Menaxho Lëndët</button>
                         <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
                         <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
                         <button class="btn btn-admin" onclick="takeBackup()">💾 Backup në Memorie</button>
@@ -6951,11 +6985,58 @@ if (systemData.classes && systemData.classes.length > 0) {
         // aktuale, pa i prekur të tjerat.
         function saveCurrentClassSubjects() {
             if (!requireTeacher()) return;
-            saveToLocal();
+            var className = currentTeacherSubjectsModalClass ? currentTeacherSubjectsModalClass.className : 'klasës';
+            // RREGULLIM: "saveToLocal()" (ruajtje e vonuar/e bashkuar) mund ta "humbte" fshirjen
+            // e një lënde nëse ndodhte një sinkronizim tjetër ndërkohë - tani ruhet menjëherë
+            // dhe me zëvendësim të plotë në cloud, si te funksionet e tjera kritike.
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
             hideModal('subjectsModal');
             refreshDisplay();
-            showNotification("✅ Lëndët e " + (currentTeacherSubjectsModalClass ? currentTeacherSubjectsModalClass.className : 'klasës') + " u ruajtën!");
             currentTeacherSubjectsModalClass = null;
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ Lëndët e " + className + " u ruajtën në cloud!" :
+                    "⚠️ U ruajt lokalisht, por ruajtja në cloud dështoi.");
+            });
+        }
+
+        // Aplikon lëndët e klasës AKTUALE (me çdo ndryshim të bërë - riemërtim, shtim, fshirje,
+        // rirendítje) te TË GJITHA klasat e TË NJËJTIT aktiv (nivel klase) - jo vetëm klasa që
+        // po shikohet. Secilës klasë i jepen objekte krejtësisht të pavarura (pa ndarje
+        // referencash) që të mos rishfaqet defekti i mëparshëm i "ndotjes" mes klasave.
+        function saveCurrentClassSubjectsToWholeActive() {
+            if (!requireAdmin()) return;
+            if (!currentTeacherSubjectsModalClass) return;
+            var activeId = currentTeacherSubjectsModalClass.activeId;
+            var sourceOrder = currentTeacherSubjectsModalClass.subjectsOrder;
+            var classesInActive = systemData.classes.filter(function(c) { return c.activeId === activeId; });
+            var activeName = (systemData.actives.find(function(a) { return a.id === activeId; }) || {}).name || '';
+            if (!confirm("Kjo do t'i APLIKOJË të njëjtat " + sourceOrder.length + " lëndë te TË GJITHA " +
+                    classesInActive.length + " klasat e " + activeName + " (jo vetëm " +
+                    currentTeacherSubjectsModalClass.className + "). Lëndët e ndryshme që kishin klasat e tjera të " +
+                    "këtij aktivi do të ZËVENDËSOHEN. Vazhdo?")) {
+                return;
+            }
+            classesInActive.forEach(function(cls) {
+                cls.subjectsOrder = sourceOrder.map(function(s) { return { ...s }; });
+                cls.students.forEach(function(s) {
+                    if (!s.grades) s.grades = {};
+                    if (!s.gradesSemester2) s.gradesSemester2 = {};
+                    sourceOrder.forEach(function(sub) {
+                        if (s.grades[sub.key] === undefined) s.grades[sub.key] = '';
+                        if (s.gradesSemester2[sub.key] === undefined) s.gradesSemester2[sub.key] = '';
+                    });
+                });
+            });
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+            hideModal('subjectsModal');
+            refreshDisplay();
+            currentTeacherSubjectsModalClass = null;
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ Lëndët u aplikuan te të gjitha " + classesInActive.length + " klasat e " + activeName + "!" :
+                    "⚠️ U ruajt lokalisht, por ruajtja në cloud dështoi.");
+            });
         }
 
         function addNewSubjectGlobal() {
@@ -8245,42 +8326,6 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== LISTA E PLOTË E MËSIMDHËNËSVE (staf, jo llogari hyrjeje) ====================
         // ==================== KLASAT ME LËNDË PA MËSIMDHËNËS (dritare e qëndrueshme) ====================
-        function openMissingSubjectsModal() {
-            if (!requireAdmin()) return;
-            renderMissingSubjectsList();
-            showModal('missingSubjectsModal');
-        }
-
-        function closeMissingSubjectsModal() {
-            hideModal('missingSubjectsModal');
-        }
-
-        function renderMissingSubjectsList() {
-            var container = document.getElementById('missingSubjectsContainer');
-            if (!container) return;
-            var missing = [];
-            systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); })
-                .forEach(function(cls) {
-                    var missingSubjects = [];
-                    cls.subjectsOrder.forEach(function(sub) {
-                        if (!getSubjectTeacherId(cls.id, sub.key)) missingSubjects.push(sub.name);
-                    });
-                    if (missingSubjects.length > 0) missing.push({ className: cls.className, subjects: missingSubjects });
-                });
-            if (missing.length === 0) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#2e7d32; font-weight:bold; font-size:16px;">🎉 Të gjitha lëndët e të gjitha klasave kanë mësimdhënës!</div>';
-                return;
-            }
-            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
-                '<thead><tr style="background:#c62828; color:white;"><th style="padding:8px; text-align:left;">Klasa</th><th style="padding:8px; text-align:left;">Lëndët pa mësimdhënës</th></tr></thead><tbody>';
-            missing.forEach(function(m) {
-                html += '<tr><td style="padding:6px; border-bottom:1px solid #eee; font-weight:bold; white-space:nowrap;">' + escapeHtml(m.className) + '</td>' +
-                    '<td style="padding:6px; border-bottom:1px solid #eee; color:#c62828;">' + escapeHtml(m.subjects.join(', ')) + '</td></tr>';
-            });
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-
         function openTeacherRosterModal() {
             if (!requireAdmin()) return;
             renderTeacherRoster();
@@ -8588,6 +8633,190 @@ if (systemData.classes && systemData.classes.length > 0) {
         // Emri i lëndës "me zgjedhje" (çelësi 'msimzgjedhor') ndryshon nga një aktiv (nivel
         // klase) te tjetri - p.sh. VI mund të ketë "Robotikë", VIII "IT". Ky mjet e ndryshon
         // emrin për TË GJITHA klasat e një aktivi njëherësh, pa prekur aktivet e tjera.
+        // Diagnostikim brenda vetë sistemit (jo Console) - tregon çdo klasë me lëndët e saj dhe
+        // aktivin, që admini ta shohë menjëherë pa pasur nevojë të përdorë F12.
+        function openSubjectsDiagnosticModal() {
+            if (!requireAdmin()) return;
+            var container = document.getElementById('subjectsDiagnosticContainer');
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">' +
+                '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:5px; text-align:left;">Klasa</th><th style="padding:5px; text-align:left;">Aktivi</th><th style="padding:5px; text-align:center;">Nr. Lëndësh</th><th style="padding:5px; text-align:left;">Lëndët</th></tr></thead><tbody>';
+            systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); }).forEach(function(c) {
+                var activeName = (systemData.actives.find(function(a) { return a.id === c.activeId; }) || {}).name || c.activeId;
+                html += '<tr><td style="padding:5px; border-bottom:1px solid #eee; font-weight:bold;">' + escapeHtml(c.className) + '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee;">' + escapeHtml(activeName) + '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center;">' + c.subjectsOrder.length + '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee; font-size:11px;">' + escapeHtml(c.subjectsOrder.map(function(s) { return s.name; }).join(', ')) + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            showModal('subjectsDiagnosticModal');
+        }
+
+        function closeSubjectsDiagnosticModal() {
+            hideModal('subjectsDiagnosticModal');
+        }
+
+        // ==================== MENAXHO LËNDËT NË NIVEL AKTIVI ====================
+        // Punon drejtpërdrejt me AKTIVIN (VI/VII/VIII/IX), jo me një klasë specifike - zgjidh
+        // aktivin, redakto listën e lëndëve (shto/fshi/riemërto/rirendit), ruaj - dhe ndryshimi
+        // aplikohet automatikisht te TË GJITHA klasat e atij aktivi, me objekte të pavarura.
+        window.currentActiveSubjectsEditing = null; // { activeId, subjectsOrder: [...] }
+
+        function openActiveSubjectsModal() {
+            if (!requireAdmin()) return;
+            window.currentActiveSubjectsEditing = null;
+            renderActiveSubjectsPicker();
+            document.getElementById('activeSubjectsListContainer').innerHTML = '';
+            document.getElementById('activeSubjectsAddRow').style.display = 'none';
+            document.getElementById('activeSubjectsSaveRow').style.display = 'none';
+            showModal('activeSubjectsModal');
+        }
+
+        function closeActiveSubjectsModal() {
+            hideModal('activeSubjectsModal');
+            window.currentActiveSubjectsEditing = null;
+        }
+
+        function renderActiveSubjectsPicker() {
+            var container = document.getElementById('activeSubjectsPickerContainer');
+            var html = '';
+            systemData.actives.forEach(function(active) {
+                var count = systemData.classes.filter(function(c) { return c.activeId === active.id; }).length;
+                var isSelected = window.currentActiveSubjectsEditing && window.currentActiveSubjectsEditing.activeId === active.id;
+                html += '<button class="btn ' + (isSelected ? 'btn-primary' : 'btn-info') + '" onclick="selectActiveForSubjects(\'' + active.id + '\')" style="margin-right:6px; margin-bottom:6px;">' +
+                    escapeHtml(active.name) + ' (' + count + ' klasa)</button>';
+            });
+            container.innerHTML = html;
+        }
+
+        function selectActiveForSubjects(activeId) {
+            var classesInActive = systemData.classes.filter(function(c) { return c.activeId === activeId; });
+            if (classesInActive.length === 0) { alert("Ky aktiv s'ka asnjë klasë!"); return; }
+            // Fillon nga lista e lëndëve të klasës së parë të atij aktivi - kopje krejtësisht e
+            // pavarur për redaktim, s'prek asgjë deri sa të klikohet "Ruaj".
+            window.currentActiveSubjectsEditing = {
+                activeId: activeId,
+                subjectsOrder: classesInActive[0].subjectsOrder.map(function(s) { return { ...s }; })
+            };
+            renderActiveSubjectsPicker();
+            renderActiveSubjectsList();
+            document.getElementById('activeSubjectsAddRow').style.display = 'flex';
+            document.getElementById('activeSubjectsSaveRow').style.display = 'flex';
+        }
+
+        function renderActiveSubjectsList() {
+            var container = document.getElementById('activeSubjectsListContainer');
+            if (!window.currentActiveSubjectsEditing) { container.innerHTML = ''; return; }
+            var subjectsOrder = window.currentActiveSubjectsEditing.subjectsOrder;
+            container.innerHTML = '';
+            subjectsOrder.forEach(function(sub, idx) {
+                var div = document.createElement('div');
+                div.className = 'subject-item';
+                div.innerHTML = '<span style="font-weight:bold; min-width:35px;">' + (idx + 1) + '.</span>' +
+                    '<input type="text" class="active-subj-name" value="' + escapeHtml(sub.name) + '" data-idx="' + idx + '" style="flex:2;">' +
+                    '<input type="text" class="active-subj-code" value="' + escapeHtml(sub.code) + '" data-idx="' + idx + '" style="width:70px; text-align:center;">' +
+                    '<button class="move-up" data-idx="' + idx + '" ' + (idx === 0 ? 'disabled style="opacity:0.5;"' : '') + '>⬆</button>' +
+                    '<button class="move-down" data-idx="' + idx + '" ' + (idx === subjectsOrder.length - 1 ? 'disabled style="opacity:0.5;"' : '') + '>⬇</button>' +
+                    '<button class="delete-subj" data-idx="' + idx + '" style="background:#fee2e2;">🗑</button>';
+                container.appendChild(div);
+            });
+            document.querySelectorAll('.active-subj-name').forEach(function(inp) {
+                inp.addEventListener('change', function(e) {
+                    var idx = parseInt(e.target.dataset.idx);
+                    window.currentActiveSubjectsEditing.subjectsOrder[idx].name = e.target.value;
+                });
+            });
+            document.querySelectorAll('.active-subj-code').forEach(function(inp) {
+                inp.addEventListener('change', function(e) {
+                    var idx = parseInt(e.target.dataset.idx);
+                    window.currentActiveSubjectsEditing.subjectsOrder[idx].code = e.target.value.toUpperCase();
+                });
+            });
+            document.querySelectorAll('#activeSubjectsListContainer .move-up').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var idx = parseInt(btn.dataset.idx);
+                    if (idx > 0) {
+                        var arr = window.currentActiveSubjectsEditing.subjectsOrder;
+                        var tmp = arr[idx - 1]; arr[idx - 1] = arr[idx]; arr[idx] = tmp;
+                        renderActiveSubjectsList();
+                    }
+                });
+            });
+            document.querySelectorAll('#activeSubjectsListContainer .move-down').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var idx = parseInt(btn.dataset.idx);
+                    var arr = window.currentActiveSubjectsEditing.subjectsOrder;
+                    if (idx < arr.length - 1) {
+                        var tmp = arr[idx + 1]; arr[idx + 1] = arr[idx]; arr[idx] = tmp;
+                        renderActiveSubjectsList();
+                    }
+                });
+            });
+            document.querySelectorAll('#activeSubjectsListContainer .delete-subj').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var idx = parseInt(btn.dataset.idx);
+                    var arr = window.currentActiveSubjectsEditing.subjectsOrder;
+                    if (arr.length <= 1) { alert("Duhet të mbetet së paku një lëndë!"); return; }
+                    if (confirm("A jeni i sigurt që doni të fshini lëndën \"" + arr[idx].name + "\"?")) {
+                        arr.splice(idx, 1);
+                        renderActiveSubjectsList();
+                    }
+                });
+            });
+        }
+
+        function addSubjectToActiveEditing() {
+            if (!window.currentActiveSubjectsEditing) return;
+            var newName = document.getElementById('activeNewSubjectName').value.trim();
+            var newCode = document.getElementById('activeNewSubjectCode').value.trim();
+            if (!newName) { alert("Shkruani emrin e lëndës!"); return; }
+            if (!newCode) newCode = newName.substring(0, 3).toUpperCase();
+            var arr = window.currentActiveSubjectsEditing.subjectsOrder;
+            if (arr.some(function(s) { return s.name.toLowerCase() === newName.toLowerCase(); })) {
+                alert("Kjo klasë (aktiv) e ka tashmë këtë lëndë!");
+                return;
+            }
+            var existingGlobal = ALL_SUBJECTS.find(function(s) { return s.name.toLowerCase() === newName.toLowerCase(); });
+            var newKey = existingGlobal ? existingGlobal.key : ('sub_' + Date.now() + '_' + Math.floor(Math.random() * 10000));
+            arr.push({ code: newCode.toUpperCase(), key: newKey, name: newName, group: existingGlobal ? existingGlobal.group : 'Të tjera' });
+            document.getElementById('activeNewSubjectName').value = '';
+            document.getElementById('activeNewSubjectCode').value = '';
+            renderActiveSubjectsList();
+        }
+
+        function saveActiveSubjects() {
+            if (!requireAdmin()) return;
+            if (!window.currentActiveSubjectsEditing) return;
+            var activeId = window.currentActiveSubjectsEditing.activeId;
+            var sourceOrder = window.currentActiveSubjectsEditing.subjectsOrder;
+            var classesInActive = systemData.classes.filter(function(c) { return c.activeId === activeId; });
+            var activeName = (systemData.actives.find(function(a) { return a.id === activeId; }) || {}).name || '';
+            if (!confirm("Kjo do t'i APLIKOJË këto " + sourceOrder.length + " lëndë te TË GJITHA " + classesInActive.length +
+                    " klasat e " + activeName + ". Lëndët e mëparshme (nëse ishin ndryshe) do të ZËVENDËSOHEN. Vazhdo?")) {
+                return;
+            }
+            classesInActive.forEach(function(cls) {
+                cls.subjectsOrder = sourceOrder.map(function(s) { return { ...s }; });
+                cls.students.forEach(function(s) {
+                    if (!s.grades) s.grades = {};
+                    if (!s.gradesSemester2) s.gradesSemester2 = {};
+                    sourceOrder.forEach(function(sub) {
+                        if (s.grades[sub.key] === undefined) s.grades[sub.key] = '';
+                        if (s.gradesSemester2[sub.key] === undefined) s.gradesSemester2[sub.key] = '';
+                    });
+                });
+            });
+            localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
+            hideModal('activeSubjectsModal');
+            refreshDisplay();
+            window.currentActiveSubjectsEditing = null;
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ Lëndët u ruajtën te të gjitha " + classesInActive.length + " klasat e " + activeName + "!" :
+                    "⚠️ U ruajt lokalisht, por ruajtja në cloud dështoi.");
+            });
+        }
+
         function openElectiveByActiveModal() {
             if (!requireAdmin()) return;
             renderElectiveByActiveList();
@@ -9130,6 +9359,59 @@ if (systemData.classes && systemData.classes.length > 0) {
             document.getElementById('teacherScheduleShiftParadite').className = 'btn ' + (shift === 'paradite' ? 'btn-primary' : 'btn-info');
             document.getElementById('teacherScheduleShiftPasdite').className = 'btn ' + (shift === 'pasdite' ? 'btn-primary' : 'btn-info');
             renderTeacherScheduleTable(shift);
+        }
+
+        // Cakton AUTOMATIKISHT lëndët pa mësimdhënës te mësimdhënës EKZISTUES që kanë më PAK
+        // se 20 orë/javë gjithsej - preferon dikë që tashmë e jep të NJËJTËN lëndë diku tjetër
+        // (specialist), përndryshe zgjedh atë me orët më të pakta (shpërndarje e barabartë).
+        function getTeacherTotalHours(teacherId) {
+            var total = 0;
+            systemData.classes.forEach(function(cls) {
+                cls.subjectsOrder.forEach(function(sub) {
+                    if (getSubjectTeacherId(cls.id, sub.key) === teacherId) {
+                        var cur = (systemData.curriculum[cls.id] || {})[sub.key];
+                        total += cur ? (cur.hoursPerWeek || 0) : 0;
+                    }
+                });
+            });
+            return total;
+        }
+
+        function autoFillMissingSubjectsUnder20Hours() {
+            if (!requireAdmin()) return;
+            var missing = [];
+            systemData.classes.forEach(function(cls) {
+                cls.subjectsOrder.forEach(function(sub) {
+                    if (!getSubjectTeacherId(cls.id, sub.key)) {
+                        missing.push({ classId: cls.id, className: cls.className, subjectKey: sub.key, subjectName: sub.name });
+                    }
+                });
+            });
+            if (missing.length === 0) { showNotification("🎉 S'ka lëndë pa mësimdhënës për t'u plotësuar!"); return; }
+            if (!confirm("Kjo do t'i caktojë automatikisht " + missing.length + " lëndë pa mësimdhënës, te mësimdhënës EKZISTUES që kanë më pak se 20 orë/javë gjithsej (duke preferuar dikë që tashmë e jep atë lëndë diku tjetër). Vazhdo?")) return;
+
+            var assignedCount = 0;
+            var stillMissing = [];
+            missing.forEach(function(item) {
+                var candidates = systemData.teachers.filter(function(t) { return getTeacherTotalHours(t.id) < 20; });
+                var specialists = candidates.filter(function(t) {
+                    return systemData.classes.some(function(c) { return getSubjectTeacherId(c.id, item.subjectKey) === t.id; });
+                });
+                var pool = specialists.length > 0 ? specialists : candidates;
+                if (pool.length === 0) { stillMissing.push(item.className + ' - ' + item.subjectName); return; }
+                pool.sort(function(a, b) { return getTeacherTotalHours(a.id) - getTeacherTotalHours(b.id); });
+                setSubjectTeacherId(item.classId, item.subjectKey, pool[0].id);
+                assignedCount++;
+            });
+
+            saveToLocal();
+            openMissingSubjectsModal(); // rifresko listën
+            var msg = "✅ U caktuan automatikisht " + assignedCount + " lëndë (mësimdhënës nën 20 orë/javë)!";
+            if (stillMissing.length > 0) {
+                msg += "\n⚠️ S'u gjet mësimdhënës i lirë (nën 20 orë) për: " + stillMissing.slice(0, 10).join(', ') +
+                    (stillMissing.length > 10 ? ' (+' + (stillMissing.length - 10) + ' të tjera)' : '');
+            }
+            showNotification(msg, stillMissing.length > 0 ? 15000 : undefined);
         }
 
         function openMissingSubjectsModal() {
@@ -13198,6 +13480,18 @@ function ensureSystemDataFields() {
                 });
             }
         });
+        // RIPARIM I PËRHERSHËM (13.8.2026): më parë subjectsOrder krijohej me kopjim TË CEKËT
+        // (p.sh. "ALL_SUBJECTS.slice()"), kështu që të gjitha klasat ndanin TË NJËJTAT objekte
+        // lënde - riemërtimi/fshirja e një lënde te NJË klasë e ndryshonte në heshtje edhe te
+        // klasat e tjera (p.sh. heqja e Kimisë te VI e hiqte edhe te IX). Kjo u rregullua për
+        // klasat E REJA, por të dhënat EKZISTUESE të ruajtura PARA rregullimit mund të kenë
+        // ende objekte të ndara. Këtu, në ÇDO ngarkim, sigurohemi që çdo klasë të ketë objektet
+        // e VETA, plotësisht të pavarura - pa prekur asnjë vlerë, thjesht duke i "thelluar" kopjet.
+        systemData.classes.forEach(function(c) {
+            if (Array.isArray(c.subjectsOrder)) {
+                c.subjectsOrder = c.subjectsOrder.map(function(sub) { return { ...sub }; });
+            }
+        });
     } else {
         systemData.classes = [];
     }
@@ -15353,8 +15647,8 @@ function renderAdminDashboard() {
                 <button class="btn btn-admin" onclick="openPasswordModal()">🔑 Ndrysho Fjalëkalimet</button>
                 <button class="btn btn-admin" onclick="openAdminCurriculumModal()">📚 Plani Mësimor</button>
                 <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
-                <button class="btn btn-admin" onclick="openSubjectsModalGlobal()">📚 Menaxho Lëndët</button>
                 <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
+                <button class="btn btn-admin" onclick="openActiveSubjectsModal()">📚 Menaxho Lëndët (sipas Aktivit)</button>
                 <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
             </div>
 
