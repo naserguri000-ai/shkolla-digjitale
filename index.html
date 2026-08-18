@@ -1954,33 +1954,21 @@
                 firebase.initializeApp(firebaseConfig);
             }
             db = firebase.database();
-            // SIGURI (shtuar 12.8.2026): baza e të dhënave ishte plotësisht e hapur - çdokush
-            // që gjente adresën e Firebase-it (e dukshme në kod) mund të lexonte/shkruante
-            // direkt, duke anashkaluar faqen dhe fjalëkalimin krejtësisht. Identifikimi anonim
-            // është hapi i parë minimal: kërkon që rregullat e Firebase-it të kërkojnë
-            // "auth != null", duke ndaluar aksesin e drejtpërdrejtë nga jashtë aplikacionit
-            // (skriptë, robotë, kërkesa të rastësishme) - ende jo identifikim i plotë real,
-            // por një pengesë reale kundër ndërhyrjeve të thjeshta.
-            firebase.auth().signInAnonymously().then(function() {
-                isCloudConfigured = true;
-                db.ref('.info/connected').on('value', function(snap) {
-                    isConnected = snap.val() === true;
-                    console.log(isConnected ? "🔌 Firebase: ✅ Lidhur me cloud" : "🔌 Firebase: ❌ Shkëputur nga cloud");
-                    updateConnectionStatusUI();
-                    updateCloudStatusUI();
-                    if (isConnected) {
-                        // Ngarko dhe fillo dëgjimin në kohë reale sapo lidhemi, PA pritur
-                        // që dikush të jetë kyçur — kështu të dhënat janë gati që në fillim.
-                        loadAllDataFromCloud();
-                        startRealtimeSync();
-                        if (currentUser) refreshDisplay();
-                    }
-                });
-            }).catch(function(authErr) {
-                console.error("Gabim në identifikimin anonim Firebase:", authErr);
-                isCloudConfigured = false;
-                document.getElementById('loginStatusMsg').innerHTML = "⚠️ Firebase gabim identifikimi! Duke punuar lokalisht.";
-                document.getElementById('loginStatusMsg').style.color = "orange";
+            // SIGURI (përditësuar 18.8.2026): më parë këtu bëhej "signInAnonymously()" si hapi i
+            // parë i sigurisë (kur rregullat e Firebase kërkonin thjesht "auth != null"). Tani që
+            // kemi llogari REALE (email+fjalëkalim) dhe rregullat kërkojnë specifikisht
+            // "sign_in_provider == 'password'", identifikimi anonim s'jep më asnjë qasje reale te
+            // të dhënat (bllokohet nga vetë rregullat) - vetëm grumbullonte përdorues anonimë të
+            // panevojshëm te Firebase Authentication pa qëllim. E kemi hequr; lidhja me
+            // ".info/connected" (statusi i lidhjes) NUK kërkon identifikim fare, kështu që
+            // funksionon njësoj. Të dhënat reale ngarkohen VETËM pas hyrjes së suksesshme (shih
+            // showMainApp), kur përdoruesi ka tashmë llogari reale.
+            isCloudConfigured = true;
+            db.ref('.info/connected').on('value', function(snap) {
+                isConnected = snap.val() === true;
+                console.log(isConnected ? "🔌 Firebase: ✅ Lidhur me cloud" : "🔌 Firebase: ❌ Shkëputur nga cloud");
+                updateConnectionStatusUI();
+                updateCloudStatusUI();
             });
         } catch (e) {
             console.error("Gabim në Firebase:", e);
@@ -8499,6 +8487,106 @@ if (systemData.classes && systemData.classes.length > 0) {
             return html;
         }
 
+        // Ndërton HTML-në e NJË rreshti-blloku (lëndë + klasa + veprime) për një mësimdhënës -
+        // ripërdoret si për rreshtin fillestar ashtu edhe për ata të shtuar me "+ Lëndë tjetër".
+        // "isFirstRow" kontrollon nëse shfaqet emri i plotë (me ✕ hiq) apo thjesht "↳" (rreshtat
+        // shtesë të të njëjtit mësimdhënës).
+        function buildRosterBlockRowHtml(t, sortedClasses, preselectedSubjectKey, isFirstRow, summaryHtml) {
+            var html = '<tr data-teacher-id="' + t.id + '" class="roster-block-row" style="' + (isFirstRow ? '' : 'background:#fafafa;') + '">';
+            if (isFirstRow) {
+                html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + escapeHtml(t.name) +
+                    ' <span onclick="removeTeacherFromRoster(\'' + t.id + '\')" title="Hiq mësimdhënësin" style="cursor:pointer; color:#c62828; font-size:11px; margin-left:6px;">✕</span>' +
+                    '<div class="roster-current-summary" style="font-size:10px; color:#2e7d32; margin-top:3px;">' + summaryHtml + '</div>' +
+                    '<div style="margin-top:4px;"><span onclick="addSubjectBlockRow(\'' + t.id + '\')" style="cursor:pointer; color:#0b4b6e; font-size:10px; text-decoration:underline;">+ Lëndë tjetër</span></div>' +
+                    '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;">' + getTeacherTotalHours(t.id) + '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + buildTimeOffMiniGrid(t.id) + '</td>';
+            } else {
+                html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top; color:#999; font-size:11px;">↳ ' + escapeHtml(t.name) + '</td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee;"></td>' +
+                    '<td style="padding:5px; border-bottom:1px solid #eee;"></td>';
+            }
+            html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><select class="roster-subject-select" style="width:100%; padding:3px; height:26px;">';
+            ALL_SUBJECTS.forEach(function(sub) {
+                var selectedAttr = (sub.key === preselectedSubjectKey) ? ' selected' : '';
+                html += '<option value="' + sub.key + '"' + selectedAttr + '>' + escapeHtml(sub.name) + '</option>';
+            });
+            html += '</select></td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; position:relative; vertical-align:top;">' +
+                '<details class="roster-classes-dropdown">' +
+                '<summary class="roster-classes-summary" style="padding:3px 6px; height:18px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:white; font-size:12px; list-style:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Zgjidh klasat --</summary>' +
+                '<div style="position:absolute; z-index:20; background:white; border:1px solid #ccc; border-radius:0 0 4px 4px; padding:4px; max-height:160px; overflow-y:auto; min-width:140px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">';
+            sortedClasses.forEach(function(cls) {
+                html += '<label style="display:block; padding:2px 4px; white-space:nowrap;"><input type="checkbox" class="roster-class-checkbox" value="' + cls.id + '"> ' + escapeHtml(cls.className) + '</label>';
+            });
+            html += '</div></details></td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;" class="roster-total-hours">0</td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-warning" style="padding:3px 8px; font-size:11px;" onclick="undoRosterRow(this)">↩️ Undo</button></td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-success" style="padding:3px 8px; font-size:11px;" onclick="commitRosterAssignment(this)">✅ Cakto</button></td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' +
+                (isFirstRow ? '<button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearRosterAssignment(this)">🗑️ Fshijë</button>' :
+                    '<span onclick="removeSubjectBlockRow(this)" title="Hiq këtë rresht (nëse s\'e ke ruajtur ende)" style="cursor:pointer; color:#c62828; font-size:14px;">✕</span>') +
+                '</td></tr>';
+            return html;
+        }
+
+        function wireUpRosterBlockRow(row) {
+            row.querySelector('.roster-subject-select').addEventListener('change', function() { refreshRosterRow(row); });
+            row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    // Kontroll i MENJËHERSHËM: nëse klasa e sapo-shënuar tashmë ka NJË
+                    // MËSIMDHËNËS TJETËR për këtë lëndë, e paralajmërojmë dhe e ç'shënojmë
+                    // menjëherë - pa pritur klikimin e "Cakto".
+                    if (cb.checked) {
+                        var teacherId = row.dataset.teacherId;
+                        var subjectKey = row.querySelector('.roster-subject-select').value;
+                        var existingTeacherId = getSubjectTeacherId(cb.value, subjectKey);
+                        if (existingTeacherId && existingTeacherId !== teacherId) {
+                            var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
+                            var cls = systemData.classes.find(function(c) { return c.id === cb.value; });
+                            var subjectName = (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
+                            alert("⛔ S'mund ta zgjedhësh " + (cls ? cls.className : cb.value) + " - " + subjectName +
+                                " atje jepet tashmë nga " + (existingTeacher ? existingTeacher.name : 'panjohur') +
+                                ".\n\nNëse do ta ndryshosh, hiqe fillimisht te ai mësimdhënës, ose përdor 'Cakto' për ta zëvendësuar me konfirmim.");
+                            cb.checked = false;
+                            return;
+                        }
+                    }
+                    updateRosterRowTotal(row); updateRosterSummaryText(row);
+                });
+            });
+            refreshRosterRow(row);
+        }
+
+        // "+ Lëndë tjetër" - shton një rresht TË RI, bosh, PËR TË NJËJTIN mësimdhënës, direkt
+        // poshtë rreshtave ekzistues të tij - kështu mund të caktosh disa lëndë pa pasur nevojë
+        // të ndërrosh dropdown-in e vetëm çdo herë (duke humbur zgjedhjen paraardhëse).
+        function addSubjectBlockRow(teacherId) {
+            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
+            if (!t) return;
+            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+            // gjej rreshtin e FUNDIT të këtij mësimdhënësi, për ta shtuar menjëherë pas tij
+            var rows = document.querySelectorAll('tr[data-teacher-id="' + teacherId + '"]');
+            var lastRow = rows[rows.length - 1];
+            if (!lastRow) return;
+            var html = buildRosterBlockRowHtml(t, sortedClasses, null, false, '');
+            lastRow.insertAdjacentHTML('afterend', html);
+            var newRow = lastRow.nextElementSibling;
+            wireUpRosterBlockRow(newRow);
+        }
+
+        // Heq një rresht-lëndë SHTESË (jo të parin) - nëse ka caktime të ruajtura aty, i
+        // paralajmëron përpara se ta heqë vetëm nga PAMJA (nuk i fshin caktimet e ruajtura -
+        // për atë përdor "🗑️ Fshijë" te rreshti kryesor).
+        function removeSubjectBlockRow(el) {
+            var row = el.closest('tr');
+            var hasChecked = row.querySelectorAll('.roster-class-checkbox:checked').length > 0;
+            if (hasChecked && !confirm("Ky rresht ka klasa të zgjedhura që s'i ke ruajtur ende (me 'Cakto'). Ta heq gjithsesi nga pamja?")) {
+                return;
+            }
+            row.remove();
+        }
+
         function renderTeacherRoster() {
             var container = document.getElementById('teacherRosterContainer');
             if (!container) return;
@@ -8517,73 +8605,29 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<th style="padding:6px;"></th></tr></thead><tbody>';
             sorted.forEach(function(t) {
                 var summaryParts = [];
-                var firstAssignedSubjectKey = null;
+                var assignedSubjectKeys = [];
                 ALL_SUBJECTS.forEach(function(sub) {
                     var classesForThisSubject = sortedClasses.filter(function(cls) {
                         return getSubjectTeacherId(cls.id, sub.key) === t.id;
                     });
                     if (classesForThisSubject.length > 0) {
                         summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
-                        if (!firstAssignedSubjectKey) firstAssignedSubjectKey = sub.key;
+                        assignedSubjectKeys.push(sub.key);
                     }
                 });
-                html += '<tr data-teacher-id="' + t.id + '">' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + escapeHtml(t.name) +
-                    ' <span onclick="removeTeacherFromRoster(\'' + t.id + '\')" title="Hiq mësimdhënësin" style="cursor:pointer; color:#c62828; font-size:11px; margin-left:6px;">✕</span>' +
-                    '<div class="roster-current-summary" style="font-size:10px; color:#2e7d32; margin-top:3px;">' +
-                    (summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>') +
-                    '</div></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;">' + getTeacherTotalHours(t.id) + '</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + buildTimeOffMiniGrid(t.id) + '</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><select class="roster-subject-select" style="width:100%; padding:3px; height:26px;">';
-                ALL_SUBJECTS.forEach(function(sub) {
-                    var selectedAttr = (sub.key === firstAssignedSubjectKey) ? ' selected' : '';
-                    html += '<option value="' + sub.key + '"' + selectedAttr + '>' + escapeHtml(sub.name) + '</option>';
+                var summaryHtml = summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
+                // Nëse mësimdhënësi jep 2+ lëndë, shfaq NJË RRESHT PËR SECILËN lëndë (të gjitha
+                // të redaktueshme njëherësh) - jo vetëm të parën, siç ishte më parë.
+                if (assignedSubjectKeys.length === 0) assignedSubjectKeys = [null]; // asnjë caktim ende - një rresht bosh
+                assignedSubjectKeys.forEach(function(subjectKey, i) {
+                    html += buildRosterBlockRowHtml(t, sortedClasses, subjectKey, i === 0, i === 0 ? summaryHtml : '');
                 });
-                html += '</select></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; position:relative; vertical-align:top;">' +
-                    '<details class="roster-classes-dropdown">' +
-                    '<summary class="roster-classes-summary" style="padding:3px 6px; height:18px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:white; font-size:12px; list-style:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Zgjidh klasat --</summary>' +
-                    '<div style="position:absolute; z-index:20; background:white; border:1px solid #ccc; border-radius:0 0 4px 4px; padding:4px; max-height:160px; overflow-y:auto; min-width:140px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">';
-                sortedClasses.forEach(function(cls) {
-                    html += '<label style="display:block; padding:2px 4px; white-space:nowrap;"><input type="checkbox" class="roster-class-checkbox" value="' + cls.id + '"> ' + escapeHtml(cls.className) + '</label>';
-                });
-                html += '</div></details></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;" class="roster-total-hours">0</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-warning" style="padding:3px 8px; font-size:11px;" onclick="undoRosterRow(this)">↩️ Undo</button></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-success" style="padding:3px 8px; font-size:11px;" onclick="commitRosterAssignment(this)">✅ Cakto</button></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearRosterAssignment(this)">🗑️ Fshijë</button></td>' +
-                    '</tr>';
             });
             html += '</tbody></table>';
             container.innerHTML = html;
 
             document.querySelectorAll('#teacherRosterContainer tr[data-teacher-id]').forEach(function(row) {
-                row.querySelector('.roster-subject-select').addEventListener('change', function() { refreshRosterRow(row); });
-                row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
-                    cb.addEventListener('change', function() {
-                        // Kontroll i MENJËHERSHËM: nëse klasa e sapo-shënuar tashmë ka NJË
-                        // MËSIMDHËNËS TJETËR për këtë lëndë, e paralajmërojmë dhe e ç'shënojmë
-                        // menjëherë - pa pritur klikimin e "Cakto".
-                        if (cb.checked) {
-                            var teacherId = row.dataset.teacherId;
-                            var subjectKey = row.querySelector('.roster-subject-select').value;
-                            var existingTeacherId = getSubjectTeacherId(cb.value, subjectKey);
-                            if (existingTeacherId && existingTeacherId !== teacherId) {
-                                var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
-                                var cls = systemData.classes.find(function(c) { return c.id === cb.value; });
-                                var subjectName = (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
-                                alert("⛔ S'mund ta zgjedhësh " + (cls ? cls.className : cb.value) + " - " + subjectName +
-                                    " atje jepet tashmë nga " + (existingTeacher ? existingTeacher.name : 'panjohur') +
-                                    ".\n\nNëse do ta ndryshosh, hiqe fillimisht te ai mësimdhënës, ose përdor 'Cakto' për ta zëvendësuar me konfirmim.");
-                                cb.checked = false;
-                                return;
-                            }
-                        }
-                        updateRosterRowTotal(row); updateRosterSummaryText(row);
-                    });
-                });
-                refreshRosterRow(row); // vendos gjendjen fillestare (klasat/orët) sipas lëndës së parë
+                wireUpRosterBlockRow(row);
             });
         }
 
@@ -8629,7 +8673,11 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         function updateRosterTeacherSummary(row) {
             var teacherId = row.dataset.teacherId;
-            var summaryDiv = row.querySelector('.roster-current-summary');
+            // Përmbledhja shfaqet VETËM te rreshti i PARË i këtij mësimdhënësi (jo çdo rresht-
+            // lëndë) - e gjejmë atë specifikisht, pasi ndryshimi mund të ketë ardhur nga ndonjë
+            // rresht SHTESË (lëndë e dytë/tretë), jo domosdo i pari.
+            var firstRow = document.querySelector('tr[data-teacher-id="' + teacherId + '"]');
+            var summaryDiv = firstRow ? firstRow.querySelector('.roster-current-summary') : null;
             if (!summaryDiv) return;
             var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
             var summaryParts = [];
@@ -9862,6 +9910,36 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         // ==================== FUNKSIONET PËR OPEN PASSWORD ====================
+        // Kur admini ndryshon një fjalëkalim, e sinkronizon EDHE te llogaria REALE e Firebase -
+        // përdor fjalëkalimin E VJETËR (të njohur në këtë moment, para se të mbishkruhet) për t'u
+        // kyçur përkohësisht si ai përdorues (nëpërmjet një instance dytësore Firebase, pa e
+        // prekur sesionin e administratorit), pastaj i vendos fjalëkalimin e ri direkt te vetë
+        // llogaria e Firebase. Nëse llogaria e vjetër s'ekziston ende (para migrimit të parë) ose
+        // fjalëkalimi i vjetër ishte tashmë jo-sinkron, dështon në heshtje (fallback-i i hyrjes e
+        // mbulon këtë rast automatikisht).
+        function syncFirebaseAuthPassword(username, oldPassword, newPassword) {
+            if (!oldPassword || oldPassword === newPassword) return;
+            var syntheticEmail = getSyntheticEmail(username);
+            var secondaryApp;
+            try {
+                secondaryApp = firebase.apps.find(function(a) { return a.name === 'PasswordSyncApp'; }) ||
+                    firebase.initializeApp(firebaseConfig, 'PasswordSyncApp');
+            } catch (e) {
+                return;
+            }
+            var secondaryAuth = secondaryApp.auth();
+            secondaryAuth.signInWithEmailAndPassword(syntheticEmail, oldPassword).then(function(cred) {
+                return cred.user.updatePassword(newPassword);
+            }).then(function() {
+                console.log("🔐 Fjalëkalimi i Firebase u sinkronizua për:", username);
+                secondaryAuth.signOut();
+            }).catch(function(err) {
+                console.log("ℹ️ Sinkronizimi i fjalëkalimit të Firebase s'u aplikua për " + username +
+                    " (" + err.code + ") - do të përdoret rruga e kthimit të hyrjes.");
+                secondaryAuth.signOut();
+            });
+        }
+
         function openPasswordModal() {
             if (!requireAdmin()) return;
             var select = document.getElementById('passwordTeacherSelect');
@@ -9892,10 +9970,12 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (!requireAdmin()) return;
             var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
             if (teacher) {
+                var oldPass = teacher.password;
                 var newPass = prompt("Ndrysho fjalëkalimin për " + teacher.name + ":", teacher.password);
                 if (newPass && newPass.trim()) {
                     teacher.password = newPass.trim();
                     saveToLocal();
+                    syncFirebaseAuthPassword(teacher.username, oldPass, teacher.password);
                     showNotification("Fjalëkalimi për " + teacher.name + " u ndryshua!");
                     refreshDisplay();
                 }
@@ -9912,8 +9992,10 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (type === 'admin') {
                 var newPass = document.getElementById('adminNewPassword').value.trim();
                 if (!newPass) { alert("Vendosni fjalëkalimin e ri për admin!"); return; }
+                var oldPass = systemData.adminPassword;
                 systemData.adminPassword = newPass;
                 saveToLocal();
+                syncFirebaseAuthPassword('admin', oldPass, newPass);
                 showNotification("Fjalëkalimi i administratorit u ndryshua!");
                 closePasswordModal();
                 refreshDisplay();
@@ -9924,8 +10006,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (!newPass) { alert("Vendosni fjalëkalimin e ri!"); return; }
                 var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
                 if (teacher) {
+                    var oldPass = teacher.password;
                     teacher.password = newPass;
                     saveToLocal();
+                    syncFirebaseAuthPassword(teacher.username, oldPass, newPass);
                     showNotification("Fjalëkalimi për " + teacher.name + " u ndryshua!");
                     closePasswordModal();
                     refreshDisplay();
