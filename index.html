@@ -1989,6 +1989,97 @@
             document.getElementById('loginStatusMsg').style.color = "orange";
         }
 
+        // ==================== SIGURI E FORCUAR (shtuar 18.8.2026) ====================
+        // Deri tani, "identifikimi" ishte anonim (signInAnonymously) + kontroll fjalëkalimi në
+        // vetë kodin JavaScript - kushdo mund ta shihte/anashkalonte këtë duke hapur "View
+        // Source" ose Console. Kjo pjesë shton LLOGARI TË VËRTETA Firebase (email+fjalëkalim),
+        // të vërtetuara nga vetë Firebase (jo nga kodi ynë) - shumë më e sigurt.
+        //
+        // Meqë Firebase Auth kërkon email (jo "username"), përdorim një email "sintetik" të
+        // parashikueshëm nga username-i, vetëm për identifikim - askush s'e sheh/përdor si
+        // email real.
+        function getSyntheticEmail(username) {
+            var clean = (username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean + '@shfmu-eminduraku-kacanik.local';
+        }
+
+        // Krijon llogari të VËRTETA Firebase për administratorin dhe çdo mësimdhënës me
+        // username+fjalëkalim, duke përdorur fjalëkalimet EKZISTUESE (askush s'i ndryshon).
+        // Përdor një instancë DYTËSORE të Firebase (jo kryesoren) që të mos e ç'kyçë
+        // administratorin gjatë procesit. Kërkon që "Email/Password" të jetë aktivizuar te
+        // Firebase Console → Authentication → Sign-in method - përndryshe çdo llogari dështon
+        // me gabimin "auth/operation-not-allowed" (i raportuar qartë në fund).
+        function migrateAccountsToFirebaseAuth() {
+            if (!requireAdmin()) return;
+            if (!confirm("Kjo do të krijojë llogari të VËRTETA Firebase (email+fjalëkalim) për " +
+                    "administratorin dhe çdo mësimdhënës me fjalëkalim, duke përdorur fjalëkalimet " +
+                    "EKZISTUESE (asgjë s'ndryshon për ta). Kërkon që 'Email/Password' të jetë tashmë " +
+                    "aktivizuar te Firebase Console → Authentication → Sign-in method. Vazhdo?")) {
+                return;
+            }
+
+            var accounts = [];
+            if (systemData.adminPassword) {
+                accounts.push({ email: getSyntheticEmail('admin'), password: systemData.adminPassword, label: 'Administratori' });
+            }
+            systemData.teachers.forEach(function(t) {
+                if (t.username && t.password) {
+                    accounts.push({ email: getSyntheticEmail(t.username), password: t.password, label: t.name });
+                }
+            });
+
+            if (accounts.length === 0) {
+                showNotification("S'ka llogari me fjalëkalim për t'u migruar!");
+                return;
+            }
+
+            showNotification("🔒 Duke migruar " + accounts.length + " llogari - mos e mbyll faqen...", 20000);
+
+            var secondaryApp;
+            try {
+                secondaryApp = firebase.apps.find(function(a) { return a.name === 'MigrationApp'; }) ||
+                    firebase.initializeApp(firebaseConfig, 'MigrationApp');
+            } catch (e) {
+                showNotification("❌ Gabim gjatë përgatitjes së migrimit: " + e.message, 15000);
+                return;
+            }
+            var secondaryAuth = secondaryApp.auth();
+            var results = [];
+
+            function processNext(i) {
+                if (i >= accounts.length) {
+                    secondaryAuth.signOut().finally(function() {
+                        console.log('--- REZULTATI I MIGRIMIT ---\n' + results.join('\n'));
+                        var okCount = results.filter(function(r) { return r.indexOf('✅') !== -1; }).length;
+                        var summary = okCount + " nga " + accounts.length + " u migruan me sukses.";
+                        var problems = results.filter(function(r) { return r.indexOf('❌') !== -1; });
+                        var msg = "🔒 Migrimi përfundoi! " + summary;
+                        if (problems.length > 0) {
+                            msg += "\n⚠️ Probleme (shih Console F12 për listën e plotë): " + problems.slice(0, 3).join(', ');
+                        }
+                        showNotification(msg, 20000);
+                    });
+                    return;
+                }
+                var acc = accounts[i];
+                secondaryAuth.createUserWithEmailAndPassword(acc.email, acc.password).then(function() {
+                    results.push(acc.label + ': ✅ u krijua');
+                    processNext(i + 1);
+                }).catch(function(err) {
+                    if (err.code === 'auth/email-already-in-use') {
+                        results.push(acc.label + ': ℹ️ ekzistonte tashmë (kaluar)');
+                    } else if (err.code === 'auth/operation-not-allowed') {
+                        results.push(acc.label + ": ❌ 'Email/Password' s'është aktivizuar te Firebase Console!");
+                    } else {
+                        results.push(acc.label + ': ❌ ' + err.code + ' - ' + err.message);
+                    }
+                    processNext(i + 1);
+                });
+            }
+            processNext(0);
+        }
+
+
         // ==================== FUNKSIONET E MODAL-EVE ====================
         function showModal(id) {
             var modal = document.getElementById(id);
@@ -2577,26 +2668,49 @@
         }
 
         // ==================== FUNKSIONET E LOGIN ====================
+        // RRUGA E RE, E SIGURT: provon fillimisht hyrjen me llogari të VËRTETË Firebase
+        // (email+fjalëkalim, e vërtetuar nga vetë Firebase, jo nga kodi ynë). Nëse llogaria
+        // s'ekziston ende (para migrimit) ose ndodh çfarëdo gabimi tjetër, bie automatikisht
+        // mbrapa te kontrolli i vjetër (performLoginLegacyCheck) - kështu hyrja VAZHDON të
+        // funksionojë normalisht edhe para se të kryhet migrimi te "🔒 Siguria e Sistemit".
         function performLogin() {
-            console.log("🔐 performLogin u thirr!");
-
             var usernameEl = document.getElementById('username');
             var passwordEl = document.getElementById('password');
-
             if (!usernameEl || !passwordEl) {
                 alert("⚠️ Gabim në sistem! Rifreskoni faqen.");
                 return;
             }
-
             var u = usernameEl.value.trim();
             var p = passwordEl.value.trim();
-
-            console.log("👤 Përdoruesi:", u);
-
             if (!u || !p) {
                 alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
                 return;
             }
+
+            var syntheticEmail = getSyntheticEmail(u);
+            firebase.auth().signInWithEmailAndPassword(syntheticEmail, p).then(function() {
+                console.log("✅ Hyrje E SIGURT (llogari e vërtetë Firebase) për:", u);
+                if (u === 'admin') {
+                    currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
+                    showMainApp();
+                    return;
+                }
+                var teacher = systemData.teachers.find(function(t) { return t.username === u; });
+                if (teacher) {
+                    currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+                    showMainApp();
+                } else {
+                    alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
+                }
+            }).catch(function(err) {
+                console.log("ℹ️ Hyrja e sigurt s'u aplikua (" + err.code + ") - duke provuar rrugën e vjetër...");
+                performLoginLegacyCheck(u, p);
+            });
+        }
+
+        function performLoginLegacyCheck(u, p) {
+            console.log("🔐 performLoginLegacyCheck u thirr!");
+            console.log("👤 Përdoruesi:", u);
 
             // Administrator
             if (u === 'admin' && p === systemData.adminPassword) {
@@ -15734,6 +15848,7 @@ function renderAdminDashboard() {
                 <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
                 <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
                 <button class="btn btn-admin" onclick="openActiveSubjectsModal()">📚 Menaxho Lëndët (sipas Aktivit)</button>
+                <button class="btn btn-danger" onclick="migrateAccountsToFirebaseAuth()" title="Krijon llogari të vërteta Firebase (email+fjalëkalim) për siguri më të fortë">🔒 Siguria e Sistemit</button>
                 <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
             </div>
 
