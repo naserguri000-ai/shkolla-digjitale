@@ -14227,53 +14227,7 @@ function setupButtons() {
 // =====================================================================
 
 // ==================== 1. RREGULLO FUNKSIONIN PERFORM LOGIN ====================
-window.performLogin = function() {
-    console.log("🔐 performLogin u thirr!");
-
-    var usernameEl = document.getElementById('username');
-    var passwordEl = document.getElementById('password');
-
-    if (!usernameEl || !passwordEl) {
-        alert("⚠️ Gabim në sistem! Rifreskoni faqen.");
-        return;
-    }
-
-    var u = usernameEl.value.trim();
-    var p = passwordEl.value.trim();
-
-    console.log("👤 Përdoruesi:", u);
-
-    if (!u || !p) {
-        alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
-        return;
-    }
-
-    // Administrator
-    if (u === 'admin' && p === systemData.adminPassword) {
-        console.log("✅ Hyrje si Administrator");
-        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
-        showMainApp();
-        return;
-    }
-
-    // Kujdestarët
-    var teacher = systemData.teachers.find(function(t) {
-        return t.username === u && t.password === p;
-    });
-
-    if (teacher) {
-        console.log("✅ Hyrje si Kujdestar:", teacher.name);
-        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
-        showMainApp();
-        return;
-    }
-
-    alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
-        "📌 Sigurohuni që:\n" +
-        "• Emri i përdoruesit është i saktë\n" +
-        "• Fjalëkalimi është i saktë\n" +
-        "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
-};
+window.performLogin = performLogin; // RREGULLIM: hiqet mbishkrimi i vjetër i pasigurt - përdor gjithmonë funksionin e sigurt origjinal
 
 // ==================== 2. RREGULLO FUNKSIONIN SHOW ADMIN LOGIN ====================
 window.showAdminLogin = function() {
@@ -14296,12 +14250,7 @@ window.logout = function() {
 };
 
 // ==================== 4. RREGULLO FUNKSIONIN SHOW MAIN APP ====================
-window.showMainApp = function() {
-    document.getElementById('loginContainer').classList.add('hidden');
-    document.getElementById('mainContainer').classList.remove('hidden');
-    refreshDisplay();
-    showNotification("✅ Mirë se vini, " + currentUser.name + "!");
-};
+window.showMainApp = showMainApp; // RREGULLIM: hiqet mbishkrimi i thjeshtuar (i mungonte ngarkimi nga cloud) - përdor funksionin origjinal të plotë
 
 // ==================== 5. RILIDHJA E BUTONAVE ====================
 (function fixButtons() {
@@ -14412,53 +14361,7 @@ console.log("📌 Tani mund të hyni në sistem!");
 // =====================================================================
 
 // ==================== 1. RREGULLO FUNKSIONIN PERFORM LOGIN ====================
-window.performLogin = function() {
-    console.log("🔐 performLogin u thirr!");
-
-    var usernameEl = document.getElementById('username');
-    var passwordEl = document.getElementById('password');
-
-    if (!usernameEl || !passwordEl) {
-        alert("⚠️ Gabim në sistem! Rifreskoni faqen.");
-        return;
-    }
-
-    var u = usernameEl.value.trim();
-    var p = passwordEl.value.trim();
-
-    console.log("👤 Përdoruesi:", u);
-
-    if (!u || !p) {
-        alert("⚠️ Ju lutemi plotësoni emrin e përdoruesit dhe fjalëkalimin!");
-        return;
-    }
-
-    // Administrator
-    if (u === 'admin' && p === systemData.adminPassword) {
-        console.log("✅ Hyrje si Administrator");
-        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
-        showMainApp();
-        return;
-    }
-
-    // Kujdestarët
-    var teacher = systemData.teachers.find(function(t) {
-        return t.username === u && t.password === p;
-    });
-
-    if (teacher) {
-        console.log("✅ Hyrje si Kujdestar:", teacher.name);
-        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
-        showMainApp();
-        return;
-    }
-
-    alert("⚠️ Përdoruesi ose fjalëkalimi është i gabuar!\n\n" +
-        "📌 Sigurohuni që:\n" +
-        "• Emri i përdoruesit është i saktë\n" +
-        "• Fjalëkalimi është i saktë\n" +
-        "• Nëse keni harruar fjalëkalimin, kontaktoni administratorin");
-};
+window.performLogin = performLogin; // RREGULLIM: hiqet mbishkrimi i vjetër i pasigurt - përdor gjithmonë funksionin e sigurt origjinal
 
 // ==================== 2. RREGULLO FUNKSIONIN SHOW ADMIN LOGIN ====================
 window.showAdminLogin = function() {
@@ -14481,12 +14384,7 @@ window.logout = function() {
 };
 
 // ==================== 4. RREGULLO FUNKSIONIN SHOW MAIN APP ====================
-window.showMainApp = function() {
-    document.getElementById('loginContainer').classList.add('hidden');
-    document.getElementById('mainContainer').classList.remove('hidden');
-    refreshDisplay();
-    showNotification("✅ Mirë se vini, " + currentUser.name + "!");
-};
+window.showMainApp = showMainApp; // RREGULLIM: hiqet mbishkrimi i thjeshtuar (i mungonte ngarkimi nga cloud) - përdor funksionin origjinal të plotë
 
 // ==================== 5. RILIDHJA E BUTONAVE ====================
 (function fixButtons() {
