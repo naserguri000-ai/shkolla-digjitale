@@ -1612,6 +1612,23 @@
         </div>
     </div>
 
+    <div id="singleTeacherScheduleModal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <button class="modal-close" onclick="closeSingleTeacherScheduleModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📄 Orari i Mësimdhënësit (Individual)</h2>
+            <div style="margin-bottom:10px;">
+                <button id="singleTeacherShiftParadite" class="btn btn-primary" onclick="switchSingleTeacherShift('paradite')">☀️ Paradite</button>
+                <button id="singleTeacherShiftPasdite" class="btn btn-info" onclick="switchSingleTeacherShift('pasdite')">🌙 Pasdite</button>
+            </div>
+            <div id="singleTeacherSchedulePickerContainer" style="margin-bottom:15px;"></div>
+            <div id="singleTeacherScheduleContainer" style="max-height:55vh; overflow-y:auto;"></div>
+            <div class="print-btn-group no-print" style="margin-top:12px;">
+                <button class="btn btn-success" onclick="printSingleTeacherSchedule()">🖨️ Printo</button>
+                <button class="btn btn-warning" onclick="closeSingleTeacherScheduleModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
     <div id="teacherScheduleModal" class="modal">
         <div class="modal-content" style="max-width:95vw;">
             <button class="modal-close" onclick="closeTeacherScheduleModal()">×</button>
@@ -1622,12 +1639,13 @@
                 <button id="teacherScheduleBlockModeBtn" class="btn btn-danger" onclick="toggleBlockMode()">🚫 Modaliteti i Bllokimit</button>
                 <button class="btn btn-warning" onclick="confirmAutoFillAllSchedules()" title="Gjeneron Orarin për të gjitha klasat njëherësh, duke shmangur konflikte mësimdhënësish mes klasave">🤖 Gjenero Orarin (Të Gjitha Klasat)</button>
                 <button class="btn btn-purple" onclick="openTeacherRosterModal()" title="Lista e plotë e mësimdhënësve - shto ose hiq">👥 Lista e Mësimdhënësve</button>
-                <button class="btn btn-danger" onclick="openMissingSubjectsModal()" title="Klasat me lëndë ende pa mësimdhënës">⚠️ Klasat pa Lëndë</button>
+                <button class="btn btn-danger" onclick="openMissingSubjectsModal()" title="Klasat me lëndë ende pa mësimdhënës">⚠️ Klasat pa Mësimdhënës</button>
                 <button class="btn btn-success" onclick="printTeacherSchedule()">🖨️ Printo</button>
+                <button class="btn btn-purple" onclick="openSingleTeacherScheduleModal()">📄 Orari i Mësimdhënësit (Individual)</button>
             </div>
             <p style="font-size:12px; color:#666; margin-bottom:8px;">💡 <strong>Dinamik:</strong> kliko një qelizë të mbushur për ta zgjedhur (bëhet e verdhë). Mund ta lëvizësh te <strong>çdo mësimdhënës</strong>, jo vetëm te i njëjti - <span style="background:#a5d6a7; padding:1px 6px; border-radius:3px;">jeshile e fortë</span> = lëvizje e pastër, <span style="background:#ffe082; padding:1px 6px; border-radius:3px;">portokalli e lehtë</span> = e mundur por kërkon konfirmim (ricaktim mësimdhënësi dhe/ose diçka shkon në pritje poshtë). Asgjë s'fshihet kurrë vetvetiu.<br>🚫 <strong>Modaliteti i Bllokimit:</strong> aktivizoje, pastaj kliko qelizat ku mësimdhënësi s'është i disponueshëm (p.sh. punon shkollë tjetër / ndërrim tjetër) - shënohen me "✕" dhe gjeneruesi automatik s'i prek kurrë. Hiqet vetëm duke klikuar sërish (në të njëjtin modalitet).</p>
             <div id="teacherSchedulePendingContainer"></div>
-            <div id="teacherScheduleContainer" style="overflow-x:auto; max-height:65vh;"></div>
+            <div id="teacherScheduleContainer" style="overflow-x:auto; overflow-y:auto; max-height:65vh;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeTeacherScheduleModal()">Mbyll</button>
             </div>
@@ -1637,9 +1655,9 @@
     <div id="missingSubjectsModal" class="modal">
         <div class="modal-content" style="max-width:700px;">
             <button class="modal-close" onclick="closeMissingSubjectsModal()">×</button>
-            <h2 style="color:#c62828; margin-bottom:10px;">⚠️ Klasat me Lëndë Pa Mësimdhënës</h2>
+            <h2 style="color:#c62828; margin-bottom:10px;">⚠️ Klasat pa Mësimdhënës</h2>
             <p style="font-size:13px; color:#666; margin-bottom:15px;">Kjo dritare qëndron e hapur derisa ta mbyllësh vetë. Cakto mësimdhënësit e munguar te "👥 Lista e Mësimdhënësve".</p>
-            <button class="btn btn-success" onclick="autoFillMissingSubjectsUnder20Hours()" style="margin-bottom:12px;">🤖 Plotëso Automatikisht (mësimdhënës nën 20 orë/javë)</button>
+            <button class="btn btn-success" onclick="autoFillMissingSubjectsUnder20Hours()" style="margin-bottom:12px;">🤖 Plotëso Automatikisht (specialistë të lëndës, nën 20 orë/javë)</button>
             <div id="missingSubjectsContainer" style="max-height:60vh; overflow-y:auto;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeMissingSubjectsModal()">Mbyll</button>
@@ -1652,7 +1670,7 @@
             <button class="modal-close" onclick="closeElectiveByActiveModal()">×</button>
             <h2 style="color:#0b4b6e; margin-bottom:10px;">🎯 Lënda Zgjedhore sipas Aktiveve</h2>
             <p style="font-size:13px; color:#666; margin-bottom:15px;">Emri i lëndës "me zgjedhje" mund të ndryshojë nga një aktiv (nivel klase) te tjetri - shkruaj emrin dhe kliko "Ruaj" për secilin aktiv veç e veç.</p>
-            <div id="electiveByActiveContainer"></div>
+            <div id="electiveByActiveContainer" style="max-height:60vh; overflow-y:auto;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeElectiveByActiveModal()">Mbyll</button>
             </div>
@@ -1704,6 +1722,7 @@
             <button class="btn btn-success" onclick="addSubjectOnlyTeacher()" style="margin-bottom:12px;">➕ Shto Mësimdhënës</button>
             <button class="btn btn-info" onclick="openElectiveByActiveModal()" style="margin-bottom:12px;">🎯 Lënda Zgjedhore sipas Aktiveve</button>
             <button class="btn btn-warning" onclick="openSubjectsDiagnosticModal()" style="margin-bottom:12px;">🔍 Diagnostikimi i Lëndëve</button>
+            <div id="rosterProfessionalActiveFilter" style="margin-bottom:12px;"></div>
             <div id="teacherRosterContainer" style="max-height:60vh; overflow-y:auto;"></div>
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeTeacherRosterModal()">Mbyll</button>
@@ -2158,21 +2177,21 @@
         }
 
         var ALL_SUBJECTS = [
-            { code: 'SHQ', key: 'gjuheshqipe', name: 'Gjuhe Shqipe', group: 'Gjuhe dhe komunikim' },
-            { code: 'ENG', key: 'anglisht', name: 'Gjuhe Angleze', group: 'Gjuhe dhe komunikim' },
-            { code: 'GJER', key: 'gjermanisht', name: 'Gjuhe Gjermane', group: 'Gjuhe dhe komunikim' },
-            { code: 'MUZ', key: 'muzike', name: 'Edukate Muzikore', group: 'Gjuhe dhe komunikim' },
-            { code: 'VIZ', key: 'vizatim', name: 'Edukate Figurative', group: 'Gjuhe dhe komunikim' },
-            { code: 'MAT', key: 'matematike', name: 'Matematike', group: 'Matematike' },
-            { code: 'FIZ', key: 'fizike', name: 'Fizike', group: 'Shkencat natyrore' },
-            { code: 'KIM', key: 'kimi', name: 'Kimi', group: 'Shkencat natyrore' },
-            { code: 'BIO', key: 'biologji', name: 'Biologji', group: 'Shkencat natyrore' },
-            { code: 'HIS', key: 'histori', name: 'Histori', group: 'Shoqeria dhe mjedisi' },
-            { code: 'GJEO', key: 'gjeografi', name: 'Gjeografi', group: 'Shoqeria dhe mjedisi' },
-            { code: 'EDQ', key: 'edqytetare', name: 'Edukate Qytetare', group: 'Shoqeria dhe mjedisi' },
-            { code: 'TK', key: 'teknologji', name: 'Teknologji', group: 'Jeta dhe puna' },
-            { code: 'EDF', key: 'edfizike', name: 'Edukate Fizike', group: 'Edukate fizike, sport dhe shendeti' },
-            { code: 'MZGJ', key: 'msimzgjedhor', name: 'Efiqiencë e energjisë', group: 'Mesimi me zgjedhje' }
+            { code: 'SHQ', key: 'gjuheshqipe', name: 'Gjuhe Shqipe', group: 'Gjuhë dhe komunikim' },
+            { code: 'ENG', key: 'anglisht', name: 'Gjuhe Angleze', group: 'Gjuhë dhe komunikim' },
+            { code: 'GJER', key: 'gjermanisht', name: 'Gjuhe Gjermane', group: 'Gjuhë dhe komunikim' },
+            { code: 'MUZ', key: 'muzike', name: 'Edukate Muzikore', group: 'Aktivi i Arteve' },
+            { code: 'VIZ', key: 'vizatim', name: 'Edukate Figurative', group: 'Aktivi i Arteve' },
+            { code: 'MAT', key: 'matematike', name: 'Matematike', group: 'Aktivi i Matematikës' },
+            { code: 'FIZ', key: 'fizike', name: 'Fizike', group: 'Aktivi i Shkencave Natyrore' },
+            { code: 'KIM', key: 'kimi', name: 'Kimi', group: 'Aktivi i Shkencave Natyrore' },
+            { code: 'BIO', key: 'biologji', name: 'Biologji', group: 'Aktivi i Shkencave Natyrore' },
+            { code: 'HIS', key: 'histori', name: 'Histori', group: 'Aktivi i Shkencave Shoqërore' },
+            { code: 'GJEO', key: 'gjeografi', name: 'Gjeografi', group: 'Aktivi i Shkencave Shoqërore' },
+            { code: 'EDQ', key: 'edqytetare', name: 'Edukate Qytetare', group: 'Aktivi i Shkencave Shoqërore' },
+            { code: 'TK', key: 'teknologji', name: 'Teknologji', group: 'Teknologjia me TIK' },
+            { code: 'EDF', key: 'edfizike', name: 'Edukate Fizike', group: 'Sportet dhe Shëndeti' },
+            { code: 'MZGJ', key: 'msimzgjedhor', name: 'Efiqiencë e energjisë', group: 'Mësimi me Zgjedhje' }
         ];
 
         var systemData = {
@@ -2291,6 +2310,20 @@
             setTimeout(function() {
                 if (d.parentElement) d.remove();
             }, duration);
+        }
+
+        // Kthen "VIII-3" në "8-3" (numra latinë/arabë në vend të romakë) - PËRDORET VETËM te
+        // dokumentet e printuara (Dëftesa, Fletëkalimi), për të kursyer hapësirë dhe lejuar
+        // shkrim më të madh. Emri i vërtetë i klasës (classObj.className) NUK ndryshohet askund
+        // tjetër në sistem.
+        function classNameForPrint(className) {
+            if (!className) return className;
+            var romanMap = { 'IX': '9', 'VIII': '8', 'VII': '7', 'VI': '6' };
+            var dashIdx = className.indexOf('-');
+            if (dashIdx === -1) return className;
+            var prefix = className.substring(0, dashIdx);
+            var rest = className.substring(dashIdx);
+            return (romanMap[prefix] || prefix) + rest;
         }
 
         function escapeHtml(str) {
@@ -4653,21 +4686,21 @@ if (systemData.classes && systemData.classes.length > 0) {
             var currentBehavior = student.behavior || 'Shembullore';
 
             var headers =
-                '<th style="border:1px solid #000; padding:5px 8px; background:#0b4b6e; color:white; font-size:11px; text-align:left; min-width:120px;">Lënda</th>';
+                '<th style="border:1px solid #000; padding:3px 5px; background:#0b4b6e; color:white; font-size:13px; text-align:left; min-width:110px;">Lënda</th>';
             for (var y = 0; y < years.length; y++) {
                 var yearLabel = years[y];
                 var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
                 headers +=
                     '<th style="border:1px solid #000; padding:5px 6px; background:' + (isCurrentYear ?
                         '#1a5d7e' : '#0b4b6e') +
-                    '; color:white; font-size:10px; text-align:center; min-width:100px;">' +
+                    '; color:white; font-size:12px; text-align:center; min-width:90px;">' +
                     yearLabel + (isCurrentYear ? ' *' : '') + '</th>';
             }
 
             var rowsHtml = '';
             allSubjects.forEach(function(sub) {
                 rowsHtml +=
-                    '<tr><td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px; font-weight:500;">' +
+                    '<tr><td style="border:1px solid #000; padding:2px 5px; text-align:left; font-size:12px; font-weight:500;">' +
                     sub.name + '</td>';
 
                 for (var y = 0; y < years.length; y++) {
@@ -4707,8 +4740,8 @@ if (systemData.classes && systemData.classes.length > 0) {
 
                     rowsHtml +=
                         '<td style="border:1px solid #000; padding:3px 4px; text-align:center; background:' +
-                        bgColor + '; font-size:11px; font-weight:bold;">' +
-                        grade + '<br><span style="font-size:8px; font-weight:normal; color:#555;">' +
+                        bgColor + '; font-size:13px; font-weight:bold;">' +
+                        grade + '<br><span style="font-size:11px; font-weight:normal; color:#555;">' +
                         gradeDesc + '</span></td>';
                 }
                 rowsHtml += '</tr>';
@@ -4716,7 +4749,7 @@ if (systemData.classes && systemData.classes.length > 0) {
 
             var avgRow = '<tr style="background:#e8eaf6; font-weight:bold;">';
             avgRow +=
-                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Mesatarja</td>';
+                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:12px;">Mesatarja</td>';
             for (var y = 0; y < years.length; y++) {
                 var yearLabel = years[y];
                 var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
@@ -4757,14 +4790,14 @@ if (systemData.classes && systemData.classes.length > 0) {
                     }
                 }
                 avgRow +=
-                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:11px; font-weight:bold;">' +
+                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:13px; font-weight:bold;">' +
                     avgVal + '</td>';
             }
             avgRow += '</tr>';
 
             var successRow = '<tr style="background:#e3f2fd; font-weight:bold;">';
             successRow +=
-                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Suksesi</td>';
+                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:12px;">Suksesi</td>';
             for (var y = 0; y < years.length; y++) {
                 var yearLabel = years[y];
                 var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
@@ -4825,14 +4858,14 @@ if (systemData.classes && systemData.classes.length > 0) {
                 }
 
                 successRow +=
-                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' +
+                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:12px;">' +
                     statusVal + '</td>';
             }
             successRow += '</tr>';
 
             var absRow = '<tr style="background:#fff3e0;">';
             absRow +=
-                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Mungesat</td>';
+                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:12px;">Mungesat</td>';
             for (var y = 0; y < years.length; y++) {
                 var yearLabel = years[y];
                 var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
@@ -4857,14 +4890,14 @@ if (systemData.classes && systemData.classes.length > 0) {
                     }
                 }
                 absRow +=
-                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' +
+                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:12px;">' +
                     absVal + '</td>';
             }
             absRow += '</tr>';
 
             var behRow = '<tr style="background:#e8f5e9;">';
             behRow +=
-                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:10px;">Sjellja</td>';
+                '<td style="border:1px solid #000; padding:4px 8px; text-align:left; font-size:12px;">Sjellja</td>';
             for (var y = 0; y < years.length; y++) {
                 var yearLabel = years[y];
                 var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
@@ -4888,7 +4921,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                     }
                 }
                 behRow +=
-                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:10px;">' +
+                    '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:15px;">' +
                     behVal + '</td>';
             }
             behRow += '</tr>';
@@ -4900,22 +4933,22 @@ if (systemData.classes && systemData.classes.length > 0) {
                 <meta charset="UTF-8">
                 <title>Fletëkalimi - ${student.name}</title>
                 <style>
-                    @page { size: A4 portrait; margin: 10mm; }
+                    @page { size: A4 portrait; margin: 6mm; }
                     body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }
-                    .certificate { max-width: 210mm; margin: 0 auto; padding: 5mm 8mm; border: 2px solid #d4af37; background: white; box-sizing: border-box; }
-                    .header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 4mm; margin-bottom: 4mm; }
-                    .header h1 { color: #d4af37; font-size: 24px; margin: 3px 0; letter-spacing: 2px; }
-                    .header .school { font-size: 14px; font-weight: bold; color: #0b4b6e; }
-                    .student-name { font-size: 18px; font-weight: bold; text-align: center; margin: 3mm 0; padding: 3mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }
-                    .student-name .amza { font-size: 13px; color: #666; font-weight: normal; margin-left: 10px; }
-                    .info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 12px; }
-                    table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 11px; }
-                    th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }
+                    .certificate { max-width: 210mm; margin: 0 auto; padding: 3mm 6mm; border: 2px solid #d4af37; background: white; box-sizing: border-box; }
+                    .header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 1mm; margin-bottom: 1mm; }
+                    .header h1 { color: #d4af37; font-size: 18px; margin: 2px 0; letter-spacing: 1px; }
+                    .header .school { font-size: 13px; font-weight: bold; color: #0b4b6e; }
+                    .student-name { font-size: 14px; font-weight: bold; text-align: center; margin: 1mm 0; padding: 1mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }
+                    .student-name .amza { font-size: 12px; color: #666; font-weight: normal; margin-left: 10px; }
+                    .info { background: #f5f5f5; padding: 1mm 2mm; margin: 1mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 11px; }
+                    table { width: 100%; border-collapse: collapse; margin: 1mm 0; font-size: 12px; }
+                    th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; }
                     th { background: #0b4b6e; color: white; font-weight: bold; }
-                    .signatures { display: flex; justify-content: space-between; margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #000; }
-                    .signature { text-align: center; width: 130px; }
-                    .signature-line { border-top: 1px solid #000; margin-top: 5mm; padding-top: 2mm; }
-                    @media print { body { margin: 0; padding: 0; } .certificate { border: 2px solid #d4af37; } }
+                    .signatures { display: flex; justify-content: space-between; margin-top: 2mm; padding-top: 1mm; border-top: 1px solid #000; }
+                    .signature { text-align: center; width: 130px; font-size: 12px; }
+                    .signature-line { border-top: 1px solid #000; margin-top: 3mm; padding-top: 1mm; }
+                    @media print { body { margin: 0; padding: 0; } .certificate { border: 2px solid #d4af37; page-break-after: avoid; page-break-inside: avoid; } }
                 </style>
             </head>
             <body>
@@ -4925,15 +4958,15 @@ if (systemData.classes && systemData.classes.length > 0) {
                         <div class="school">REPUBLIKA E KOSOVËS</div>
                         <div class="school">${systemData.schoolInfo.name}</div>
                         <h1>FLETËKALIMI</h1>
-                        <div style="font-size:14px; font-weight:bold; color:#0b4b6e;">PËRFUNDIMTAR</div>
-                        <div style="font-size:12px; color:#333;">${systemData.schoolInfo.year}</div>
+                        <div style="font-size:18px; color:#333;">${systemData.schoolInfo.year}</div>
                     </div>
                     <div class="student-name">
                         ${student.name}
                         ${amza ? '<span class="amza">Nr.amë: ' + amza + '</span>' : ''}
                     </div>
                     <div class="info">
-                        <div><strong>Klasa:</strong> ${classObj.className}</div>
+                        <div><strong>Nr. Protokolli:</strong> _______________</div>
+                        <div><strong>Klasa:</strong> ${classNameForPrint(classObj.className)}</div>
                         <div><strong>Data:</strong> ${date}</div>
                         <div><strong>Mesatarja:</strong> ${totalAvg}</div>
                         <div><strong>Suksesi:</strong> ${successDesc}</div>
@@ -4954,12 +4987,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                     </div>
                     <div class="signatures">
                         <div class="signature">
-                            <div class="signature-line">Kujdestari</div>
-                            <div style="margin-top:2mm; font-size:12px;">${teacherName}</div>
+                            <div class="signature-line">Nënshkrimi i Sekretares</div>
                         </div>
                         <div class="signature">
                             <div class="signature-line">Drejtoresha</div>
-                            <div style="margin-top:2mm; font-size:12px;">${principalName}</div>
+                            <div style="margin-top:2mm; font-size:18px;">${principalName}</div>
                         </div>
                         <div class="signature">
                             <div class="signature-line">Vula e shkollës</div>
@@ -8090,6 +8122,101 @@ if (systemData.classes && systemData.classes.length > 0) {
             return 'paradite';
         }
 
+        // ==================== ELIMINIMI AKTIV I "DITËVE TË LIRA" (Rregulli #1) ====================
+        // Mësimdhënësi s'duhet të ketë ditë "bosh" të ngujuara mes ditësh pune (p.sh. punon E
+        // Hënë dhe E Mërkurë, por jo E Martë). Kjo PROVON në mënyrë aktive ta rregullojë (jo
+        // vetëm ta raportojë), duke zhvendosur nga dita e FUNDIT e punës të mësimdhënësit një
+        // orë të lirë (për të njëjtën klasë) drejt ditës "bosh". Funksion i VEÇANTË (jo brenda
+        // autoFillAllSchedules) - kështu mund të thirret/testohet i pavarur.
+        function isTeacherFreeInCurrentSchedules(teacherId, shift, day, hour) {
+            return !systemData.classes.some(function(c) {
+                if (getClassShift(c) !== shift) return false;
+                var subjKey = c.schedule && c.schedule[day] && c.schedule[day][hour];
+                return subjKey && getSubjectTeacherId(c.id, subjKey) === teacherId;
+            });
+        }
+
+        // Aktiviteti i NJË mësimdhënësi për një DITË, i KOMBINUAR nga të dy ndërrimet - një
+        // mësimdhënës që punon në të dy ndërrimet mund ta ketë PARADITE bosh një ditë, por
+        // PASDITE plot atë ditë - kjo NUK është "ditë e lirë" e vërtetë (e kombinuar), kështu që
+        // s'duhet as raportuar as "rregulluar".
+        function getTeacherCombinedDayActivity(teacherId) {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var activity = {};
+            days.forEach(function(day) {
+                activity[day] = { paradite: false, pasdite: false };
+                ['paradite', 'pasdite'].forEach(function(shift) {
+                    activity[day][shift] = systemData.classes.some(function(c) {
+                        if (getClassShift(c) !== shift) return false;
+                        return hours.some(function(h) {
+                            var sk = c.schedule && c.schedule[day] && c.schedule[day][h];
+                            return sk && getSubjectTeacherId(c.id, sk) === teacherId;
+                        });
+                    });
+                });
+            });
+            return activity;
+        }
+
+        function eliminateGapDaysForTeachers() {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var gapsFixed = 0;
+
+            // Mblidh të gjithë ID-të e mësimdhënësve nga TË DY ndërrimet (bashkim, jo veç e veç).
+            var allTeacherIds = {};
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(data.rows).forEach(function(tid) { allTeacherIds[tid] = true; });
+            });
+
+            Object.keys(allTeacherIds).forEach(function(teacherId) {
+                var activity = getTeacherCombinedDayActivity(teacherId);
+                var combinedActiveIdx = [];
+                days.forEach(function(day, i) {
+                    if (activity[day].paradite || activity[day].pasdite) combinedActiveIdx.push(i);
+                });
+                if (combinedActiveIdx.length < 2) return;
+                var minIdx = Math.min.apply(null, combinedActiveIdx), maxIdx = Math.max.apply(null, combinedActiveIdx);
+
+                for (var i = minIdx; i <= maxIdx; i++) {
+                    var day = days[i];
+                    if (activity[day].paradite || activity[day].pasdite) continue; // s'është ditë bosh E KOMBINUAR
+
+                    // gjej ndërrimin e "ditës së fundit" (aty ku ka pasur aktivitet së fundmi) për
+                    // të lëvizur prej andej - respekton nda1rjen e ndërrimeve (rregulli #2).
+                    var lastDay = days[maxIdx];
+                    var lastDayShift = activity[lastDay].paradite ? 'paradite' : 'pasdite';
+                    var data = buildTeacherScheduleData(lastDayShift);
+                    var row = data.rows[teacherId];
+                    if (!row) continue;
+
+                    for (var h = 0; h < hours.length; h++) {
+                        var srcHour = hours[h];
+                        var cell = row.grid[lastDay][srcHour];
+                        if (!cell) continue;
+                        var cls = systemData.classes.find(function(c) { return c.id === cell.classId; });
+                        if (!cls) continue;
+                        var placed = false;
+                        for (var h2 = 0; h2 < hours.length; h2++) {
+                            var dstHour = hours[h2];
+                            if (!cls.schedule[day][dstHour] && isTeacherFreeInCurrentSchedules(teacherId, lastDayShift, day, dstHour) &&
+                                !isTeacherBlocked(teacherId, lastDayShift, day, dstHour)) {
+                                cls.schedule[day][dstHour] = cell.subjectKey;
+                                cls.schedule[lastDay][srcHour] = '';
+                                gapsFixed++;
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
+            });
+            return gapsFixed;
+        }
+
         function autoFillAllSchedules() {
             var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
             var hours = [1, 2, 3, 4, 5, 6];
@@ -8251,6 +8378,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (queue.length > 0) classesWithGaps.push(classObj.className + ' (' + queue.length + ' pa vend)');
             });
 
+            var gapsFixed = eliminateGapDaysForTeachers();
+
             // ==================== RAPORTIMI PAS GJENERIMIT ====================
             // Kontrollon çdo mësimdhënës, në secilin ndërrim, për: ditë me VETËM 1 orë (nën
             // minimumin e kërkuar 2), dhe ditë "të lira" të ngujuara mes dy ditësh pune (jo
@@ -8265,19 +8394,39 @@ if (systemData.classes && systemData.classes.length > 0) {
                     var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
                     var tName = teacher ? teacher.name : teacherId;
                     var dayIndices = days.map(function(d) { return perDay[d] || 0; });
-                    var activeIdx = dayIndices.map(function(v, i) { return v > 0 ? i : -1; }).filter(function(i) { return i !== -1; });
-                    if (activeIdx.length === 0) return;
-                    var minActive = Math.min.apply(null, activeIdx), maxActive = Math.max.apply(null, activeIdx);
                     dayIndices.forEach(function(v, i) {
                         if (v === 1) weakDaysReport.push(tName + ' (' + shift + ', ' + days[i] + ')');
-                        if (v === 0 && i > minActive && i < maxActive) sandwichedFreeDaysReport.push(tName + ' (' + shift + ', ' + days[i] + ')');
                     });
+                });
+            });
+            // "Ditë të lira" - kontrollohet me AKTIVITETIN E KOMBINUAR (të dy ndërrimet bashkë) -
+            // një mësimdhënës që punon në të dy ndërrimet mund ta ketë njërin BOSH një ditë kur
+            // punon te tjetri atë ditë; kjo NUK numërohet si "ditë e lirë" e vërtetë (e lejuar,
+          // sipas kërkesës - "ditë të lira lejohen nëse punohet në dy ndërrime, por të
+            // sinkronizuara").
+            var allReportedTeacherIds = {};
+            Object.keys(teacherDailyCount).forEach(function(tid) { allReportedTeacherIds[tid] = true; });
+            Object.keys(allReportedTeacherIds).forEach(function(teacherId) {
+                var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
+                var tName = teacher ? teacher.name : teacherId;
+                var activity = getTeacherCombinedDayActivity(teacherId);
+                var activeIdx = [];
+                days.forEach(function(day, i) { if (activity[day].paradite || activity[day].pasdite) activeIdx.push(i); });
+                if (activeIdx.length === 0) return;
+                var minActive = Math.min.apply(null, activeIdx), maxActive = Math.max.apply(null, activeIdx);
+                days.forEach(function(day, i) {
+                    if (i > minActive && i < maxActive && !activity[day].paradite && !activity[day].pasdite) {
+                        sandwichedFreeDaysReport.push(tName + ' (' + day + ')');
+                    }
                 });
             });
 
             saveToLocal();
             refreshDisplay();
             var msg = "🤖 Orari i " + systemData.classes.length + " klasave u gjenerua! (" + totalPlaced + " nga " + totalRequired + " orë u vendosën gjithsej)";
+            if (gapsFixed > 0) {
+                msg += "\n✅ " + gapsFixed + " ditë bosh u eliminuan automatikisht (orë u zhvendosën për t'i mbushur).";
+            }
             if (weakDaysReport.length > 0) {
                 msg += "\n⚠️ Ditë me vetëm 1 orë (nën minimumin 2): " + weakDaysReport.slice(0, 10).join(', ') +
                     (weakDaysReport.length > 10 ? ' (+' + (weakDaysReport.length - 10) + ' të tjera)' : '');
@@ -8491,6 +8640,42 @@ if (systemData.classes && systemData.classes.length > 0) {
         // ripërdoret si për rreshtin fillestar ashtu edhe për ata të shtuar me "+ Lëndë tjetër".
         // "isFirstRow" kontrollon nëse shfaqet emri i plotë (me ✕ hiq) apo thjesht "↳" (rreshtat
         // shtesë të të njëjtit mësimdhënës).
+        // Lënda "me zgjedhje" (çelësi 'msimzgjedhor') ka emra TË NDRYSHËM sipas aktivit (p.sh.
+        // "Robotikë" për VI, "IT" për VIII) - por të gjitha ndajnë TË NJËJTIN çelës të brendshëm.
+        // Në vend që "Lista e Mësimdhënësve" të tregojë vetëm emrin gjenerik të vjetër
+        // ("Efiçiencë e energjisë"), ndërton një opsion TË VEÇANTË për secilin emër real që
+        // ekziston aktualisht - çdo variant identifikohet si "msimzgjedhor::<emri>".
+        function getRosterSubjectOptions() {
+            var options = [];
+            ALL_SUBJECTS.forEach(function(sub) {
+                if (sub.key !== 'msimzgjedhor') {
+                    options.push({ value: sub.key, label: sub.name });
+                    return;
+                }
+                var namesUsed = {};
+                systemData.classes.forEach(function(cls) {
+                    var s = cls.subjectsOrder.find(function(x) { return x.key === 'msimzgjedhor'; });
+                    if (s && s.name) namesUsed[s.name] = true;
+                });
+                var names = Object.keys(namesUsed).sort();
+                if (names.length === 0) names = [sub.name]; // asnjë klasë ende - trego emrin parazgjedhur
+                names.forEach(function(name) {
+                    options.push({ value: 'msimzgjedhor::' + name, label: name + ' (zgjedhore)' });
+                });
+            });
+            return options;
+        }
+
+        // Shpërbën vlerën e dropdown-it ("kimi" ose "msimzgjedhor::Robotikë") në çelësin e
+        // vërtetë (gjithmonë i nevojshëm për getSubjectTeacherId/setSubjectTeacherId) dhe emrin
+        // specifik të kërkuar (vetëm për variantet e lëndës zgjedhore - null për lëndët e tjera).
+        function parseRosterSubjectValue(value) {
+            if (value && value.indexOf('msimzgjedhor::') === 0) {
+                return { key: 'msimzgjedhor', requiredName: value.substring('msimzgjedhor::'.length) };
+            }
+            return { key: value, requiredName: null };
+        }
+
         function buildRosterBlockRowHtml(t, sortedClasses, preselectedSubjectKey, isFirstRow, summaryHtml) {
             var html = '<tr data-teacher-id="' + t.id + '" class="roster-block-row" style="' + (isFirstRow ? '' : 'background:#fafafa;') + '">';
             if (isFirstRow) {
@@ -8507,9 +8692,9 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '<td style="padding:5px; border-bottom:1px solid #eee;"></td>';
             }
             html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><select class="roster-subject-select" style="width:100%; padding:3px; height:26px;">';
-            ALL_SUBJECTS.forEach(function(sub) {
-                var selectedAttr = (sub.key === preselectedSubjectKey) ? ' selected' : '';
-                html += '<option value="' + sub.key + '"' + selectedAttr + '>' + escapeHtml(sub.name) + '</option>';
+            getRosterSubjectOptions().forEach(function(opt) {
+                var selectedAttr = (opt.value === preselectedSubjectKey) ? ' selected' : '';
+                html += '<option value="' + opt.value + '"' + selectedAttr + '>' + escapeHtml(opt.label) + '</option>';
             });
             html += '</select></td>' +
                 '<td style="padding:5px; border-bottom:1px solid #eee; position:relative; vertical-align:top;">' +
@@ -8531,7 +8716,7 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         function wireUpRosterBlockRow(row) {
-            row.querySelector('.roster-subject-select').addEventListener('change', function() { refreshRosterRow(row); });
+            row.querySelector('.roster-subject-select').addEventListener('change', function() { refreshRosterRow(row); applyRosterActiveFilter(); });
             row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
                 cb.addEventListener('change', function() {
                     // Kontroll i MENJËHERSHËM: nëse klasa e sapo-shënuar tashmë ka NJË
@@ -8539,12 +8724,13 @@ if (systemData.classes && systemData.classes.length > 0) {
                     // menjëherë - pa pritur klikimin e "Cakto".
                     if (cb.checked) {
                         var teacherId = row.dataset.teacherId;
-                        var subjectKey = row.querySelector('.roster-subject-select').value;
-                        var existingTeacherId = getSubjectTeacherId(cb.value, subjectKey);
+                        var subjectValue = row.querySelector('.roster-subject-select').value;
+                        var parsed = parseRosterSubjectValue(subjectValue);
+                        var existingTeacherId = getSubjectTeacherId(cb.value, parsed.key);
                         if (existingTeacherId && existingTeacherId !== teacherId) {
                             var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
                             var cls = systemData.classes.find(function(c) { return c.id === cb.value; });
-                            var subjectName = (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
+                            var subjectName = parsed.requiredName || (ALL_SUBJECTS.find(function(s) { return s.key === parsed.key; }) || {}).name || parsed.key;
                             alert("⛔ S'mund ta zgjedhësh " + (cls ? cls.className : cb.value) + " - " + subjectName +
                                 " atje jepet tashmë nga " + (existingTeacher ? existingTeacher.name : 'panjohur') +
                                 ".\n\nNëse do ta ndryshosh, hiqe fillimisht te ai mësimdhënës, ose përdor 'Cakto' për ta zëvendësuar me konfirmim.");
@@ -8573,6 +8759,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             lastRow.insertAdjacentHTML('afterend', html);
             var newRow = lastRow.nextElementSibling;
             wireUpRosterBlockRow(newRow);
+            applyRosterActiveFilter();
         }
 
         // Heq një rresht-lëndë SHTESË (jo të parin) - nëse ka caktime të ruajtura aty, i
@@ -8587,13 +8774,74 @@ if (systemData.classes && systemData.classes.length > 0) {
             row.remove();
         }
 
+        // Filtron rreshtat e "Listës së Mësimdhënësve" sipas AKTIVIT PROFESIONAL (grupim
+        // lëndësh - "Gjuhë dhe komunikim", "Aktivi i Shkencave Natyrore", etj.) - fusha
+        // "group" e çdo lënde te ALL_SUBJECTS. Kjo është krejt e ndarë nga "aktivet e klasave"
+        // (VI/VII/VIII/IX).
+        window.rosterActiveFilter = null; // null = trego të gjithë
+
+        function renderRosterProfessionalActiveFilter() {
+            var container = document.getElementById('rosterProfessionalActiveFilter');
+            if (!container) return;
+            var groups = [];
+            ALL_SUBJECTS.forEach(function(sub) {
+                if (groups.indexOf(sub.group) === -1) groups.push(sub.group);
+            });
+            var html = '<div style="font-size:11px; color:#666; margin-bottom:4px;">Filtro sipas aktivit profesional:</div>';
+            html += '<button class="btn ' + (window.rosterActiveFilter === null ? 'btn-primary' : 'btn-info') +
+                '" style="padding:4px 10px; font-size:11px; margin:2px;" onclick="setRosterActiveFilter(null)">Të gjitha</button>';
+            groups.forEach(function(g) {
+                html += '<button class="btn ' + (window.rosterActiveFilter === g ? 'btn-primary' : 'btn-info') +
+                    '" style="padding:4px 10px; font-size:11px; margin:2px;" onclick="setRosterActiveFilter(\'' + escapeHtml(g).replace(/'/g, "\\'") + '\')">' +
+                    escapeHtml(g) + '</button>';
+            });
+            container.innerHTML = html;
+        }
+
+        function setRosterActiveFilter(groupName) {
+            window.rosterActiveFilter = groupName;
+            renderRosterProfessionalActiveFilter();
+            applyRosterActiveFilter();
+        }
+
+        // A i takon kjo VLERË DROPDOWN-i (p.sh. "kimi" ose "msimzgjedhor::Robotikë") aktivit
+        // profesional aktualisht të filtruar?
+        function subjectValueMatchesActiveFilter(subjectValue) {
+            if (!window.rosterActiveFilter) return true;
+            var realKey = parseRosterSubjectValue(subjectValue).key;
+            var sub = ALL_SUBJECTS.find(function(s) { return s.key === realKey; });
+            return sub && sub.group === window.rosterActiveFilter;
+        }
+
+        // Fsheh/shfaq rreshtat sipas filtrit - nëse TË GJITHË rreshtat e një mësimdhënësi
+        // fshihen, fshihet krejtësisht (s'lë hapësirë bosh); nëse mbetet së paku një, ai bëhet
+        // "rreshti i parë" i dukshëm (merr emrin/përmbledhjen edhe nëse origjinalisht ishte
+        // rresht shtesë).
+        function applyRosterActiveFilter() {
+            var allRows = document.querySelectorAll('#teacherRosterContainer tr[data-teacher-id]');
+            var byTeacher = {};
+            allRows.forEach(function(row) {
+                var tid = row.dataset.teacherId;
+                if (!byTeacher[tid]) byTeacher[tid] = [];
+                byTeacher[tid].push(row);
+            });
+            Object.keys(byTeacher).forEach(function(tid) {
+                var rows = byTeacher[tid];
+                var visibleRows = rows.filter(function(row) {
+                    var sel = row.querySelector('.roster-subject-select');
+                    return sel && subjectValueMatchesActiveFilter(sel.value);
+                });
+                rows.forEach(function(row) { row.style.display = visibleRows.indexOf(row) === -1 ? 'none' : ''; });
+            });
+        }
+
         function renderTeacherRoster() {
             var container = document.getElementById('teacherRosterContainer');
             if (!container) return;
             var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
             var sorted = systemData.teachers.slice().sort(function(a, b) { return a.name.localeCompare(b.name); });
             var html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">' +
-                '<thead><tr style="background:#0b4b6e; color:white;">' +
+                '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;">' +
                 '<th style="padding:6px; text-align:left;">Emri i mësimdhënësit</th>' +
                 '<th style="padding:6px;">Orë Gjithsej</th>' +
                 '<th style="padding:6px;" title="P=Paradite, Pd=Pasdite. Jeshile=lirë, Verdhë=pjesërisht, Kuqe=krejt bllokuar">Ditët e Lira</th>' +
@@ -8605,15 +8853,32 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<th style="padding:6px;"></th></tr></thead><tbody>';
             sorted.forEach(function(t) {
                 var summaryParts = [];
-                var assignedSubjectKeys = [];
+                var assignedSubjectKeys = []; // mban VLERA (jo domosdo çelësa të thjeshtë) - "kimi" ose "msimzgjedhor::Robotikë"
                 ALL_SUBJECTS.forEach(function(sub) {
-                    var classesForThisSubject = sortedClasses.filter(function(cls) {
-                        return getSubjectTeacherId(cls.id, sub.key) === t.id;
-                    });
-                    if (classesForThisSubject.length > 0) {
-                        summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
-                        assignedSubjectKeys.push(sub.key);
+                    if (sub.key !== 'msimzgjedhor') {
+                        var classesForThisSubject = sortedClasses.filter(function(cls) {
+                            return getSubjectTeacherId(cls.id, sub.key) === t.id;
+                        });
+                        if (classesForThisSubject.length > 0) {
+                            summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
+                            assignedSubjectKeys.push(sub.key);
+                        }
+                        return;
                     }
+                    // Lënda zgjedhore - grupo NDARAS sipas emrit real të secilës klasë, pasi
+                    // ndryshon nga një aktiv te tjetri edhe pse ndajnë të njëjtin çelës.
+                    var byName = {};
+                    sortedClasses.forEach(function(cls) {
+                        if (getSubjectTeacherId(cls.id, 'msimzgjedhor') !== t.id) return;
+                        var s = cls.subjectsOrder.find(function(x) { return x.key === 'msimzgjedhor'; });
+                        var name = s ? s.name : sub.name;
+                        if (!byName[name]) byName[name] = [];
+                        byName[name].push(cls.className);
+                    });
+                    Object.keys(byName).sort().forEach(function(name) {
+                        summaryParts.push(name + ' (' + byName[name].join(', ') + ')');
+                        assignedSubjectKeys.push('msimzgjedhor::' + name);
+                    });
                 });
                 var summaryHtml = summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
                 // Nëse mësimdhënësi jep 2+ lëndë, shfaq NJË RRESHT PËR SECILËN lëndë (të gjitha
@@ -8629,6 +8894,8 @@ if (systemData.classes && systemData.classes.length > 0) {
             document.querySelectorAll('#teacherRosterContainer tr[data-teacher-id]').forEach(function(row) {
                 wireUpRosterBlockRow(row);
             });
+            renderRosterProfessionalActiveFilter();
+            applyRosterActiveFilter();
         }
 
         function updateRosterSummaryText(row) {
@@ -8648,19 +8915,25 @@ if (systemData.classes && systemData.classes.length > 0) {
         // A e ka kjo klasë vërtet këtë lëndë (te Plani Mësimor/subjectsOrder i saj)? Përdoret
         // që "Lista e Mësimdhënësve" të mos lejojë caktime të pamundura (p.sh. Kimi te VI, ku
         // Kimia u hoq më parë te "Menaxho Lëndët" për atë klasë).
-        function classOffersSubject(classId, subjectKey) {
+        function classOffersSubject(classId, subjectValue) {
             var cls = systemData.classes.find(function(c) { return c.id === classId; });
             if (!cls || !cls.subjectsOrder) return false;
-            return cls.subjectsOrder.some(function(s) { return s.key === subjectKey; });
+            var parsed = parseRosterSubjectValue(subjectValue);
+            return cls.subjectsOrder.some(function(s) {
+                if (s.key !== parsed.key) return false;
+                if (parsed.requiredName && s.name !== parsed.requiredName) return false;
+                return true;
+            });
         }
 
         function refreshRosterRow(row) {
             var teacherId = row.dataset.teacherId;
-            var subjectKey = row.querySelector('.roster-subject-select').value;
+            var subjectValue = row.querySelector('.roster-subject-select').value;
+            var realKey = parseRosterSubjectValue(subjectValue).key;
             row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
-                var offers = classOffersSubject(cb.value, subjectKey);
+                var offers = classOffersSubject(cb.value, subjectValue);
                 cb.disabled = !offers;
-                cb.checked = offers && getSubjectTeacherId(cb.value, subjectKey) === teacherId;
+                cb.checked = offers && getSubjectTeacherId(cb.value, realKey) === teacherId;
                 var label = cb.parentElement;
                 if (label) {
                     label.style.opacity = offers ? '1' : '0.4';
@@ -8682,22 +8955,37 @@ if (systemData.classes && systemData.classes.length > 0) {
             var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
             var summaryParts = [];
             ALL_SUBJECTS.forEach(function(sub) {
-                var classesForThisSubject = sortedClasses.filter(function(cls) {
-                    return getSubjectTeacherId(cls.id, sub.key) === teacherId;
-                });
-                if (classesForThisSubject.length > 0) {
-                    summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
+                if (sub.key !== 'msimzgjedhor') {
+                    var classesForThisSubject = sortedClasses.filter(function(cls) {
+                        return getSubjectTeacherId(cls.id, sub.key) === teacherId;
+                    });
+                    if (classesForThisSubject.length > 0) {
+                        summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
+                    }
+                    return;
                 }
+                var byName = {};
+                sortedClasses.forEach(function(cls) {
+                    if (getSubjectTeacherId(cls.id, 'msimzgjedhor') !== teacherId) return;
+                    var s = cls.subjectsOrder.find(function(x) { return x.key === 'msimzgjedhor'; });
+                    var name = s ? s.name : sub.name;
+                    if (!byName[name]) byName[name] = [];
+                    byName[name].push(cls.className);
+                });
+                Object.keys(byName).sort().forEach(function(name) {
+                    summaryParts.push(name + ' (' + byName[name].join(', ') + ')');
+                });
             });
             summaryDiv.innerHTML = summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
         }
 
         function updateRosterRowTotal(row) {
-            var subjectKey = row.querySelector('.roster-subject-select').value;
+            var subjectValue = row.querySelector('.roster-subject-select').value;
+            var realKey = parseRosterSubjectValue(subjectValue).key;
             var total = 0;
             row.querySelectorAll('.roster-class-checkbox:checked').forEach(function(cb) {
                 var curriculum = (systemData.curriculum && systemData.curriculum[cb.value]) || {};
-                total += (curriculum[subjectKey] && curriculum[subjectKey].hoursPerWeek) || 0;
+                total += (curriculum[realKey] && curriculum[realKey].hoursPerWeek) || 0;
             });
             row.querySelector('.roster-total-hours').textContent = total;
         }
@@ -8717,8 +9005,10 @@ if (systemData.classes && systemData.classes.length > 0) {
             var row = btn.closest('tr');
             var teacherId = row.dataset.teacherId;
             var teacherName = (systemData.teachers.find(function(t) { return t.id === teacherId; }) || {}).name || '';
-            var subjectKey = row.querySelector('.roster-subject-select').value;
-            var subjectName = (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
+            var subjectValue = row.querySelector('.roster-subject-select').value;
+            var parsed = parseRosterSubjectValue(subjectValue);
+            var subjectKey = parsed.key;
+            var subjectName = parsed.requiredName || (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
             var selectedClassIds = Array.prototype.filter.call(row.querySelectorAll('.roster-class-checkbox'), function(cb) { return cb.checked; })
                 .map(function(cb) { return cb.value; });
 
@@ -8742,7 +9032,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (!confirm(msg)) return;
             }
 
+            // "Shkëputja" (heqja e caktimit te klasat jo-të-zgjedhura) prek VETËM klasat që i
+            // takojnë KËTIJ VARIANTI specifik (p.sh. VETËM klasat me "Robotikë", jo ato me "IT",
+            // edhe pse ndajnë të njëjtin çelës të brendshëm 'msimzgjedhor').
             systemData.classes.forEach(function(cls) {
+                if (!classOffersSubject(cls.id, subjectValue)) return;
                 var shouldBeAssigned = selectedClassIds.indexOf(cls.id) !== -1;
                 var currentlyAssigned = getSubjectTeacherId(cls.id, subjectKey) === teacherId;
                 if (shouldBeAssigned && !currentlyAssigned) {
@@ -8763,7 +9057,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             // që admini ta shohë menjëherë ku mbetet mangësi, pa pasur nevojë ta kontrollojë
             // vetë klasë-për-klasë.
             var unassignedClasses = systemData.classes.filter(function(c) {
-                return !getSubjectTeacherId(c.id, subjectKey);
+                return classOffersSubject(c.id, subjectValue) && !getSubjectTeacherId(c.id, subjectKey);
             }).map(function(c) { return c.className; }).sort();
 
             _suppressNextRemoteRefresh = true;
@@ -8785,12 +9079,14 @@ if (systemData.classes && systemData.classes.length > 0) {
         function clearRosterAssignment(btn) {
             var row = btn.closest('tr');
             var teacherId = row.dataset.teacherId;
-            var subjectKey = row.querySelector('.roster-subject-select').value;
+            var subjectValue = row.querySelector('.roster-subject-select').value;
+            var parsed = parseRosterSubjectValue(subjectValue);
             if (!confirm("A je i sigurt që dëshiron ta heqësh këtë mësimdhënës nga kjo lëndë, në TË GJITHA klasat?")) return;
             var removedCount = 0;
             systemData.classes.forEach(function(cls) {
-                if (getSubjectTeacherId(cls.id, subjectKey) === teacherId) {
-                    setSubjectTeacherId(cls.id, subjectKey, null);
+                if (!classOffersSubject(cls.id, subjectValue)) return;
+                if (getSubjectTeacherId(cls.id, parsed.key) === teacherId) {
+                    setSubjectTeacherId(cls.id, parsed.key, null);
                     removedCount++;
                 }
             });
@@ -8854,7 +9150,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (!requireAdmin()) return;
             var container = document.getElementById('subjectsDiagnosticContainer');
             var html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">' +
-                '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:5px; text-align:left;">Klasa</th><th style="padding:5px; text-align:left;">Aktivi</th><th style="padding:5px; text-align:center;">Nr. Lëndësh</th><th style="padding:5px; text-align:left;">Lëndët</th></tr></thead><tbody>';
+                '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;"><th style="padding:5px; text-align:left;">Klasa</th><th style="padding:5px; text-align:left;">Aktivi</th><th style="padding:5px; text-align:center;">Nr. Lëndësh</th><th style="padding:5px; text-align:left;">Lëndët</th></tr></thead><tbody>';
             systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); }).forEach(function(c) {
                 var activeName = (systemData.actives.find(function(a) { return a.id === c.activeId; }) || {}).name || c.activeId;
                 html += '<tr><td style="padding:5px; border-bottom:1px solid #eee; font-weight:bold;">' + escapeHtml(c.className) + '</td>' +
@@ -9046,7 +9342,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             var container = document.getElementById('electiveByActiveContainer');
             if (!container) return;
             var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
-                '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:6px; text-align:left;">Aktivi</th><th style="padding:6px; text-align:left;">Emri i lëndës zgjedhore</th><th style="padding:6px;"></th></tr></thead><tbody>';
+                '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;"><th style="padding:6px; text-align:left;">Aktivi</th><th style="padding:6px; text-align:left;">Emri i lëndës zgjedhore</th><th style="padding:6px;"></th></tr></thead><tbody>';
             systemData.actives.forEach(function(active) {
                 var classesInActive = systemData.classes.filter(function(c) { return c.activeId === active.id; });
                 var currentName = '';
@@ -9345,12 +9641,12 @@ if (systemData.classes && systemData.classes.length > 0) {
             var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
 
             var html = '<table style="width:100%; border-collapse:collapse; font-size:11px;" border="1">' +
-                '<thead><tr style="background:#0b4b6e; color:white;">' +
+                '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:11;">' +
                 '<th rowspan="2" style="padding:4px;">Emri i mësimdhënësit</th>';
             data.days.forEach(function(day) {
                 html += '<th colspan="' + data.hours.length + '" style="padding:4px;">' + dayLabels[day] + '</th>';
             });
-            html += '<th rowspan="2" style="padding:4px;">Total</th></tr><tr style="background:#0b4b6e; color:white;">';
+            html += '<th rowspan="2" style="padding:4px;">Total</th></tr><tr style="background:#0b4b6e; color:white; position:sticky; top:26px; z-index:10;">';
             data.days.forEach(function() {
                 data.hours.forEach(function(h) { html += '<th style="padding:2px; font-weight:normal;">' + h + '</th>'; });
             });
@@ -9633,27 +9929,28 @@ if (systemData.classes && systemData.classes.length > 0) {
                 });
             });
             if (missing.length === 0) { showNotification("🎉 S'ka lëndë pa mësimdhënës për t'u plotësuar!"); return; }
-            if (!confirm("Kjo do t'i caktojë automatikisht " + missing.length + " lëndë pa mësimdhënës, te mësimdhënës EKZISTUES që kanë më pak se 20 orë/javë gjithsej (duke preferuar dikë që tashmë e jep atë lëndë diku tjetër). Vazhdo?")) return;
+            if (!confirm("Kjo do t'i caktojë automatikisht " + missing.length + " lëndë pa mësimdhënës, VETËM te mësimdhënës që TASHMË e japin të NJËJTËN lëndë diku tjetër dhe kanë më pak se 20 orë/javë gjithsej. Vazhdo?")) return;
 
             var assignedCount = 0;
             var stillMissing = [];
             missing.forEach(function(item) {
-                var candidates = systemData.teachers.filter(function(t) { return getTeacherTotalHours(t.id) < 20; });
-                var specialists = candidates.filter(function(t) {
-                    return systemData.classes.some(function(c) { return getSubjectTeacherId(c.id, item.subjectKey) === t.id; });
+                // VETËM specialistë të kësaj lënde (tashmë e japin diku tjetër) - pa rrugëdalje te
+                // mësimdhënës të tjerë, edhe nëse janë nën 20 orë.
+                var specialists = systemData.teachers.filter(function(t) {
+                    var alreadyTeachesThis = systemData.classes.some(function(c) { return getSubjectTeacherId(c.id, item.subjectKey) === t.id; });
+                    return alreadyTeachesThis && getTeacherTotalHours(t.id) < 20;
                 });
-                var pool = specialists.length > 0 ? specialists : candidates;
-                if (pool.length === 0) { stillMissing.push(item.className + ' - ' + item.subjectName); return; }
-                pool.sort(function(a, b) { return getTeacherTotalHours(a.id) - getTeacherTotalHours(b.id); });
-                setSubjectTeacherId(item.classId, item.subjectKey, pool[0].id);
+                if (specialists.length === 0) { stillMissing.push(item.className + ' - ' + item.subjectName); return; }
+                specialists.sort(function(a, b) { return getTeacherTotalHours(a.id) - getTeacherTotalHours(b.id); });
+                setSubjectTeacherId(item.classId, item.subjectKey, specialists[0].id);
                 assignedCount++;
             });
 
             saveToLocal();
             openMissingSubjectsModal(); // rifresko listën
-            var msg = "✅ U caktuan automatikisht " + assignedCount + " lëndë (mësimdhënës nën 20 orë/javë)!";
+            var msg = "✅ U caktuan automatikisht " + assignedCount + " lëndë (vetëm te specialistë të asaj lënde, nën 20 orë/javë)!";
             if (stillMissing.length > 0) {
-                msg += "\n⚠️ S'u gjet mësimdhënës i lirë (nën 20 orë) për: " + stillMissing.slice(0, 10).join(', ') +
+                msg += "\n⚠️ S'u gjet SPECIALIST i lirë (nën 20 orë) për: " + stillMissing.slice(0, 10).join(', ') +
                     (stillMissing.length > 10 ? ' (+' + (stillMissing.length - 10) + ' të tjera)' : '');
             }
             showNotification(msg, stillMissing.length > 0 ? 15000 : undefined);
@@ -9674,7 +9971,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 container.innerHTML = '<p style="text-align:center; color:#2e7d32; font-weight:bold; padding:20px;">🎉 Të gjitha lëndët e të gjitha klasave kanë mësimdhënës të caktuar!</p>';
             } else {
                 var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
-                    '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:6px; text-align:left;">Klasa</th><th style="padding:6px; text-align:left;">Lëndët pa mësimdhënës</th></tr></thead><tbody>';
+                    '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;"><th style="padding:6px; text-align:left;">Klasa</th><th style="padding:6px; text-align:left;">Lëndët pa mësimdhënës</th></tr></thead><tbody>';
                 missing.sort(function(a, b) { return a.className.localeCompare(b.className); }).forEach(function(m) {
                     html += '<tr><td style="padding:6px; border-bottom:1px solid #eee; font-weight:bold;">' + escapeHtml(m.className) + '</td>' +
                         '<td style="padding:6px; border-bottom:1px solid #eee; color:#c62828;">' + escapeHtml(m.subjects.join(', ')) + '</td></tr>';
@@ -9702,12 +9999,166 @@ if (systemData.classes && systemData.classes.length > 0) {
         function printTeacherSchedule() {
             var shift = window.currentTeacherScheduleShift || 'paradite';
             var shiftLabel = shift === 'paradite' ? 'PARADITE' : 'PASDITE';
-            var content = document.getElementById('teacherScheduleContainer').innerHTML;
+            var data = buildTeacherScheduleData(shift);
+            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
+            var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
+
+            function toArabic(className) {
+                var map = { IX: '9', VIII: '8', VII: '7', VI: '6' };
+                return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return map[roman] + '-' + num; });
+            }
+            // Vetëm te ky orar i printuar - jo askund tjetër - emri shfaqet pa mbiemër, që të
+            // kursehet hapësirë horizontale (30 kolona ditë+orë janë shumë të ngjeshura).
+            function firstNameOnly(fullName) {
+                return (fullName || '').trim().split(/\s+/)[0];
+            }
+
+            function buildSheetTable(teacherIdsSubset) {
+                var html = '<table><thead><tr><th rowspan="2" style="text-align:left;">Emri</th>';
+                data.days.forEach(function(day) {
+                    html += '<th colspan="' + data.hours.length + '">' + dayLabels[day] + '</th>';
+                });
+                html += '<th rowspan="2">Total</th></tr><tr>';
+                data.days.forEach(function() {
+                    data.hours.forEach(function(h) { html += '<th style="font-weight:normal;">' + h + '</th>'; });
+                });
+                html += '</tr></thead><tbody>';
+                teacherIdsSubset.forEach(function(tid) {
+                    var row = data.rows[tid];
+                    html += '<tr><td style="text-align:left; font-weight:bold; white-space:nowrap;">' + escapeHtml(firstNameOnly(row.name)) + '</td>';
+                    data.days.forEach(function(day) {
+                        data.hours.forEach(function(h) {
+                            var cell = row.grid[day][h];
+                            var blocked = isTeacherBlocked(tid, shift, day, h);
+                            html += '<td style="' + (blocked ? 'background:#616161;color:white;' : (cell ? 'background:#e8f5e9; font-weight:bold;' : '')) + '">' +
+                                (blocked ? '✕' : (cell ? toArabic(cell.className) : '')) + '</td>';
+                        });
+                    });
+                    html += '<td style="font-weight:bold;">' + row.total + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                return html;
+            }
+
+            // NDARJE NË 2 FLETË: deri në 15 mësimdhënës te fleta e parë, pjesa tjetër te e
+            // dyta - kështu secila fletë mbetet e lexueshme, pa u ngjeshur.
+            var group1 = teacherIds.slice(0, 15);
+            var group2 = teacherIds.slice(15);
+            var titleBase = 'ORARI I MËSIMDHËNËSVE - ' + shiftLabel + ' ' + (systemData.schoolInfo.year || '');
+            var pagesHtml = '<h2 style="text-align:center;">' + titleBase + ' (Fleta 1)</h2>' + buildSheetTable(group1);
+            if (group2.length > 0) {
+                pagesHtml += '<div style="page-break-before:always;"><h2 style="text-align:center;">' + titleBase + ' (Fleta 2)</h2>' + buildSheetTable(group2) + '</div>';
+            }
+
             var printWindow = window.open('', '_blank');
             printWindow.document.write('<html><head><title>Orari i Mësimdhënësve - ' + shiftLabel + '</title>' +
-                '<style>body{font-family:Arial;} table{width:100%;} @page{size:landscape;}</style></head><body>' +
-                '<h2 style="text-align:center;">ORARI I MËSIMDHËNËSVE - ' + shiftLabel + ' ' + (systemData.schoolInfo.year || '') + '</h2>' +
-                content + '</body></html>');
+                '<style>' +
+                'body{font-family:Arial;}' +
+                'table{width:100%; border-collapse:collapse; margin-top:5mm;}' +
+                'th, td{font-size:13px; padding:4px 3px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
+                'th{background:#0b4b6e; color:white;}' +
+                '@page{size:A4 landscape; margin:6mm;}' +
+                '</style></head><body>' + pagesHtml + '</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // Orari i printueshëm i VETËM NJË mësimdhënësi - më i qartë dhe i lexueshëm se tabela e
+        // plotë me të gjithë mësimdhënësit, e dobishme p.sh. për t'ia dhënë secilit mësimdhënës
+        // orarin e tij personal.
+        function openSingleTeacherScheduleModal() {
+            if (!requireAdmin()) return;
+            var container = document.getElementById('singleTeacherSchedulePickerContainer');
+            var html = '<select id="singleTeacherScheduleSelect" onchange="renderSingleTeacherSchedule()" style="width:100%; padding:8px; font-size:14px;">' +
+                '<option value="">-- Zgjidh mësimdhënësin --</option>';
+            systemData.teachers.slice().sort(function(a, b) { return a.name.localeCompare(b.name); }).forEach(function(t) {
+                html += '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
+            });
+            html += '</select>';
+            container.innerHTML = html;
+            document.getElementById('singleTeacherScheduleContainer').innerHTML = '';
+            updateSingleTeacherShiftButtons();
+            showModal('singleTeacherScheduleModal');
+        }
+
+        function switchSingleTeacherShift(shift) {
+            window.currentTeacherScheduleShift = shift;
+            updateSingleTeacherShiftButtons();
+            renderSingleTeacherSchedule();
+        }
+
+        function updateSingleTeacherShiftButtons() {
+            var shift = window.currentTeacherScheduleShift || 'paradite';
+            var pBtn = document.getElementById('singleTeacherShiftParadite');
+            var pdBtn = document.getElementById('singleTeacherShiftPasdite');
+            if (pBtn) pBtn.className = 'btn ' + (shift === 'paradite' ? 'btn-primary' : 'btn-info');
+            if (pdBtn) pdBtn.className = 'btn ' + (shift === 'pasdite' ? 'btn-primary' : 'btn-info');
+        }
+
+        function closeSingleTeacherScheduleModal() {
+            hideModal('singleTeacherScheduleModal');
+        }
+
+        function renderSingleTeacherSchedule() {
+            var teacherId = document.getElementById('singleTeacherScheduleSelect').value;
+            var container = document.getElementById('singleTeacherScheduleContainer');
+            if (!teacherId) { container.innerHTML = ''; return; }
+            var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
+            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
+            // RREGULLIM: më parë shfaqte GJITHMONË paradite+pasdite, pa marrë parasysh ndërrimin
+            // aktualisht të zgjedhur te "Orari i Mësimdhënësve" - kjo ngatërronte (dukej "gabim"
+            // kur dikush kishte zgjedhur Pasdite atje, por këtu shfaqej Paradite gjithsesi).
+            // Tani respekton saktësisht ndërrimin aktual (window.currentTeacherScheduleShift).
+            var activeShift = window.currentTeacherScheduleShift || 'paradite';
+            var html = '';
+            [activeShift].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                var row = data.rows[teacherId];
+                if (!row || row.total === 0) return; // ky mësimdhënës s'ka orë në këtë ndërrim
+                html += '<h3 style="margin-top:15px; color:#0b4b6e;">' + (shift === 'paradite' ? '☀️ Paradite' : '🌙 Pasdite') + '</h3>';
+                html += '<table style="width:100%; border-collapse:collapse; font-size:14px;" border="1">' +
+                    '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:8px;">Ora</th>';
+                data.days.forEach(function(day) { html += '<th style="padding:8px;">' + dayLabels[day] + '</th>'; });
+                html += '</tr></thead><tbody>';
+                data.hours.forEach(function(hour) {
+                    html += '<tr><td style="padding:8px; text-align:center; font-weight:bold; background:#f5f5f5;">' + hour + '</td>';
+                    data.days.forEach(function(day) {
+                        var cell = row.grid[day][hour];
+                        var blocked = isTeacherBlocked(teacherId, shift, day, hour);
+                        html += '<td style="padding:8px; text-align:center; ' + (blocked ? 'background:#616161; color:white;' : (cell ? 'background:#e8f5e9; font-weight:bold;' : '')) + '">' +
+                            (blocked ? '✕' : (cell ? escapeHtml(cell.className) : '')) + '</td>';
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+            });
+            if (!html) {
+                var otherShift = activeShift === 'paradite' ? 'pasdite' : 'paradite';
+                html = '<p style="color:#999; text-align:center; padding:20px;">Ky mësimdhënës s\'ka orë në ndërrimin "' +
+                    (activeShift === 'paradite' ? 'Paradite' : 'Pasdite') + '" - provo ndërrimin "' +
+                    (otherShift === 'paradite' ? 'Paradite' : 'Pasdite') + '" (kalo te "Orari i Mësimdhënësve" për ta ndryshuar skedën).</p>';
+            }
+            if (!html) html = '<p style="color:#999; text-align:center; padding:20px;">Ky mësimdhënës s\'ka ende orë të vendosura në Orar.</p>';
+            container.innerHTML = '<h2 style="text-align:center; color:#0b4b6e;">' + escapeHtml(teacher.name) + '</h2>' + html;
+        }
+
+        function printSingleTeacherSchedule() {
+            var teacherId = document.getElementById('singleTeacherScheduleSelect').value;
+            if (!teacherId) { alert("Zgjidh një mësimdhënës fillimisht!"); return; }
+            var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
+            var content = document.getElementById('singleTeacherScheduleContainer').innerHTML
+                .replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) {
+                    var map = { IX: '9', VIII: '8', VII: '7', VI: '6' };
+                    return map[roman] + '-' + num;
+                });
+            var printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Orari - ' + escapeHtml(teacher.name) + '</title>' +
+                '<style>' +
+                'body{font-family:Arial; font-size:22px;}' +
+                'table{width:100%; border-collapse:collapse; margin-bottom:10mm;}' +
+                'th, td{font-size:22px !important; padding:10px 8px !important;}' +
+                '@page{margin:10mm;}' +
+                '</style></head><body>' + content + '</body></html>');
             printWindow.document.close();
             printWindow.print();
         }
@@ -9744,7 +10195,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             ];
             var hours = [1, 2, 3, 4, 5, 6];
             var html =
-                '<div style="overflow-x:auto;"><table class="schedule-table"><thead><tr style="background:#0b4b6e; color:white;"><th style="padding:10px;">Ora</th>';
+                '<div style="overflow-x:auto;"><table class="schedule-table"><thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:10;"><th style="padding:10px;">Ora</th>';
             days.forEach(function(day) { html += '<th style="padding:10px;">' + day.name + '</th>'; });
             html += '</tr></thead><tbody>';
             hours.forEach(function(hour) {
@@ -10378,21 +10829,21 @@ if (systemData.classes && systemData.classes.length > 0) {
                     body{font-family:"Times New Roman", Times, serif;margin:0;padding:0;background:white;}
                     .report-container{max-width:210mm;margin:0 auto;padding:5mm;background:white;}
                     .report-header{text-align:center;margin-bottom:5mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;}
-                    .report-title{font-size:20px;font-weight:bold;color:#0b4b6e;margin-bottom:2mm;}
-                    .report-subtitle{font-size:12px;margin-top:1mm;color:#333;}
-                    .school-name{font-size:12px;font-weight:bold;color:#0b4b6e;margin-bottom:2mm;}
-                    .info-grid{display:flex;justify-content:space-between;margin:3mm 0;padding:2mm;background:#f5f5f5;border-radius:4px;font-size:12px;}
+                    .report-title{font-size:22px;font-weight:bold;color:#0b4b6e;margin-bottom:2mm;}
+                    .report-subtitle{font-size:18px;margin-top:1mm;color:#333;}
+                    .school-name{font-size:18px;font-weight:bold;color:#0b4b6e;margin-bottom:2mm;}
+                    .info-grid{display:flex;justify-content:space-between;margin:3mm 0;padding:2mm;background:#f5f5f5;border-radius:4px;font-size:18px;}
                     table{width:100%;border-collapse:collapse;margin:3mm 0;}
-                    th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:12px;}
+                    th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:18px;}
                     th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;}
                     .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:3mm 0;}
                     .stat-card{background:#f0f0f0;padding:2mm;border-radius:6px;text-align:center;}
-                    .stat-value{font-size:18px;font-weight:bold;color:#0b4b6e;}
+                    .stat-value{font-size:22px;font-weight:bold;color:#0b4b6e;}
                     .signature-line{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:2px solid #333;}
                     .signature{text-align:center;width:120px;}
                     .signature-line-bottom{border-top:1px solid #333;margin-top:4mm;padding-top:1mm;width:100%;}
-                    .summary-box{margin:3mm 0;padding:2mm;background:#e8f5e9;border-radius:4px;font-size:12px;}
-                    h3{color:#0b4b6e;margin:3mm 0 2mm 0;font-size:12px;}
+                    .summary-box{margin:3mm 0;padding:2mm;background:#e8f5e9;border-radius:4px;font-size:18px;}
+                    h3{color:#0b4b6e;margin:3mm 0 2mm 0;font-size:18px;}
                     @media print{body{margin:0;padding:0;} .report-container{padding:0;}}
                 </style>
             </head>
@@ -10904,7 +11355,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 'GJYSMEVJETORI II' : 'PERFUNDIMTAR');
             var date = formatDate();
             var studentsHtml =
-                '<table style="width:100%;border-collapse:collapse;font-size:8px;"><thead><tr style="background:#0b4b6e;color:white;"><th>#</th><th>Emri</th><th>Gj</th>';
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr style="background:#0b4b6e;color:white;"><th>#</th><th>Emri</th><th>Gj</th>';
             classObj.subjectsOrder.forEach(function(s) { studentsHtml += '<th>' + s.code + '</th>'; });
             studentsHtml +=
                 '<th>Mes.</th><th>Statusi</th><th>Mung.Total</th><th>Nota1</th><th>Sjellja</th></tr></thead><tbody>';
@@ -10935,7 +11386,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 semesterName +
                 '</title>';
             printHtml +=
-                '<style>body{font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .report-container{max-width:210mm;margin:0 auto;padding:8mm;} .report-header{text-align:center;margin-bottom:6mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .report-title{font-size:20px;font-weight:bold;color:#0b4b6e;} .report-subtitle{font-size:12px;margin-top:1mm;} table{border-collapse:collapse;width:100%;margin:3mm 0;} th,td{border:1px solid #000;padding:2px 3px;text-align:center;font-size:9px;} th{background:#0b4b6e;color:white;} .summary-box{margin:4mm 0;padding:3mm;background:#f5f5f5;} .signature-line{display:flex;justify-content:space-between;margin-top:8mm;padding-top:4mm;border-top:1px solid #333;}</style>';
+                '<style>body{font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .report-container{max-width:210mm;margin:0 auto;padding:8mm;} .report-header{text-align:center;margin-bottom:6mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .report-title{font-size:20px;font-weight:bold;color:#0b4b6e;} .report-subtitle{font-size:12px;margin-top:1mm;} table{border-collapse:collapse;width:100%;margin:3mm 0;} th,td{border:1px solid #000;padding:4px 5px;text-align:center;font-size:12px;} th{background:#0b4b6e;color:white;} .summary-box{margin:4mm 0;padding:3mm;background:#f5f5f5;} .signature-line{display:flex;justify-content:space-between;margin-top:8mm;padding-top:4mm;border-top:1px solid #333;}</style>';
             printHtml += '</head><body><div class="report-container">';
             printHtml += '<div class="report-header"><div class="report-title">RAPORTI I KLASËS</div>';
             printHtml += '<div class="report-subtitle">' + classObj.className + ' - ' + semesterName +
@@ -11018,13 +11469,13 @@ if (systemData.classes && systemData.classes.length > 0) {
                     'Mirë' : gradeNum === 2 ? 'Mjaftueshëm' : gradeNum === 1 ? 'Pamjaftueshëm' :
                     'I panotuar';
                 subjectsHtml +=
-                    '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:9px;">' +
+                    '<tr><td style="padding:5px 6px; border:1px solid #333; text-align:left; font-size:18px;">' +
                     escapeHtml(sub.name) + '</td>';
                 subjectsHtml +=
-                    '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:14px; width:35px;"><strong>' +
+                    '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:21px; width:35px;"><strong>' +
                     (gradeVal || '-') + '</strong></td>';
                 subjectsHtml +=
-                    '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:14px;">' +
+                    '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:21px;">' +
                     gradeDesc + '</td></tr>';
             }
 
@@ -11032,7 +11483,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dëftesa - ' + student.name +
                 '</title>';
             printHtml +=
-                '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-400; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:220mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:14px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:18px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:14px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:9px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:12px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:20px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;} .certificate{page-break-after:avoid;page-break-inside:avoid;}}</style></head><body>';
+                '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:A4; margin:6mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:220mm;background:white;padding:3mm 6mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;} .certificate-header{text-align:center;margin-bottom:2mm;border-bottom:2px solid #0b4b6e;padding-bottom:2mm;} .certificate-title{font-size:18px;font-weight:bold;color:#d4af37;margin:1mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:12px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:16px;font-weight:bold;text-align:center;margin:2mm 0;padding:2mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:1mm 0;font-size:12px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:2mm 0;} th,td{border:1px solid #333;padding:3px 5px;text-align:center;font-size:14px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:14px;} .certificate-avg-box{background:#e8f5e9;padding:2mm;text-align:center;border-radius:6px;margin:2mm 0;} .certificate-avg-value{font-size:18px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:2mm;margin:2mm 0;border-radius:6px;font-size:12px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:3mm;padding-top:2mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;font-size:12px;} .certificate-signature-line{border-top:1px solid #333;margin-top:3mm;padding-top:1mm;} @media print{body{margin:0;padding:0;} .certificate{page-break-after:avoid;page-break-inside:avoid;transform-origin:top left;}}</style></head><body>';
             printHtml += '<div class="certificate">';
             printHtml += '<div class="certificate-header">';
             printHtml += '<div class="certificate-subtitle">REPUBLIKA E KOSOVËS</div>';
@@ -11040,35 +11491,35 @@ if (systemData.classes && systemData.classes.length > 0) {
             printHtml += '<div class="certificate-title">DËFTESA E SUKSESIT</div></div>';
             printHtml += '<div class="certificate-student">' + escapeHtml(student.name) + '</div>';
             printHtml += '<div class="certificate-info">';
-            printHtml += '<div><strong>Klasa:</strong> ' + classObj.className + '</div>';
+            printHtml += '<div><strong>Klasa:</strong> ' + classNameForPrint(classObj.className) + '</div>';
             printHtml += '<div><strong>Viti:</strong> ' + systemData.schoolInfo.year + '</div>';
             printHtml += '<div><strong>Periudha:</strong> ' + semesterName + '</div>';
             printHtml += '<div><strong>Data:</strong> ' + date + '</div></div>';
-            printHtml += '<div style="margin:2mm 0; font-size:10px;"><strong>Sjellja:</strong> ' + behavior +
+            printHtml += '<div style="margin:2mm 0; font-size:15px;"><strong>Sjellja:</strong> ' + behavior +
                 '</div>';
             printHtml +=
                 '<table><thead><tr style="background:#0b4b6e; color:white;"><th style="padding:4px;">Lënda</th><th style="padding:4px; width:35px;">Nota</th><th style="padding:4px;">Përshkrimi</th></tr></thead><tbody>' +
                 subjectsHtml + '</tbody></table>';
             printHtml += '<div class="certificate-avg-box"><div class="certificate-avg-value">' + avg +
                 '</div>';
-            printHtml += '<div style="font-size:12px; margin-top:1px;">Mesatarja: ' + successDesc +
+            printHtml += '<div style="font-size:18px; margin-top:1px;">Mesatarja: ' + successDesc +
             '</div>';
-            if (hasOne) printHtml += '<div style="color:#c62828; font-size:10px; margin-top:2px;">⚠️ Ka ' +
+            if (hasOne) printHtml += '<div style="color:#c62828; font-size:15px; margin-top:2px;">⚠️ Ka ' +
                 onesCount + ' notë/nota 1</div>';
             printHtml += '</div>';
             printHtml +=
-                '<div class="certificate-absences-box"><strong style="font-size:12px;">MUNGESAT</strong>';
+                '<div class="certificate-absences-box"><strong style="font-size:18px;">MUNGESAT</strong>';
             printHtml +=
-                '<div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:11px;">';
+                '<div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:16px;">';
             printHtml += '<span>✅ Me arsye: ' + abs.withReason + '</span>';
             printHtml += '<span>❌ Pa arsye: ' + abs.withoutReason + '</span>';
             printHtml += '<span><strong>📊 Gjithsej: ' + abs.total + '</strong></span></div></div>';
             printHtml += '<div class="certificate-signatures">';
             printHtml +=
-                '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:10px; margin-top:2mm;">' +
+                '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:15px; margin-top:2mm;">' +
                 escapeHtml(teacherName) + '</div></div>';
             printHtml +=
-                '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:12px; margin-top:2mm;">' +
+                '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:18px; margin-top:2mm;">' +
                 escapeHtml(principalName) + '</div></div>';
             printHtml +=
                 '<div class="certificate-signature"><div class="certificate-signature-line">Vula e shkollës</div></div></div></div></body></html>';
@@ -11095,7 +11546,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dëftesat - ' + className +
                 '</title>';
             allHtml +=
-                '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-430; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:210mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;page-break-after:always;page-break-inside:avoid;} .certificate:last-child{page-break-after:auto;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:14px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:18px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:10px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:12px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:13px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:20px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;}}</style></head><body>';
+                '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-430; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:210mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;page-break-after:always;page-break-inside:avoid;} .certificate:last-child{page-break-after:auto;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:21px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:20px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:22px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:15px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:18px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:20px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:22px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;}}</style></head><body>';
 
             for (var i = 0; i < classObj.students.length; i++) {
                 var student = classObj.students[i];
@@ -11120,13 +11571,13 @@ if (systemData.classes && systemData.classes.length > 0) {
                         'Pamjaftueshëm' :
                         'I panotuar';
                     subjectsHtml +=
-                        '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:12px;">' +
+                        '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:18px;">' +
                         sub.name + '</td>';
                     subjectsHtml +=
-                        '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:12px; width:35px;"><strong>' +
+                        '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:18px; width:35px;"><strong>' +
                         (gradeVal || '-') + '</strong></td>';
                     subjectsHtml +=
-                        '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:12px;">' +
+                        '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:18px;">' +
                         gradeDesc + '</td></tr>';
                 }
 
@@ -11137,11 +11588,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                 allHtml += '<div class="certificate-title">DËFTESA E SUKSESIT</div></div>';
                 allHtml += '<div class="certificate-student">' + escapeHtml(student.name) + '</div>';
                 allHtml += '<div class="certificate-info">';
-                allHtml += '<div><strong>Klasa:</strong> ' + classObj.className + '</div>';
+                allHtml += '<div><strong>Klasa:</strong> ' + classNameForPrint(classObj.className) + '</div>';
                 allHtml += '<div><strong>Viti:</strong> ' + systemData.schoolInfo.year + '</div>';
                 allHtml += '<div><strong>Periudha:</strong> ' + semesterName + '</div>';
                 allHtml += '<div><strong>Data:</strong> ' + date + '</div></div>';
-                allHtml += '<div style="margin:2mm 0; font-size:13px;"><strong>Sjellja:</strong> ' +
+                allHtml += '<div style="margin:2mm 0; font-size:20px;"><strong>Sjellja:</strong> ' +
                     behavior +
                     '</div>';
                 allHtml +=
@@ -11151,20 +11602,20 @@ if (systemData.classes && systemData.classes.length > 0) {
                     avg +
                     '</div><div>Mesatarja: ' + successDesc + '</div>';
                 if (hasOne) allHtml +=
-                    '<div style="color:#c62828; font-size:12px; margin-top:2px;">⚠️ Ka ' +
+                    '<div style="color:#c62828; font-size:18px; margin-top:2px;">⚠️ Ka ' +
                     onesCount + ' notë/nota 1</div>';
                 allHtml += '</div>';
                 allHtml +=
-                    '<div class="certificate-absences-box"><strong>MUNGESAT</strong><div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:12px;">';
+                    '<div class="certificate-absences-box"><strong>MUNGESAT</strong><div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:18px;">';
                 allHtml += '<span>✅ Me arsye: ' + abs.withReason + '</span>';
                 allHtml += '<span>❌ Pa arsye: ' + abs.withoutReason + '</span>';
                 allHtml += '<span><strong>📊 Gjithsej: ' + abs.total + '</strong></span></div></div>';
                 allHtml += '<div class="certificate-signatures">';
                 allHtml +=
-                    '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:12px; margin-top:2mm;">' +
+                    '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:18px; margin-top:2mm;">' +
                     teacherName + '</div></div>';
                 allHtml +=
-                    '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:12px; margin-top:2mm;">' +
+                    '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:18px; margin-top:2mm;">' +
                     principalName + '</div></div>';
                 allHtml +=
                     '<div class="certificate-signature"><div class="certificate-signature-line">Vula e shkollës</div></div></div></div>';
@@ -12110,7 +12561,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '.header h1 { font-size: 20px; color: #0b4b6e; margin: 0; }' +
                 '.header .subtitle { font-size: 14px; font-weight: bold; color: #0b4b6e; margin: 1mm 0; }' +
                 '.header .info { font-size: 12px; color: #333; }' +
-                'table { border-collapse: collapse; width: 100%; margin: 3mm 0; font-size: 9px; }' +
+                'table { border-collapse: collapse; width: 100%; margin: 3mm 0; font-size: 12px; }' +
                 'th, td { border: 1px solid #000; padding: 3px 4px; text-align: center; }' +
                 'th { background: #0b4b6e; color: white; font-weight: bold; }' +
                 '.total-row { background: #e8eaf6; font-weight: bold; }' +
@@ -12402,15 +12853,15 @@ if (systemData.classes && systemData.classes.length > 0) {
                 'body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }' +
                 '.certificate { max-width: 200mm; margin: 0 auto; padding: 5mm; border: 2px solid #d4af37; }' +
                 '.header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 4mm; margin-bottom: 4mm; }' +
-                '.header h1 { color: #d4af37; font-size: 24px; margin: 3px 0; }' +
-                '.header .school { font-size: 14px; font-weight: bold; color: #0b4b6e; }' +
-                '.header .subtitle { font-size: 16px; font-weight: bold; color: #0b4b6e; }' +
-                '.info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 12px; }' +
-                'table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 11px; }' +
+                '.header h1 { color: #d4af37; font-size: 22px; margin: 3px 0; }' +
+                '.header .school { font-size: 21px; font-weight: bold; color: #0b4b6e; }' +
+                '.header .subtitle { font-size: 22px; font-weight: bold; color: #0b4b6e; }' +
+                '.info { background: #f5f5f5; padding: 3mm; margin: 3mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 18px; }' +
+                'table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 16px; }' +
                 'th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }' +
                 'th { background: #0b4b6e; color: white; font-weight: bold; }' +
                 '.avg-box { background: #e8f5e9; padding: 3mm; text-align: center; border-radius: 4px; margin: 3mm 0; }' +
-                '.avg-value { font-size: 20px; font-weight: bold; color: #2e7d32; }' +
+                '.avg-value { font-size: 22px; font-weight: bold; color: #2e7d32; }' +
                 '.abs-box { background: #fff3e0; padding: 3mm; margin: 3mm 0; border-radius: 4px; display: flex; justify-content: space-around; flex-wrap: wrap; }' +
                 '.signatures { display: flex; justify-content: space-between; margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #000; }' +
                 '.signature { text-align: center; width: 120px; }' +
@@ -12479,14 +12930,14 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '<h1>DËFTESA E SUKSESIT</h1>' +
                     '<div class="subtitle">' + semesterName + '</div>' +
                     '</div>' +
-                    '<div style="font-size:16px; font-weight:bold; text-align:center; margin:4mm 0; padding:3mm; border-bottom:1px dashed #999; border-top:1px dashed #999; background:#f5f5f5;">' +
+                    '<div style="font-size:22px; font-weight:bold; text-align:center; margin:4mm 0; padding:3mm; border-bottom:1px dashed #999; border-top:1px dashed #999; background:#f5f5f5;">' +
                     student.name + '</div>' +
                     '<div class="info">' +
                     '<div><strong>Klasa:</strong> ' + classObj.className + '</div>' +
                     '<div><strong>Viti:</strong> ' + systemData.schoolInfo.year + '</div>' +
                     '<div><strong>Data:</strong> ' + date + '</div>' +
                     '</div>' +
-                    '<div style="margin:2mm 0; font-size:12px;"><strong>Sjellja:</strong> ' + behavior +
+                    '<div style="margin:2mm 0; font-size:18px;"><strong>Sjellja:</strong> ' + behavior +
                     '</div>' +
                     '<table>' +
                     '<thead><tr><th style="padding:5px;">Lënda</th><th style="padding:5px; width:40px;">Nota</th><th style="padding:5px;">Përshkrimi</th></tr></thead>' +
@@ -12494,7 +12945,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '</table>' +
                     '<div class="avg-box">' +
                     '<div class="avg-value">' + avg + '</div>' +
-                    '<div style="font-size:13px;">Mesatarja: ' + successDesc + '</div>' +
+                    '<div style="font-size:20px;">Mesatarja: ' + successDesc + '</div>' +
                     '</div>' +
                     '<div class="abs-box">' +
                     '<div>✅ Me arsye: ' + absWR + '</div>' +
@@ -12504,11 +12955,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '<div class="signatures">' +
                     '<div class="signature">' +
                     '<div class="signature-line">Kujdestari</div>' +
-                    '<div style="margin-top:2mm; font-size:12px;">' + teacherName + '</div>' +
+                    '<div style="margin-top:2mm; font-size:18px;">' + teacherName + '</div>' +
                     '</div>' +
                     '<div class="signature">' +
                     '<div class="signature-line">Drejtoresha</div>' +
-                    '<div style="margin-top:2mm; font-size:12px;">' + systemData.schoolInfo
+                    '<div style="margin-top:2mm; font-size:18px;">' + systemData.schoolInfo
                     .principal + '</div>' +
                     '</div>' +
                     '<div class="signature">' +
@@ -12535,19 +12986,152 @@ if (systemData.classes && systemData.classes.length > 0) {
             return classes;
         }
 
+        // ==================== TABELARI - PERIUDHAT (Muaj / Dymujor / Gjysmëvjetor / Vit) ====================
+        // Njësia BAZË e regjistrimit është MUAJI shkollor (Shtator...Qershor) - të gjitha
+        // periudhat e tjera (Dymujori, Gjysmëvjetori, Viti) LLOGARITEN duke i mbledhur muajt
+        // përkatës, kështu që s'ka rrezik dyfishimi apo mospërputhjeje mes tyre.
+        function getSchoolMonths() {
+            var yearStr = (systemData.schoolInfo && systemData.schoolInfo.year) || '';
+            var parts = yearStr.split('-');
+            var y1 = parseInt(parts[0]) || new Date().getFullYear();
+            var y2 = parseInt(parts[1]) || (y1 + 1);
+            var monthNames = ['Shtator', 'Tetor', 'Nëntor', 'Dhjetor', 'Janar', 'Shkurt', 'Mars', 'Prill', 'Maj', 'Qershor'];
+            var monthNums = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+            var years = [y1, y1, y1, y1, y2, y2, y2, y2, y2, y2];
+            var months = [];
+            for (var i = 0; i < 10; i++) {
+                var key = years[i] + '-' + String(monthNums[i]).padStart(2, '0');
+                months.push({ key: key, label: monthNames[i] + ' ' + years[i] });
+            }
+            return months;
+        }
+
+        // Grupimet standarde të "dymujorit" (5 periudha, 2 muaj secila) - mbulojnë gjithë vitin.
+        function getDymujorGroups() {
+            var months = getSchoolMonths();
+            return [
+                { key: 'dymujor1', label: months[0].label.split(' ')[0] + '-' + months[1].label, monthKeys: [months[0].key, months[1].key] },
+                { key: 'dymujor2', label: months[2].label.split(' ')[0] + '-' + months[3].label, monthKeys: [months[2].key, months[3].key] },
+                { key: 'dymujor3', label: months[4].label.split(' ')[0] + '-' + months[5].label, monthKeys: [months[4].key, months[5].key] },
+                { key: 'dymujor4', label: months[6].label.split(' ')[0] + '-' + months[7].label, monthKeys: [months[6].key, months[7].key] },
+                { key: 'dymujor5', label: months[8].label.split(' ')[0] + '-' + months[9].label, monthKeys: [months[8].key, months[9].key] }
+            ];
+        }
+
+        // Muaji "aktual" - muaji real i sotëm, nëse bie brenda vitit shkollor; përndryshe muaji i
+        // parë ose i fundit i vitit (rast rezervë - p.sh. gjatë verës).
+        function getCurrentSchoolMonthKey() {
+            var months = getSchoolMonths();
+            var now = new Date();
+            var thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            var found = months.find(function(m) { return m.key === thisKey; });
+            if (found) return found.key;
+            // Jashtë vitit shkollor: nëse jemi PARA fillimit (p.sh. korrik/gusht, para 1 shtatorit),
+            // kthe muajin e PARË (ende s'ka nisur asnjë muaj real) - jo të fundit, siç ishte gabimisht
+            // më parë (shfaqej "Qershor" edhe para se viti të fillonte fare).
+            var firstMonth = months[0].key;
+            var lastMonth = months[months.length - 1].key;
+            if (thisKey < firstMonth) return firstMonth;
+            return lastMonth;
+        }
+
+        function getCurrentDymujorKey() {
+            var currentMonth = getCurrentSchoolMonthKey();
+            var groups = getDymujorGroups();
+            var found = groups.find(function(g) { return g.monthKeys.indexOf(currentMonth) !== -1; });
+            return found ? found.key : groups[groups.length - 1].key;
+        }
+
+        // Kthen listën e "muajve" (çelësave) që duhen mbledhur për periudhën e zgjedhur.
+        function getMonthsForPeriod(period) {
+            var months = getSchoolMonths().map(function(m) { return m.key; });
+            if (period === 'current-month') return [getCurrentSchoolMonthKey()];
+            if (period === 'current-dymujor') {
+                var g = getDymujorGroups().find(function(g) { return g.key === getCurrentDymujorKey(); });
+                return g ? g.monthKeys : [];
+            }
+            if (period === 'semester1') return months.slice(0, 4); // Shtator-Dhjetor
+            if (period === 'semester2') return months.slice(4); // Janar-Qershor
+            if (period === 'year') return months;
+            return [getCurrentSchoolMonthKey()];
+        }
+
+        function getPeriodLabel(period) {
+            if (period === 'current-month') {
+                var m = getSchoolMonths().find(function(x) { return x.key === getCurrentSchoolMonthKey(); });
+                return '📅 Muaji Aktual (' + (m ? m.label : '') + ')';
+            }
+            if (period === 'current-dymujor') {
+                var g = getDymujorGroups().find(function(g) { return g.key === getCurrentDymujorKey(); });
+                return '📆 Dymujori Aktual (' + (g ? g.label : '') + ')';
+            }
+            if (period === 'semester1') return '📖 Gjysmëvjetori I';
+            if (period === 'semester2') return '📖 Gjysmëvjetori II';
+            if (period === 'year') return '📊 Totali i Gjithë Vitit';
+            return period;
+        }
+
+        var TABELARI_EMPTY_FIELDS = { meArsye: '', paArsye: '', planifikuara: 28, mbajtura: '', mungesaDis: '', disipline: '', eTjera: '' };
+
+        // Mbledh të dhënat e një klase për periudhën e zgjedhur - shuma e muajve përkatës.
+        function getTabelariAggregated(className, period) {
+            var monthKeys = getMonthsForPeriod(period);
+            var sum = { meArsye: 0, paArsye: 0, planifikuara: 0, mbajtura: 0, mungesaDis: 0, disipline: 0, eTjera: 0 };
+            var classData = window.tabelariData.classes[className] || {};
+            monthKeys.forEach(function(mk) {
+                var d = classData[mk];
+                if (!d) return;
+                sum.meArsye += parseInt(d.meArsye) || 0;
+                sum.paArsye += parseInt(d.paArsye) || 0;
+                sum.planifikuara += parseInt(d.planifikuara) || 0;
+                sum.mbajtura += parseInt(d.mbajtura) || 0;
+                sum.mungesaDis += parseInt(d.mungesaDis) || 0;
+                sum.disipline += parseInt(d.disipline) || 0;
+                sum.eTjera += parseInt(d.eTjera) || 0;
+            });
+            // Të dhënat "e vjetra" (para se të ekzistonte ndarja sipas muajve) përfshihen VETËM
+            // te "Totali i Gjithë Vitit", pasi s'dihet saktësisht cilit muaj i takonin.
+            if (period === 'year' && classData._legacy) {
+                var l = classData._legacy;
+                sum.meArsye += parseInt(l.meArsye) || 0;
+                sum.paArsye += parseInt(l.paArsye) || 0;
+                sum.mungesaDis += parseInt(l.mungesaDis) || 0;
+                sum.disipline += parseInt(l.disipline) || 0;
+                sum.eTjera += parseInt(l.eTjera) || 0;
+            }
+            return sum;
+        }
+
         function initTabelariData() {
             if (!window.tabelariData) {
-                window.tabelariData = { classes: {}, lastUpdated: null, lastSynced: null, version: '1.0',
+                window.tabelariData = { classes: {}, lastUpdated: null, lastSynced: null, version: '2.0',
                     pendingSync: false };
             }
             var allClasses = getTabelariClasses();
+            var currentMonthKey = getCurrentSchoolMonthKey();
             var changed = false;
             for (var i = 0; i < allClasses.length; i++) {
                 var cls = allClasses[i];
                 if (!window.tabelariData.classes[cls]) {
-                    window.tabelariData.classes[cls] = { meArsye: '', paArsye: '', planifikuara: 28,
-                        mbajtura: '',
-                        mungesaDis: '', disipline: '', eTjera: '' };
+                    window.tabelariData.classes[cls] = {};
+                    changed = true;
+                }
+                var classData = window.tabelariData.classes[cls];
+                // MIGRIM: struktura e vjetër (para ndarjes sipas muajve) kishte fushat
+                // DIREKT te classData (p.sh. classData.meArsye), jo brenda një kove muaji. Nëse
+                // e gjejmë këtë strukturë të vjetër, e ruajmë si "_legacy" (përfshihet vetëm te
+                // "Totali i Gjithë Vitit" - shih getTabelariAggregated) dhe s'e prekim më.
+                if (classData.meArsye !== undefined && !classData._legacy && !classData._migrated) {
+                    classData._legacy = { meArsye: classData.meArsye, paArsye: classData.paArsye,
+                        mungesaDis: classData.mungesaDis, disipline: classData.disipline, eTjera: classData.eTjera };
+                    delete classData.meArsye; delete classData.paArsye; delete classData.planifikuara;
+                    delete classData.mbajtura; delete classData.mungesaDis; delete classData.disipline; delete classData.eTjera;
+                    classData._migrated = true;
+                    changed = true;
+                }
+                if (!classData[currentMonthKey]) {
+                    classData[currentMonthKey] = { meArsye: '', paArsye: '', planifikuara: 28,
+                        mbajtura: '', mungesaDis: '', disipline: '', eTjera: '' };
                     changed = true;
                 }
             }
@@ -12656,9 +13240,34 @@ if (systemData.classes && systemData.classes.length > 0) {
                     loadTabelariFromLocal(); });
         }
 
+        window.tabelariViewPeriod = window.tabelariViewPeriod || 'current-month';
+
+        function switchTabelariPeriod(period) {
+            window.tabelariViewPeriod = period;
+            renderTabelari();
+        }
+
+        function renderTabelariPeriodSelector() {
+            var periods = ['current-month', 'current-dymujor', 'semester1', 'semester2', 'year'];
+            var html = '<div style="margin-bottom:10px;"><strong style="font-size:12px; color:#555;">Periudha:</strong> ';
+            periods.forEach(function(p) {
+                var active = window.tabelariViewPeriod === p;
+                html += '<button class="btn ' + (active ? 'btn-primary' : 'btn-info') + '" style="padding:5px 10px; font-size:11px; margin:2px;" onclick="switchTabelariPeriod(\'' + p + '\')">' +
+                    getPeriodLabel(p) + '</button>';
+            });
+            if (window.tabelariViewPeriod !== 'current-month') {
+                html += '<div style="font-size:11px; color:#e65100; margin-top:4px;">👁️ Pamje VETËM PËR LEXIM (shuma e muajve) - për të ndryshuar numra, kalo te "' + getPeriodLabel('current-month') + '".</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
         function renderTabelari() {
             var container = document.getElementById('tabelariContainer');
             if (!container) return;
+            var period = window.tabelariViewPeriod;
+            var isEditable = (period === 'current-month');
+            var currentMonthKey = getCurrentSchoolMonthKey();
 
             var nivelet = {
                 "VI": ["VI-1", "VI-2", "VI-3", "VI-4", "VI-5", "VI-6"],
@@ -12680,10 +13289,11 @@ if (systemData.classes && systemData.classes.length > 0) {
             var grandTotal = { meArsye: 0, paArsye: 0, totalMung: 0, planifikuara: 0, mbajtura: 0, humbura: 0,
                 totalOre: 0, mungesaDis: 0, maseDis: 0, tjera: 0, studentCount: 0 };
 
-            var html =
+            var html = renderTabelariPeriodSelector();
+            html +=
                 '<div style="overflow-x:auto; max-height:70vh; overflow-y:auto; -webkit-overflow-scrolling: touch;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:1100px;">';
             html +=
-                '<thead><tr style="background:#1f3b4c; color:white; text-align:center;">';
+                '<thead><tr style="background:#1f3b4c; color:white; text-align:center; position:sticky; top:0; z-index:11;">';
             html +=
                 '<th rowspan="2" style="padding:12px 8px; vertical-align:middle; width:80px;">KLASA</th>';
             html +=
@@ -12695,7 +13305,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             html +=
                 '<th colspan="3" style="padding:10px;">⚠️ NXËNËS ME VËREJTJE</th></tr>';
             html +=
-                '<tr style="background:#0f2c3c; color:white; text-align:center;">';
+                '<tr style="background:#0f2c3c; color:white; text-align:center; position:sticky; top:46px; z-index:10;">';
             html += '<td style="padding:8px 4px; min-width:70px;">Me arsye</td>';
             html += '<td style="padding:8px 4px; min-width:70px;">Pa arsye</td>';
             html += '<td style="padding:8px 4px; min-width:65px;">Gjithsej</td>';
@@ -12713,20 +13323,23 @@ if (systemData.classes && systemData.classes.length > 0) {
                 var klasat = nivelet[nivel];
                 for (var j = 0; j < klasat.length; j++) {
                     var cls = klasat[j];
-                    if (!window.tabelariData.classes[cls]) {
-                        window.tabelariData.classes[cls] = { meArsye: '', paArsye: '', planifikuara: 28,
+                    if (!window.tabelariData.classes[cls]) window.tabelariData.classes[cls] = {};
+                    if (!window.tabelariData.classes[cls][currentMonthKey]) {
+                        window.tabelariData.classes[cls][currentMonthKey] = { meArsye: '', paArsye: '', planifikuara: 28,
                             mbajtura: '', mungesaDis: '', disipline: '', eTjera: '' };
                     }
-                    var d = window.tabelariData.classes[cls];
-                    var meArsyeVal = (d.meArsye !== '' && d.meArsye !== null) ? d.meArsye : '';
-                    var paArsyeVal = (d.paArsye !== '' && d.paArsye !== null) ? d.paArsye : '';
-                    var planVal = (d.planifikuara !== '' && d.planifikuara !== null) ? d.planifikuara :
+                    // Për muajin aktual lexojmë/shkruajmë direkt te kova e atij muaji (e
+                    // redaktueshme); për çdo periudhë tjetër, shuma e llogaritur (vetëm lexim).
+                    var d = isEditable ? window.tabelariData.classes[cls][currentMonthKey] : getTabelariAggregated(cls, period);
+                    var meArsyeVal = (d.meArsye !== '' && d.meArsye !== null && d.meArsye !== undefined) ? d.meArsye : '';
+                    var paArsyeVal = (d.paArsye !== '' && d.paArsye !== null && d.paArsye !== undefined) ? d.paArsye : '';
+                    var planVal = (d.planifikuara !== '' && d.planifikuara !== null && d.planifikuara !== undefined) ? d.planifikuara :
                     '';
-                    var mbajturaVal = (d.mbajtura !== '' && d.mbajtura !== null) ? d.mbajtura : '';
-                    var mungesaDisVal = (d.mungesaDis !== '' && d.mungesaDis !== null) ? d.mungesaDis :
+                    var mbajturaVal = (d.mbajtura !== '' && d.mbajtura !== null && d.mbajtura !== undefined) ? d.mbajtura : '';
+                    var mungesaDisVal = (d.mungesaDis !== '' && d.mungesaDis !== null && d.mungesaDis !== undefined) ? d.mungesaDis :
                         '';
-                    var maseDisVal = (d.disipline !== '' && d.disipline !== null) ? d.disipline : '';
-                    var tjeraVal = (d.eTjera !== '' && d.eTjera !== null) ? d.eTjera : '';
+                    var maseDisVal = (d.disipline !== '' && d.disipline !== null && d.disipline !== undefined) ? d.disipline : '';
+                    var tjeraVal = (d.eTjera !== '' && d.eTjera !== null && d.eTjera !== undefined) ? d.eTjera : '';
 
                     var meArsyeNum = parseInt(meArsyeVal) || 0;
                     var paArsyeNum = parseInt(paArsyeVal) || 0;
@@ -12746,44 +13359,31 @@ if (systemData.classes && systemData.classes.length > 0) {
                         '</td>';
                     html += '<td style="text-align:center; background:#f9f9f9;">' + studentCount +
                     '</td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="meArsye" value="' + meArsyeVal +
-                        '" placeholder="0" style="width:65px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="paArsye" value="' + paArsyeVal +
-                        '" placeholder="0" style="width:65px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
+                    function cellHtml(field, val, width) {
+                        if (isEditable) {
+                            return '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
+                                cls + '" data-field="' + field + '" value="' + val +
+                                '" placeholder="0" style="width:' + width + 'px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
+                        }
+                        return '<td style="text-align:center; font-weight:bold; color:#555;">' + (val !== '' ? val : '-') + '</td>';
+                    }
+                    html += cellHtml('meArsye', meArsyeVal, 65);
+                    html += cellHtml('paArsye', paArsyeVal, 65);
                     html +=
                         '<td style="background:#f2f6f9; font-weight:bold; text-align:center;">' +
                         totalMung + '</td>';
                     html +=
                         '<td style="background:#f2f6f9; text-align:center;">' + mesMung + '</td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="planifikuara" value="' + planVal +
-                        '" placeholder="0" style="width:70px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="mbajtura" value="' + mbajturaVal +
-                        '" placeholder="0" style="width:65px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
+                    html += cellHtml('planifikuara', planVal, 70);
+                    html += cellHtml('mbajtura', mbajturaVal, 65);
                     html +=
                         '<td style="background:#f2f6f9; font-weight:bold; text-align:center;">' +
                         humbura + '</td>';
                     html +=
                         '<td style="background:#f2f6f9; text-align:center;">' + totalOre + '</td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="mungesaDis" value="' + mungesaDisVal +
-                        '" placeholder="0" style="width:75px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="disipline" value="' + maseDisVal +
-                        '" placeholder="0" style="width:65px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td>';
-                    html +=
-                        '<td style="text-align:center;"><input type="number" class="tabelari-input" data-class="' +
-                        cls + '" data-field="eTjera" value="' + tjeraVal +
-                        '" placeholder="0" style="width:65px; text-align:center; padding:5px; border-radius:6px; border:1px solid #ccc; font-size:14px;"></td></tr>';
+                    html += cellHtml('mungesaDis', mungesaDisVal, 75);
+                    html += cellHtml('disipline', maseDisVal, 65);
+                    html += cellHtml('eTjera', tjeraVal, 65) + '</tr>';
 
                     nivelTotal.meArsye += meArsyeNum;
                     nivelTotal.paArsye += paArsyeNum;
@@ -12931,21 +13531,27 @@ if (systemData.classes && systemData.classes.length > 0) {
             var className = this.dataset.class;
             var field = this.dataset.field;
             var value = this.value;
+            var monthKey = getCurrentSchoolMonthKey();
+            if (!window.tabelariData.classes[className]) window.tabelariData.classes[className] = {};
+            if (!window.tabelariData.classes[className][monthKey]) {
+                window.tabelariData.classes[className][monthKey] = { meArsye: '', paArsye: '', planifikuara: 28,
+                    mbajtura: '', mungesaDis: '', disipline: '', eTjera: '' };
+            }
+            var currentData = window.tabelariData.classes[className][monthKey];
             if (value === '' || value === null) {
-                window.tabelariData.classes[className][field] = '';
+                currentData[field] = '';
             } else {
                 var numValue = parseInt(value) || 0;
                 if (numValue < 0) numValue = 0;
-                var currentData = window.tabelariData.classes[className];
                 if (field === 'mbajtura') {
                     var plan = parseInt(currentData.planifikuara) || 0;
                     if (numValue > plan) numValue = plan;
                 }
                 if (field === 'planifikuara') {
                     var mbajt = parseInt(currentData.mbajtura) || 0;
-                    if (mbajt > numValue) { window.tabelariData.classes[className].mbajtura = numValue; }
+                    if (mbajt > numValue) { currentData.mbajtura = numValue; }
                 }
-                window.tabelariData.classes[className][field] = numValue;
+                currentData[field] = numValue;
             }
             window.tabelariData.lastUpdated = new Date().toISOString();
             saveTabelariToLocal();
@@ -13004,22 +13610,22 @@ if (systemData.classes && systemData.classes.length > 0) {
         function exportTabelariToExcel() {
             if (!requireAdmin()) return;
             var allClasses = getTabelariClasses();
+            var period = window.tabelariViewPeriod || 'current-month';
             var csvRows = [
+                ["Periudha: " + getPeriodLabel(period)],
                 ["Klasa", "Me arsye", "Pa arsye", "Gjithësej", "Planifikuara", "Mbajtura", "Humbura",
                     "Mungesa (disiplinë)", "Disiplinë", "E tjera"
                 ]
             ];
             for (var i = 0; i < allClasses.length; i++) {
                 var cls = allClasses[i];
-                var d = window.tabelariData.classes[cls];
-                if (d) {
-                    var ma = parseInt(d.meArsye) || 0;
-                    var pa = parseInt(d.paArsye) || 0;
-                    var plan = parseInt(d.planifikuara) || 0;
-                    var mbajt = parseInt(d.mbajtura) || 0;
-                    csvRows.push([cls, ma, pa, ma + pa, plan, mbajt, Math.max(0, plan - mbajt), parseInt(d
-                        .mungesaDis) || 0, parseInt(d.disipline) || 0, parseInt(d.eTjera) || 0]);
-                }
+                var d = getTabelariAggregated(cls, period);
+                var ma = parseInt(d.meArsye) || 0;
+                var pa = parseInt(d.paArsye) || 0;
+                var plan = parseInt(d.planifikuara) || 0;
+                var mbajt = parseInt(d.mbajtura) || 0;
+                csvRows.push([cls, ma, pa, ma + pa, plan, mbajt, Math.max(0, plan - mbajt), parseInt(d
+                    .mungesaDis) || 0, parseInt(d.disipline) || 0, parseInt(d.eTjera) || 0]);
             }
             var csvContent = csvRows.map(function(row) { return row.map(function(cell) { return '"' + cell +
                     '"'; }).join(","); }).join("\n");
@@ -15026,7 +15632,7 @@ function printClassReport(classObj, semester) {
     var date = formatDate();
 
     var studentsHtml =
-        '<table style="width:100%;border-collapse:collapse;font-size:8px;"><thead><tr style="background:#0b4b6e;color:white;"><th>#</th><th>Emri</th><th>Gj</th>';
+        '<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr style="background:#0b4b6e;color:white;"><th>#</th><th>Emri</th><th>Gj</th>';
     classObj.subjectsOrder.forEach(function(s) { studentsHtml += '<th>' + s.code + '</th>'; });
     studentsHtml +=
         '<th>Mes.</th><th>Statusi</th><th>Mung.Total</th><th>Nota1</th><th>Sjellja</th></tr></thead><tbody>';
@@ -15054,7 +15660,7 @@ function printClassReport(classObj, semester) {
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + classObj.className + ' - ' + semesterName +
         '</title>';
     printHtml +=
-        '<style>body{font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .report-container{max-width:210mm;margin:0 auto;padding:8mm;} .report-header{text-align:center;margin-bottom:6mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .report-title{font-size:20px;font-weight:bold;color:#0b4b6e;} .report-subtitle{font-size:12px;margin-top:1mm;} table{border-collapse:collapse;width:100%;margin:3mm 0;} th,td{border:1px solid #000;padding:2px 3px;text-align:center;font-size:9px;} th{background:#0b4b6e;color:white;} .summary-box{margin:4mm 0;padding:3mm;background:#f5f5f5;} .signature-line{display:flex;justify-content:space-between;margin-top:8mm;padding-top:4mm;border-top:1px solid #333;}</style>';
+        '<style>body{font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .report-container{max-width:210mm;margin:0 auto;padding:8mm;} .report-header{text-align:center;margin-bottom:6mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .report-title{font-size:20px;font-weight:bold;color:#0b4b6e;} .report-subtitle{font-size:12px;margin-top:1mm;} table{border-collapse:collapse;width:100%;margin:3mm 0;} th,td{border:1px solid #000;padding:4px 5px;text-align:center;font-size:12px;} th{background:#0b4b6e;color:white;} .summary-box{margin:4mm 0;padding:3mm;background:#f5f5f5;} .signature-line{display:flex;justify-content:space-between;margin-top:8mm;padding-top:4mm;border-top:1px solid #333;}</style>';
     printHtml += '</head><body><div class="report-container">';
     printHtml += '<div class="report-header"><div class="report-title">RAPORTI I KLASËS</div>';
     printHtml += '<div class="report-subtitle">' + classObj.className + ' - ' + semesterName + '</div>';
@@ -15136,20 +15742,20 @@ function printStudentCertificate(classObj, student, semester) {
             'Mirë' : gradeNum === 2 ? 'Mjaftueshëm' : gradeNum === 1 ? 'Pamjaftueshëm' :
         'I panotuar';
         subjectsHtml +=
-            '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:9px;">' +
+            '<tr><td style="padding:5px 6px; border:1px solid #333; text-align:left; font-size:18px;">' +
             escapeHtml(sub.name) + '</td>';
         subjectsHtml +=
-            '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:14px; width:35px;"><strong>' +
+            '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:21px; width:35px;"><strong>' +
             (gradeVal || '-') + '</strong></td>';
         subjectsHtml +=
-            '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:14px;">' +
+            '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:21px;">' +
             gradeDesc + '</td></tr>';
     }
 
     var printHtml =
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dëftesa - ' + student.name + '</title>';
     printHtml +=
-        '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-400; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:220mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:14px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:18px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:14px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:9px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:12px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:20px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;} .certificate{page-break-after:avoid;page-break-inside:avoid;}}</style></head><body>';
+        '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:A4; margin:6mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:220mm;background:white;padding:3mm 6mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;} .certificate-header{text-align:center;margin-bottom:2mm;border-bottom:2px solid #0b4b6e;padding-bottom:2mm;} .certificate-title{font-size:18px;font-weight:bold;color:#d4af37;margin:1mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:12px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:16px;font-weight:bold;text-align:center;margin:2mm 0;padding:2mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:1mm 0;font-size:12px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:2mm 0;} th,td{border:1px solid #333;padding:3px 5px;text-align:center;font-size:14px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:14px;} .certificate-avg-box{background:#e8f5e9;padding:2mm;text-align:center;border-radius:6px;margin:2mm 0;} .certificate-avg-value{font-size:18px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:2mm;margin:2mm 0;border-radius:6px;font-size:12px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:3mm;padding-top:2mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;font-size:12px;} .certificate-signature-line{border-top:1px solid #333;margin-top:3mm;padding-top:1mm;} @media print{body{margin:0;padding:0;} .certificate{page-break-after:avoid;page-break-inside:avoid;transform-origin:top left;}}</style></head><body>';
     printHtml += '<div class="certificate">';
     printHtml += getDocumentLogosHtml(55);
     printHtml += '<div class="certificate-header">';
@@ -15158,32 +15764,32 @@ function printStudentCertificate(classObj, student, semester) {
     printHtml += '<div class="certificate-title">DËFTESA E SUKSESIT</div></div>';
     printHtml += '<div class="certificate-student">' + escapeHtml(student.name) + '</div>';
     printHtml += '<div class="certificate-info">';
-    printHtml += '<div><strong>Klasa:</strong> ' + classObj.className + '</div>';
+    printHtml += '<div><strong>Klasa:</strong> ' + classNameForPrint(classObj.className) + '</div>';
     printHtml += '<div><strong>Viti:</strong> ' + systemData.schoolInfo.year + '</div>';
     printHtml += '<div><strong>Periudha:</strong> ' + semesterName + '</div>';
     printHtml += '<div><strong>Data:</strong> ' + date + '</div></div>';
-    printHtml += '<div style="margin:2mm 0; font-size:10px;"><strong>Sjellja:</strong> ' + behavior +
+    printHtml += '<div style="margin:2mm 0; font-size:15px;"><strong>Sjellja:</strong> ' + behavior +
         '</div>';
     printHtml +=
         '<table><thead><tr style="background:#0b4b6e; color:white;"><th style="padding:4px;">Lënda</th><th style="padding:4px; width:35px;">Nota</th><th style="padding:4px;">Përshkrimi</th></tr></thead><tbody>' +
         subjectsHtml + '</tbody></table>';
     printHtml += '<div class="certificate-avg-box"><div class="certificate-avg-value">' + avg +
         '</div>';
-    printHtml += '<div style="font-size:12px; margin-top:1px;">Mesatarja: ' + successDesc + '</div>';
+    printHtml += '<div style="font-size:18px; margin-top:1px;">Mesatarja: ' + successDesc + '</div>';
     printHtml += '</div>';
     printHtml +=
-        '<div class="certificate-absences-box"><strong style="font-size:12px;">MUNGESAT</strong>';
+        '<div class="certificate-absences-box"><strong style="font-size:18px;">MUNGESAT</strong>';
     printHtml +=
-        '<div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:11px;">';
+        '<div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:16px;">';
     printHtml += '<span>✅ Me arsye: ' + abs.withReason + '</span>';
     printHtml += '<span>❌ Pa arsye: ' + abs.withoutReason + '</span>';
     printHtml += '<span><strong>📊 Gjithsej: ' + abs.total + '</strong></span></div></div>';
     printHtml += '<div class="certificate-signatures">';
     printHtml +=
-        '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:10px; margin-top:2mm;">' +
+        '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:15px; margin-top:2mm;">' +
         escapeHtml(teacherName) + '</div></div>';
     printHtml +=
-        '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:12px; margin-top:2mm;">' +
+        '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:18px; margin-top:2mm;">' +
         escapeHtml(principalName) + '</div></div>';
     printHtml +=
         '<div class="certificate-signature"><div class="certificate-signature-line">Vula e shkollës</div></div></div></div></body></html>';
@@ -15209,7 +15815,7 @@ function printClassCertificates(className) {
     var allHtml =
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dëftesat - ' + className + '</title>';
     allHtml +=
-        '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-430; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:210mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;page-break-after:always;page-break-inside:avoid;} .certificate:last-child{page-break-after:auto;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:14px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:13px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:18px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:10px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:12px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:13px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:20px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;}}</style></head><body>';
+        '<style>*{margin:0;padding:0;box-sizing:border-box;} @page{size:220-430; margin:8mm;} body{background:white;font-family:"Times New Roman", Times, serif;margin:0;padding:0;} .certificate{width:100%;max-width:210mm;background:white;padding:5mm 8mm;margin:0 auto;border:2px solid #d4af37;box-sizing:border-box;page-break-after:always;page-break-inside:avoid;} .certificate:last-child{page-break-after:auto;} .certificate-header{text-align:center;margin-bottom:4mm;border-bottom:2px solid #0b4b6e;padding-bottom:3mm;} .certificate-title{font-size:22px;font-weight:bold;color:#d4af37;margin:2mm 0;letter-spacing:1px;} .certificate-subtitle{font-size:21px;font-weight:bold;color:#0b4b6e;} .certificate-school{font-size:20px;font-weight:bold;color:#0b4b6e;} .certificate-student{font-size:22px;font-weight:bold;text-align:center;margin:4mm 0;padding:3mm;border-bottom:1px dashed #999;border-top:1px dashed #999;background:#f5f5f5;} .certificate-info{display:flex;justify-content:space-between;margin:2mm 0;font-size:15px;flex-wrap:wrap;gap:5px;} table{width:100%;border-collapse:collapse;margin:3mm 0;} th,td{border:1px solid #333;padding:3px 4px;text-align:center;font-size:18px;} th{background:#0b4b6e;color:white;font-weight:bold;padding:4px;font-size:20px;} .certificate-avg-box{background:#e8f5e9;padding:3mm;text-align:center;border-radius:6px;margin:3mm 0;} .certificate-avg-value{font-size:22px;font-weight:bold;color:#2e7d32;} .certificate-absences-box{background:#fff3e0;padding:3mm;margin:3mm 0;border-radius:6px;} .certificate-signatures{display:flex;justify-content:space-between;margin-top:5mm;padding-top:3mm;border-top:1px solid #333;} .certificate-signature{text-align:center;width:130px;} .certificate-signature-line{border-top:1px solid #333;margin-top:5mm;padding-top:2mm;} @media print{body{margin:0;padding:0;}}</style></head><body>';
 
     for (var i = 0; i < classObj.students.length; i++) {
         var student = classObj.students[i];
@@ -15232,13 +15838,13 @@ function printClassCertificates(className) {
                 'Mirë' : gradeNum === 2 ? 'Mjaftueshëm' : gradeNum === 1 ? 'Pamjaftueshëm' :
                 'I panotuar';
             subjectsHtml +=
-                '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:12px;">' +
+                '<tr><td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:18px;">' +
                 sub.name + '</td>';
             subjectsHtml +=
-                '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:12px; width:35px;"><strong>' +
+                '<td style="padding:3px 4px; border:1px solid #333; text-align:center; font-size:18px; width:35px;"><strong>' +
                 (gradeVal || '-') + '</strong></td>';
             subjectsHtml +=
-                '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:12px;">' +
+                '<td style="padding:3px 4px; border:1px solid #333; text-align:left; font-size:18px;">' +
                 gradeDesc + '</td></tr>';
         }
 
@@ -15249,11 +15855,11 @@ function printClassCertificates(className) {
         allHtml += '<div class="certificate-title">DËFTESA E SUKSESIT</div></div>';
         allHtml += '<div class="certificate-student">' + escapeHtml(student.name) + '</div>';
         allHtml += '<div class="certificate-info">';
-        allHtml += '<div><strong>Klasa:</strong> ' + classObj.className + '</div>';
+        allHtml += '<div><strong>Klasa:</strong> ' + classNameForPrint(classObj.className) + '</div>';
         allHtml += '<div><strong>Viti:</strong> ' + systemData.schoolInfo.year + '</div>';
         allHtml += '<div><strong>Periudha:</strong> ' + semesterName + '</div>';
         allHtml += '<div><strong>Data:</strong> ' + date + '</div></div>';
-        allHtml += '<div style="margin:2mm 0; font-size:13px;"><strong>Sjellja:</strong> ' + behavior +
+        allHtml += '<div style="margin:2mm 0; font-size:20px;"><strong>Sjellja:</strong> ' + behavior +
             '</div>';
         allHtml +=
             '<table><thead><tr style="background:#0b4b6e; color:white;"><th style="padding:4px;">Lënda</th><th style="padding:4px; width:35px;">Nota</th><th style="padding:4px;">Përshkrimi</th></tr></thead><tbody>' +
@@ -15262,16 +15868,16 @@ function printClassCertificates(className) {
             '</div><div>Mesatarja: ' + successDesc + '</div>';
         allHtml += '</div>';
         allHtml +=
-            '<div class="certificate-absences-box"><strong>MUNGESAT</strong><div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:12px;">';
+            '<div class="certificate-absences-box"><strong>MUNGESAT</strong><div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:18px;">';
         allHtml += '<span>✅ Me arsye: ' + abs.withReason + '</span>';
         allHtml += '<span>❌ Pa arsye: ' + abs.withoutReason + '</span>';
         allHtml += '<span><strong>📊 Gjithsej: ' + abs.total + '</strong></span></div></div>';
         allHtml += '<div class="certificate-signatures">';
         allHtml +=
-            '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:12px; margin-top:2mm;">' +
+            '<div class="certificate-signature"><div class="certificate-signature-line">Kujdestari</div><div style="font-size:18px; margin-top:2mm;">' +
             teacherName + '</div></div>';
         allHtml +=
-            '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:12px; margin-top:2mm;">' +
+            '<div class="certificate-signature"><div class="certificate-signature-line">Drejtoresha</div><div style="font-size:18px; margin-top:2mm;">' +
             principalName + '</div></div>';
         allHtml +=
             '<div class="certificate-signature"><div class="certificate-signature-line">Vula e shkollës</div></div></div></div>';
@@ -15485,14 +16091,15 @@ function printTranscriptSimple(studentId, classId) {
         .toISOString()) +
         '</p></div>';
     printHtml += '<div class="info"><div><strong>📛 Nxënësi:</strong> ' + student.name + '</div>';
-    printHtml += '<div><strong>🏫 Klasa Aktuale:</strong> ' + classObj.className + '</div>';
+    printHtml += '<div><strong>🏫 Klasa Aktuale:</strong> ' + classNameForPrint(classObj.className) + '</div>';
+    printHtml += '<div><strong>Nr. Protokolli:</strong> _______________</div>';
     printHtml += '<div><strong>👩‍🎓 Drejtoresha:</strong> ' + systemData.schoolInfo.principal +
     '</div></div>';
     printHtml += '<div style="overflow-x:auto;"><table><thead><tr>' + headers + '</tr></thead><tbody>';
     printHtml += rowsHtml + avgRow + statusRow + absRow + behRow;
     printHtml += '</tbody></table></div>';
     printHtml += '<div class="signatures">';
-    printHtml += '<div class="signature"><div class="line">Kujdestari</div><div>_________________</div></div>';
+    printHtml += '<div class="signature"><div class="line">Nënshkrimi i Sekretares</div><div>_________________</div></div>';
     printHtml += '<div class="signature"><div class="line">Drejtoresha</div><div>' + systemData.schoolInfo
         .principal + '</div></div>';
     printHtml += '<div class="signature"><div class="line">Vula e shkollës</div></div></div></div>';
