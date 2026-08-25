@@ -1612,6 +1612,33 @@
         </div>
     </div>
 
+    <div id="workingDaysModal" class="modal">
+        <div class="modal-content" style="max-width:550px;">
+            <button class="modal-close" onclick="closeWorkingDaysModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📅 Ditët e Punës (Paradite/Pasdite)</h2>
+            <p style="font-size:12px; color:#666; margin-bottom:10px;">Cakto shpejt ditët kur ky mësimdhënës punon në secilin ndërrim - sinkronizohet automatikisht me gjenerimin e Orarit, lëvizjet manuale, dhe çdo funksion tjetër (përdor të njëjtin sistem "bllokimi" ekzistues).</p>
+            <div id="workingDaysPickerContainer" style="margin-bottom:10px;"></div>
+            <div id="workingDaysFormContainer"></div>
+            <div class="print-btn-group no-print" style="margin-top:15px;">
+                <button class="btn btn-success" onclick="saveWorkingDays()">💾 Ruaj</button>
+                <button class="btn btn-warning" onclick="closeWorkingDaysModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="singleClassScheduleModal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <button class="modal-close" onclick="closeSingleClassScheduleModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📚 Orari i Klasës (Individual)</h2>
+            <div id="singleClassSchedulePickerContainer" style="margin-bottom:15px;"></div>
+            <div id="singleClassScheduleContainer" style="max-height:55vh; overflow-y:auto;"></div>
+            <div class="print-btn-group no-print" style="margin-top:12px;">
+                <button class="btn btn-success" onclick="printSingleClassSchedule()">🖨️ Printo</button>
+                <button class="btn btn-warning" onclick="closeSingleClassScheduleModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
     <div id="singleTeacherScheduleModal" class="modal">
         <div class="modal-content" style="max-width:700px;">
             <button class="modal-close" onclick="closeSingleTeacherScheduleModal()">×</button>
@@ -1636,14 +1663,22 @@
             <div style="margin-bottom:10px;">
                 <button id="teacherScheduleShiftParadite" class="btn btn-primary" onclick="switchTeacherScheduleShift('paradite')">☀️ Paradite (VII, IX)</button>
                 <button id="teacherScheduleShiftPasdite" class="btn btn-info" onclick="switchTeacherScheduleShift('pasdite')">🌙 Pasdite (VI, VIII)</button>
+                <button id="teacherScheduleColorModeBtn" class="btn btn-purple" onclick="toggleTeacherScheduleColorMode()">🎨 Ngjyro sipas: Asnjë</button>
                 <button id="teacherScheduleBlockModeBtn" class="btn btn-danger" onclick="toggleBlockMode()">🚫 Modaliteti i Bllokimit</button>
+                <button id="teacherScheduleLockModeBtn" class="btn btn-info" onclick="toggleLockMode()">🔒 Modaliteti i Kyçjes</button>
                 <button class="btn btn-warning" onclick="confirmAutoFillAllSchedules()" title="Gjeneron Orarin për të gjitha klasat njëherësh, duke shmangur konflikte mësimdhënësish mes klasave">🤖 Gjenero Orarin (Të Gjitha Klasat)</button>
+                <button class="btn btn-danger" onclick="confirmAggressiveFillRemaining()" title="Provon të vendosë orët e mbetura pa vend, duke lejuar shkelje të vogla (2 orë të së njëjtës lëndë të njëjtën ditë, pauza, ditë me 1 orë) - përdore VETËM pas 'Gjenero Orarin', kur ka ende orë pa vend">🔧 Rregullim Agresiv (Orët e Mbetura)</button>
+                <button class="btn btn-info" onclick="confirmBalanceDualShiftTeachers()" title="Balancon ditët e përdorura nga mësimdhënësit që punojnë në të dy ndërrimet - i shpërndan në më shumë ditë, jo të ngjeshura vetëm në 1-2">⚖️ Balanco Ditët e Ndërrimeve</button>
                 <button class="btn btn-purple" onclick="openTeacherRosterModal()" title="Lista e plotë e mësimdhënësve - shto ose hiq">👥 Lista e Mësimdhënësve</button>
                 <button class="btn btn-danger" onclick="openMissingSubjectsModal()" title="Klasat me lëndë ende pa mësimdhënës">⚠️ Klasat pa Mësimdhënës</button>
                 <button class="btn btn-success" onclick="printTeacherSchedule()">🖨️ Printo</button>
                 <button class="btn btn-purple" onclick="openSingleTeacherScheduleModal()">📄 Orari i Mësimdhënësit (Individual)</button>
             </div>
-            <p style="font-size:12px; color:#666; margin-bottom:8px;">💡 <strong>Dinamik:</strong> kliko një qelizë të mbushur për ta zgjedhur (bëhet e verdhë). Mund ta lëvizësh te <strong>çdo mësimdhënës</strong>, jo vetëm te i njëjti - <span style="background:#a5d6a7; padding:1px 6px; border-radius:3px;">jeshile e fortë</span> = lëvizje e pastër, <span style="background:#ffe082; padding:1px 6px; border-radius:3px;">portokalli e lehtë</span> = e mundur por kërkon konfirmim (ricaktim mësimdhënësi dhe/ose diçka shkon në pritje poshtë). Asgjë s'fshihet kurrë vetvetiu.<br>🚫 <strong>Modaliteti i Bllokimit:</strong> aktivizoje, pastaj kliko qelizat ku mësimdhënësi s'është i disponueshëm (p.sh. punon shkollë tjetër / ndërrim tjetër) - shënohen me "✕" dhe gjeneruesi automatik s'i prek kurrë. Hiqet vetëm duke klikuar sërish (në të njëjtin modalitet).</p>
+            <details style="margin-bottom:8px;">
+                <summary style="cursor:pointer; font-size:12px; color:#0b4b6e; font-weight:bold; list-style:none; display:inline-block; padding:4px 10px; background:#e3f2fd; border-radius:14px;">ℹ️ Si funksionon (Info)</summary>
+                <p style="font-size:12px; color:#666; margin-top:6px;">💡 <strong>Dinamik:</strong> kliko një qelizë të mbushur për ta zgjedhur (bëhet e verdhë) - të gjitha qelizat e SË NJËJTËS KLASË (te çdo mësimdhënës) theksohen me ngjyrën e mësimdhënësit të tyre përkatës, dhe hapësirat bosh <span style="background:#39ff14; padding:1px 6px; border-radius:3px;">jeshile fluoreshente</span> te rreshti i mësimdhënësit të zgjedhur tregojnë ku mund ta lëvizësh - lëvizja lejohet <strong>vetëm brenda rreshtit të të njëjtit mësimdhënës</strong>. Asgjë s'fshihet kurrë vetvetiu (çdo gjë e zhvendosur shkon në pritje poshtë nëse ka konflikt).<br>🚫 <strong>Modaliteti i Bllokimit:</strong> aktivizoje, pastaj kliko qelizat ku mësimdhënësi s'është i disponueshëm (p.sh. punon shkollë tjetër / ndërrim tjetër) - shënohen me "✕" dhe gjeneruesi automatik s'i prek kurrë. Hiqet vetëm duke klikuar sërish (në të njëjtin modalitet).</p>
+            </details>
+
             <div id="teacherSchedulePendingContainer"></div>
             <div id="teacherScheduleContainer" style="overflow-x:auto; overflow-y:auto; max-height:65vh;"></div>
             <div class="print-btn-group no-print">
@@ -2324,6 +2359,14 @@
             var prefix = className.substring(0, dashIdx);
             var rest = className.substring(dashIdx);
             return (romanMap[prefix] || prefix) + rest;
+        }
+
+        // Njësoj si classNameForPrint, por me "/" (jo "-") - format "6/1" - përdoret te "Orari i
+        // Mësimdhënësve" (ekran + printim), për ta bërë të njëjtë me formatin e aSc Timetables.
+        function classNameSlash(className) {
+            if (!className) return className;
+            var romanMap = { IX: '9', VIII: '8', VII: '7', VI: '6' };
+            return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return romanMap[roman] + '/' + num; });
         }
 
         function escapeHtml(str) {
@@ -8114,6 +8157,114 @@ if (systemData.classes && systemData.classes.length > 0) {
             return !wasBlocked;
         }
 
+        // ==================== DITËT E PUNËS (caktim i shpejtë, ditë-nga-ditë) ====================
+        // Ripërdor SAKTËSISHT strukturën ekzistuese "teacherBlocked" (isTeacherBlocked) - kështu
+        // sinkronizohet AUTOMATIKISHT me çdo funksion tjetër që tashmë e respekton bllokimin:
+        // gjenerimi automatik, "Rregullim Agresiv", lëvizjet manuale, etj. - pa prekur asnjë prej
+        // tyre. "Ditë pune" = ora e gjashtë orëve të asaj dite ZBLLOKOHET; "jo ditë pune" = të
+        // gjashta BLLOKOHEN.
+        function setTeacherWorkingDays(teacherId, shift, workingDays) {
+            var allDays = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            if (!systemData.teacherBlocked) systemData.teacherBlocked = {};
+            if (!systemData.teacherBlocked[teacherId]) systemData.teacherBlocked[teacherId] = {};
+            if (!systemData.teacherBlocked[teacherId][shift]) systemData.teacherBlocked[teacherId][shift] = {};
+            allDays.forEach(function(day) {
+                var isWorking = workingDays.indexOf(day) !== -1;
+                if (!systemData.teacherBlocked[teacherId][shift][day]) systemData.teacherBlocked[teacherId][shift][day] = {};
+                hours.forEach(function(h) {
+                    systemData.teacherBlocked[teacherId][shift][day][h] = !isWorking;
+                });
+            });
+        }
+
+        // Një ditë konsiderohet "ditë pune" nëse TË PAKTËN një orë e saj s'është e bllokuar
+        // (përdoret për të para-shënuar checkbox-at kur hapet mjeti, sipas gjendjes aktuale).
+        function isTeacherWorkingDay(teacherId, shift, day) {
+            var hours = [1, 2, 3, 4, 5, 6];
+            return hours.some(function(h) { return !isTeacherBlocked(teacherId, shift, day, h); });
+        }
+
+        function openWorkingDaysModal() {
+            if (!requireAdmin()) return;
+            var container = document.getElementById('workingDaysPickerContainer');
+            var html = '<select id="workingDaysTeacherSelect" onchange="renderWorkingDaysForm()" style="width:100%; padding:8px; font-size:14px;">' +
+                '<option value="">-- Zgjidh mësimdhënësin --</option>';
+            systemData.teachers.slice().sort(function(a, b) { return a.name.localeCompare(b.name); }).forEach(function(t) {
+                html += '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
+            });
+            html += '</select>';
+            container.innerHTML = html;
+            document.getElementById('workingDaysFormContainer').innerHTML = '';
+            showModal('workingDaysModal');
+        }
+
+        function closeWorkingDaysModal() {
+            hideModal('workingDaysModal');
+        }
+
+        function renderWorkingDaysForm() {
+            var teacherId = document.getElementById('workingDaysTeacherSelect').value;
+            var container = document.getElementById('workingDaysFormContainer');
+            if (!teacherId) { container.innerHTML = ''; return; }
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
+            var html = '';
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                html += '<div style="margin-top:12px; padding:10px; background:#f5f5f5; border-radius:8px;">' +
+                    '<strong style="color:' + (shift === 'paradite' ? '#0277bd' : '#6a1b9a') + ';">' +
+                    (shift === 'paradite' ? '☀️ Paradite' : '🌙 Pasdite') + '</strong><div style="margin-top:6px;">';
+                days.forEach(function(day) {
+                    var checked = isTeacherWorkingDay(teacherId, shift, day) ? ' checked' : '';
+                    html += '<label style="display:inline-block; margin:4px 10px 4px 0;"><input type="checkbox" class="working-day-checkbox" data-shift="' + shift + '" data-day="' + day + '"' + checked + '> ' + dayLabels[day] + '</label>';
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function saveWorkingDays() {
+            var teacherId = document.getElementById('workingDaysTeacherSelect').value;
+            if (!teacherId) { alert("Zgjidh një mësimdhënës fillimisht!"); return; }
+            var workingDaysPerShift = {};
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var workingDays = Array.prototype.filter.call(
+                    document.querySelectorAll('.working-day-checkbox[data-shift="' + shift + '"]'),
+                    function(cb) { return cb.checked; }
+                ).map(function(cb) { return cb.dataset.day; });
+                workingDaysPerShift[shift] = workingDays;
+                setTeacherWorkingDays(teacherId, shift, workingDays);
+            });
+            // AUTORIZIM I QARTË: nëse admini shënoi TË NJËJTËN ditë si "ditë pune" në TË DYJA
+            // ndërrimet (me vetëdije, përmes këtij mjeti specifik), e RUAJMË si autorizim EKSPLICIT
+            // - kjo lejon mjetet automatike (Gjenero Orarin, Rregullim Agresiv, Balanco) ta
+            // përdorin atë ditë për të DY ndërrimet për këtë mësimdhënës specifik, pa e shkelur
+            // "fshehurazi" rregullin - është vendim i qartë, i dokumentuar i vetë admin-it.
+            if (!systemData.teacherDualShiftOverride) systemData.teacherDualShiftOverride = {};
+            systemData.teacherDualShiftOverride[teacherId] = {};
+            var allDays = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            allDays.forEach(function(day) {
+                if (workingDaysPerShift.paradite.indexOf(day) !== -1 && workingDaysPerShift.pasdite.indexOf(day) !== -1) {
+                    systemData.teacherDualShiftOverride[teacherId][day] = true;
+                }
+            });
+            saveToLocal();
+            refreshDisplay();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ Ditët e punës u ruajtën në cloud! Sinkronizuar automatikisht me gjenerimin, lëvizjet manuale, dhe çdo funksion tjetër." :
+                    "⚠️ U ruajt lokalisht, por ruajtja në cloud dështoi.");
+            });
+        }
+
+        // A e ka admini AUTORIZUAR EKSPLICITISHT (përmes "📅 Ditët e Punës") këtë mësimdhënës të
+        // punojë NË TË DYJA ndërrimet pikërisht këtë ditë? Nëse po, rregulli absolut i ndarjes së
+        // ndërrimeve LEJOHET të mos zbatohet VETËM për këtë kombinim specifik.
+        function hasDualShiftOverride(teacherId, day) {
+            return !!(systemData.teacherDualShiftOverride && systemData.teacherDualShiftOverride[teacherId] &&
+                systemData.teacherDualShiftOverride[teacherId][day]);
+        }
+
         function getClassShift(classObj) {
             if (classObj.shift) return classObj.shift; // lejo mbivendosje manuale nëse ndonjëherë vendoset
             var level = (classObj.className || '').split('-')[0];
@@ -8159,6 +8310,183 @@ if (systemData.classes && systemData.classes.length > 0) {
             return activity;
         }
 
+        // Ngjesh orët e çdo dite (brenda intervalit min-max të orëve të zëna) duke lëvizur nga
+        // ora e FUNDIT drejt boshllëqeve të BRENDSHME - kjo eliminon "pauzat radhazi" brenda një
+        // dite (rregulli #4), pa prekur fare ditët e tjera apo shpërndarjen mes ditësh.
+        // A është ky (klasë, ditë, orë) i "rezervuar qëllimisht bosh" (shih rregullin special të
+        // Klasës së Gjashtë) - hapat e ngjeshjes/plotësimit s'duhet ta mbushin.
+        function isReservedEmptySlot(cls, day, hour) {
+            if (cls._reservedEmptySlots) {
+                return cls._reservedEmptySlots.some(function(s) { return s.day === day && s.hour === hour; });
+            }
+            return !!(cls._reservedEmptySlot && cls._reservedEmptySlot.day === day && cls._reservedEmptySlot.hour === hour);
+        }
+
+        function compactTeacherDailySchedules() {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var fixes = 0;
+            var allTeacherIds = {};
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(data.rows).forEach(function(tid) { allTeacherIds[tid] = true; });
+            });
+            Object.keys(allTeacherIds).forEach(function(teacherId) {
+                ['paradite', 'pasdite'].forEach(function(shift) {
+                    var data = buildTeacherScheduleData(shift);
+                    var row = data.rows[teacherId];
+                    if (!row) return;
+                    days.forEach(function(day) {
+                        var occupied = hours.filter(function(h) { return row.grid[day][h]; });
+                        if (occupied.length === 0) return;
+                        var minH = Math.min.apply(null, occupied), maxH = Math.max.apply(null, occupied);
+                        var gapHours = [];
+                        for (var h = minH; h <= maxH; h++) { if (!row.grid[day][h]) gapHours.push(h); }
+                        gapHours.forEach(function(gapHour) {
+                            if (row.grid[day][gapHour]) return;
+                            var occupiedNow = hours.filter(function(h) { return row.grid[day][h]; });
+                            if (occupiedNow.length === 0) return;
+                            var srcHour = Math.max.apply(null, occupiedNow);
+                            if (srcHour <= gapHour) return;
+                            var cell = row.grid[day][srcHour];
+                            var cls = systemData.classes.find(function(c) { return c.id === cell.classId; });
+                            if (!cls || cls.schedule[day][gapHour] || isReservedEmptySlot(cls, day, gapHour)) return;
+                            cls.schedule[day][gapHour] = cell.subjectKey;
+                            cls.schedule[day][srcHour] = '';
+                            fixes++;
+                            row.grid[day][gapHour] = cell;
+                            row.grid[day][srcHour] = null;
+                        });
+                    });
+                });
+            });
+            return fixes;
+        }
+
+        // Rregulli #3 (minimumi 2 orë/ditë): për çdo ditë me VETËM 1 orë, huazon një orë nga një
+        // ditë TJETËR e TË NJËJTIT mësimdhënës që ka TEPRICË (mbi 2 orë, kështu që dhurimi s'e
+        // çon atë ditë nën minimumin), dhe e vendos NGJITUR me orën ekzistuese të ditës "dobët".
+        function fixWeakDaysForTeachers() {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var fixes = 0;
+            var allTeacherIds = {};
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(data.rows).forEach(function(tid) { allTeacherIds[tid] = true; });
+            });
+            Object.keys(allTeacherIds).forEach(function(teacherId) {
+                ['paradite', 'pasdite'].forEach(function(shift) {
+                    var data = buildTeacherScheduleData(shift);
+                    var row = data.rows[teacherId];
+                    if (!row) return;
+                    days.forEach(function(day) {
+                        var occupied = hours.filter(function(h) { return row.grid[day][h]; });
+                        if (occupied.length !== 1) return;
+                        var onlyHour = occupied[0];
+                        var donorDay = null, donorHour = null, donorCell = null;
+                        days.forEach(function(otherDay) {
+                            if (otherDay === day || donorDay) return;
+                            var otherOccupied = hours.filter(function(h) { return row.grid[otherDay][h]; });
+                            if (otherOccupied.length <= 2) return; // s'ka tepricë reale
+                            var srcHour = Math.max.apply(null, otherOccupied);
+                            donorDay = otherDay; donorHour = srcHour; donorCell = row.grid[otherDay][srcHour];
+                        });
+                        if (!donorDay) return;
+                        var cls = systemData.classes.find(function(c) { return c.id === donorCell.classId; });
+                        if (!cls) return;
+                        var candidates = [onlyHour - 1, onlyHour + 1].filter(function(h) { return h >= 1 && h <= 6; });
+                        for (var ci = 0; ci < candidates.length; ci++) {
+                            var targetHour = candidates[ci];
+                            if (!cls.schedule[day][targetHour] && !isReservedEmptySlot(cls, day, targetHour) &&
+                                isTeacherFreeInCurrentSchedules(teacherId, shift, day, targetHour) &&
+                                !isTeacherBlocked(teacherId, shift, day, targetHour)) {
+                                cls.schedule[day][targetHour] = donorCell.subjectKey;
+                                cls.schedule[donorDay][donorHour] = '';
+                                fixes++;
+                                row.grid[day][targetHour] = donorCell;
+                                row.grid[donorDay][donorHour] = null;
+                                break;
+                            }
+                        }
+                    });
+                });
+            });
+            return fixes;
+        }
+
+        // ==================== BALANCIMI I DITËVE PËR MËSIMDHËNËS NË 2 NDËRRIME ====================
+        // Për mësimdhënësit që punojnë NË TË DY ndërrimet gjatë javës: nëse njëri ndërrim ka
+        // shumë MË PAK ditë të përdorura se tjetri (orët e ngjeshura vetëm në 1-2 ditë), e
+        // SHPËRNDAN atë ndërrim në më shumë ditë (duke huazuar orë nga dita më e ngarkuar drejt
+        // një dite krejt të re) - kjo e bën shpërndarjen më të lehtë për vetë gjeneruesin. Si
+        // "hapësirë manovrimi", LEJON deri në 2 orë të SË NJËJTËS LËNDË të njëjtën ditë (jo vetëm
+        // 1, siç është normalja) - kur nevojitet për ta bërë balancimin të mundur.
+        function balanceDualShiftTeachers() {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var balancedCount = 0;
+
+            var allTeacherIds = {};
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(data.rows).forEach(function(tid) { allTeacherIds[tid] = true; });
+            });
+
+            Object.keys(allTeacherIds).forEach(function(teacherId) {
+                var activity = getTeacherCombinedDayActivity(teacherId);
+                var paradiiteDays = days.filter(function(d) { return activity[d].paradite; });
+                var pasditeDays = days.filter(function(d) { return activity[d].pasdite; });
+                if (paradiiteDays.length === 0 || pasditeDays.length === 0) return; // jo mësimdhënës i dy ndërrimeve
+
+                var diff = paradiiteDays.length - pasditeDays.length;
+                if (Math.abs(diff) < 2) return; // tashmë mjaft i balancuar
+
+                // "toShift" = ndërrimi me MË PAK ditë - synojmë t'ia zgjerojmë numrin e ditëve.
+                var toShift = diff > 0 ? 'pasdite' : 'paradite';
+                var toShiftData = buildTeacherScheduleData(toShift);
+                var row = toShiftData.rows[teacherId];
+                if (!row) return;
+                var toShiftDays = toShift === 'paradite' ? paradiiteDays : pasditeDays;
+
+                // gjej ditën më "të ngjeshur" (me më shumë orë) brenda toShift - burimi.
+                var busiest = null, busiestCount = 0;
+                toShiftDays.forEach(function(d) {
+                    var c = hours.filter(function(h) { return row.grid[d][h]; }).length;
+                    if (c > busiestCount) { busiestCount = c; busiest = d; }
+                });
+                if (!busiest || busiestCount < 2) return; // s'ka nga të huazojë pa e lënë nën minimum
+
+                // gjej ditë KREJT TË RE - e lirë në TË DY ndërrimet për këtë mësimdhënës.
+                var newDay = days.find(function(d) { return !activity[d].paradite && !activity[d].pasdite; });
+                if (!newDay) return;
+
+                outer: for (var h = 0; h < hours.length; h++) {
+                    var srcHour = hours[h];
+                    var cell = row.grid[busiest][srcHour];
+                    if (!cell) continue;
+                    var cls = systemData.classes.find(function(c) { return c.id === cell.classId; });
+                    if (!cls) continue;
+                    for (var h2 = 0; h2 < hours.length; h2++) {
+                        var targetHour = hours[h2];
+                        if (cls.schedule[newDay][targetHour]) continue;
+                        // KRITERI I RI: lejo deri në 2 orë të së njëjtës lëndë të njëjtën ditë.
+                        var existingSameSubjectCount = hours.filter(function(hh) {
+                            return cls.schedule[newDay][hh] === cell.subjectKey;
+                        }).length;
+                        if (existingSameSubjectCount >= 2) continue;
+                        if (isTeacherBlocked(teacherId, toShift, newDay, targetHour)) continue;
+                        if (!isTeacherFreeInCurrentSchedules(teacherId, toShift, newDay, targetHour)) continue;
+                        cls.schedule[newDay][targetHour] = cell.subjectKey;
+                        cls.schedule[busiest][srcHour] = '';
+                        balancedCount++;
+                        break outer;
+                    }
+                }
+            });
+            return balancedCount;
+        }
+
         function eliminateGapDaysForTeachers() {
             var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
             var hours = [1, 2, 3, 4, 5, 6];
@@ -8201,7 +8529,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                         var placed = false;
                         for (var h2 = 0; h2 < hours.length; h2++) {
                             var dstHour = hours[h2];
-                            if (!cls.schedule[day][dstHour] && isTeacherFreeInCurrentSchedules(teacherId, lastDayShift, day, dstHour) &&
+                            if (!cls.schedule[day][dstHour] && !isReservedEmptySlot(cls, day, dstHour) &&
+                                isTeacherFreeInCurrentSchedules(teacherId, lastDayShift, day, dstHour) &&
                                 !isTeacherBlocked(teacherId, lastDayShift, day, dstHour)) {
                                 cls.schedule[day][dstHour] = cell.subjectKey;
                                 cls.schedule[lastDay][srcHour] = '';
@@ -8215,6 +8544,139 @@ if (systemData.classes && systemData.classes.length > 0) {
                 }
             });
             return gapsFixed;
+        }
+
+        // ==================== RREGULLIM AGRESIV (orët e mbetura pa vend) ====================
+        // Përdoret PAS "Gjenero Orarin", kur ende ka orë të pashpërndara (konflikte reale
+        // mësimdhënësish). Provon të gjejë ÇFARËDO vendi të lirë (dita/ora ku klasa s'ka gjë dhe
+        // mësimdhënësi s'ka konflikt tjetër), duke LEJUAR shkelje të rregullave "të buta" që
+        // "Gjenero Orarin" i respekton normalisht: (1) 2 orë të së njëjtës lëndë të njëjtën ditë
+        // për të njëjtën klasë, (2) pauza (edhe 2 radhazi), (3) ditë me vetëm 1 orë. E VETMJA
+        // gjë që NUK lejohet asnjëherë: mësimdhënësi në 2 vende njëkohësisht (konflikt real).
+        function confirmBalanceDualShiftTeachers() {
+            if (!requireAdmin()) return;
+            if (!confirm("Kjo do të kërkojë mësimdhënësit që punojnë në të DY ndërrimet gjatë javës, dhe do të tentojë t'ua shpërndajë ditët më balancuar (jo të ngjeshura vetëm në 1-2 ditë) - duke lejuar deri në 2 orë të së njëjtës lëndë të njëjtën ditë kur nevojitet. Vazhdo?")) return;
+            var count = balanceDualShiftTeachers();
+            saveToLocal();
+            refreshDisplay();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                var msg = count > 0 ?
+                    "⚖️ " + count + " orë u zhvendosën për ta balancuar shpërndarjen e ditëve!" :
+                    "ℹ️ Asgjë s'kishte nevojë të balancohej (ose s'u gjet mënyrë e sigurt).";
+                showNotification(msg + (ok ? " ✅ U ruajt në cloud." : " ⚠️ Cloud dështoi, u ruajt lokalisht."));
+            });
+        }
+
+        function confirmAggressiveFillRemaining() {
+            if (!requireAdmin()) return;
+            var totalUnplaced = 0;
+            systemData.classes.forEach(function(c) { if (c._unplacedQueue) totalUnplaced += c._unplacedQueue.length; });
+            if (totalUnplaced === 0) {
+                showNotification("🎉 S'ka orë pa vend për t'u rregulluar (ose s'ke gjeneruar Orarin ende në këtë sesion).");
+                return;
+            }
+            if (!confirm("Kjo do të provojë të vendosë " + totalUnplaced + " orët e mbetura pa vend, duke LEJUAR shkelje të vogla (2 orë të së njëjtës lëndë të njëjtën ditë, pauza radhazi, ditë me 1 orë) VETËM kur s'ka rrugëdalje tjetër. Vazhdo?")) return;
+            aggressiveFillRemaining();
+        }
+
+        function aggressiveFillRemaining() {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var placedCount = 0;
+            var displacedCount = 0;
+
+            function respectsShiftSeparation(teacherId, shift, day) {
+                if (hasDualShiftOverride(teacherId, day)) return true; // admini e autorizoi eksplicit
+                var otherShiftKey = shift === 'paradite' ? 'pasdite' : 'paradite';
+                var activity = getTeacherCombinedDayActivity(teacherId);
+                return !(activity[day] && activity[day][otherShiftKey]);
+            }
+            function respectsMaxTwoSameSubject(classObj, day, subjectKey) {
+                var count = hours.filter(function(h) { return classObj.schedule[day][h] === subjectKey; }).length;
+                return count < 2;
+            }
+
+            // Provo të vendosësh "subjectKey" (mësimdhënësi "teacherId") diku - nëse çdo vend i
+            // mundshëm është i zënë, provo REKURSIVISHT ta zhvendosësh "banorin" e atij vendi
+            // diku tjetër (deri në 2 nivele thellësi), respektimi rregullat absolute (ndarja e
+            // ndërrimeve, max 2 orë të së njëjtës lëndë/ditë) në ÇDO nivel.
+            function tryPlace(classObj, subjectKey, teacherId, shift, depth, visited) {
+                if (depth > 3) return false;
+                if (!classObj.schedule) return false;
+                for (var di = 0; di < days.length; di++) {
+                    var day = days[di];
+                    if (!respectsShiftSeparation(teacherId, shift, day)) continue;
+                    if (!respectsMaxTwoSameSubject(classObj, day, subjectKey)) continue;
+                    for (var hi = 0; hi < hours.length; hi++) {
+                        var hour = hours[hi];
+                        var key = classObj.id + '|' + day + '|' + hour;
+                        if (visited[key]) continue;
+                        if (isTeacherBlocked(teacherId, shift, day, hour)) continue;
+                        if (!isTeacherFreeInCurrentSchedules(teacherId, shift, day, hour)) continue;
+                        var occupant = classObj.schedule[day][hour];
+                        if (!occupant) {
+                            classObj.schedule[day][hour] = subjectKey;
+                            return true;
+                        }
+                        if (occupant === subjectKey) continue;
+                        var occupantTeacherId = getSubjectTeacherId(classObj.id, occupant);
+                        visited[key] = true;
+                        var saved = classObj.schedule[day][hour];
+                        classObj.schedule[day][hour] = '';
+                        if (tryPlace(classObj, occupant, occupantTeacherId, shift, depth + 1, visited)) {
+                            classObj.schedule[day][hour] = subjectKey;
+                            if (depth > 0) displacedCount++;
+                            return true;
+                        }
+                        classObj.schedule[day][hour] = saved;
+                        visited[key] = false;
+                    }
+                }
+                return false;
+            }
+
+            systemData.classes.forEach(function(classObj) {
+                if (!classObj._unplacedQueue || classObj._unplacedQueue.length === 0) return;
+                var shift = getClassShift(classObj);
+                var queue = classObj._unplacedQueue.slice();
+                var stillQueue = [];
+                queue.forEach(function(subjectKey) {
+                    var teacherId = getSubjectTeacherId(classObj.id, subjectKey);
+                    var placed = tryPlace(classObj, subjectKey, teacherId, shift, 0, {});
+                    if (placed) {
+                        placedCount++;
+                    } else {
+                        stillQueue.push(subjectKey);
+                    }
+                });
+                classObj._unplacedQueue = stillQueue;
+            });
+
+            saveToLocal();
+            refreshDisplay();
+            var remainingTotal = 0;
+            var remainingByClass = [];
+            systemData.classes.forEach(function(c) {
+                if (c._unplacedQueue && c._unplacedQueue.length > 0) {
+                    remainingTotal += c._unplacedQueue.length;
+                    remainingByClass.push(c.className + ' (' + c._unplacedQueue.length + ')');
+                }
+            });
+            var msg = "🔧 Rregullimi agresiv: " + placedCount + " orë shtesë u vendosën" +
+                (displacedCount > 0 ? " (nga këto, " + displacedCount + " kërkuan zhvendosje zinxhir të lëndëve të tjera për t'i bërë vend)" : "") + "!";
+            if (remainingTotal > 0) {
+                msg += "\n⚠️ Ende " + remainingTotal + " orë VËRTET pa vend (mësimdhënësi s'ka asnjë orë të lirë fare): " +
+                    remainingByClass.join(', ') + " - këto kërkojnë ndryshim manual (p.sh. mësimdhënës tjetër, ose më pak orë/javë).";
+            } else {
+                msg += "\n🎉 Të gjitha orët u vendosën!";
+            }
+            showNotification(msg, 20000);
+
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? "✅ U ruajt në cloud!" : "⚠️ U ruajt lokalisht, cloud dështoi.");
+            });
         }
 
         function autoFillAllSchedules() {
@@ -8256,6 +8718,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             // A e ka përdorur ky mësimdhënës këtë DITË tashmë te ndërrimi TJETËR (paradite<->pasdite)?
             function usesOtherShiftDay(teacherId, shift, day) {
                 if (!teacherId) return false;
+                if (hasDualShiftOverride(teacherId, day)) return false; // admini e autorizoi eksplicit
                 var other = shift === 'paradite' ? 'pasdite' : 'paradite';
                 return !!(teacherShiftDays[teacherId] && teacherShiftDays[teacherId][other] && teacherShiftDays[teacherId][other][day]);
             }
@@ -8287,6 +8750,25 @@ if (systemData.classes && systemData.classes.length > 0) {
                 classObj.subjectsOrder.forEach(function(sub) {
                     remaining[sub.key] = (curriculum[sub.key] && curriculum[sub.key].hoursPerWeek) || 0;
                 });
+
+                // ORËT E KYÇURA (🔒): ruaj gjendjen e tyre PARA se orari të fshihet - do t'i
+                // rikthejmë EKZAKTËSISHT te i njëjti vend pas rigjenerimit, dhe ua zbresim numrin
+                // nga "remaining" (që gjeneruesi të mos i kërkojë sërish si të pavendosura).
+                var lockedPreserve = []; // { day, hour, subjectKey, teacherId }
+                if (classObj._lockedSlots && classObj.schedule) {
+                    Object.keys(classObj._lockedSlots).forEach(function(day) {
+                        Object.keys(classObj._lockedSlots[day]).forEach(function(hourStr) {
+                            var hour = parseInt(hourStr);
+                            if (!classObj._lockedSlots[day][hour]) return;
+                            var subjectKey = classObj.schedule[day] && classObj.schedule[day][hour];
+                            if (!subjectKey) return;
+                            var tId = getSubjectTeacherId(classObj.id, subjectKey);
+                            lockedPreserve.push({ day: day, hour: hour, subjectKey: subjectKey, teacherId: tId });
+                            if (remaining[subjectKey] > 0) remaining[subjectKey]--;
+                        });
+                    });
+                }
+
                 var keysInOrder = classObj.subjectsOrder.map(function(s) { return s.key; });
                 var queue = [];
                 var anyLeft = true;
@@ -8299,8 +8781,23 @@ if (systemData.classes && systemData.classes.length > 0) {
                 var classRequired = queue.length;
                 totalRequired += classRequired;
 
+                // RREGULL SPECIAL (Klasa e Gjashtë): sido që të jetë numri i orëve (jo domosdo
+                // 29), nëse "mungon" diçka nga 30 vendet e mundshme (5 ditë × 6 orë), gjithë
+                // "mungesa" duhet të grumbullohet në NJË DITË TË VETME - në orët e FUNDIT të asaj
+                // dite (jo e shpërndarë nëpër disa ditë apo në mes të ditës). Dita përcaktohet
+                // vetë nga algoritmi (sipas disponueshmërisë reale) - shih rirregullimin poshtë.
+                var deficit = 30 - classRequired;
+                var needsCompactShortDay = (classObj.className.indexOf('VI-') === 0 && deficit >= 1 && deficit <= 6);
+
                 var newSchedule = {};
                 days.forEach(function(d) { newSchedule[d] = {}; hours.forEach(function(h) { newSchedule[d][h] = ''; }); });
+
+                // Rikthe vendet e KYÇURA ekzaktësisht ku ishin, dhe shëno mësimdhënësit e tyre si
+                // të zënë (që gjeneruesi të mos i vendosë diku tjetër njëkohësisht - konflikt).
+                lockedPreserve.forEach(function(item) {
+                    newSchedule[item.day][item.hour] = item.subjectKey;
+                    markTeacherBusy(item.teacherId, shift, item.day, item.hour, classObj.id);
+                });
 
                 // Radhit ditët për këtë klasë: preferojmë t'i trajtojmë PARA ato ditë ku SHUMICA e
                 // mësimdhënësve të mbetur në radhë NUK e kanë përdorur tashmë te ndërrimi tjetër -
@@ -8309,6 +8806,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                     var usedToday = {};
                     hours.forEach(function(hour) {
                         if (queue.length === 0) return;
+                        if (newSchedule[day][hour]) { usedToday[newSchedule[day][hour]] = (usedToday[newSchedule[day][hour]] || 0) + 1; return; } // vend i zënë (i kyçur) - kapërce
                         // A ka mësimdhënësi i një lënde `k` diçka TJETËR në radhë (çfarëdo
                         // lënde/klase, jo domosdo sot) - shpresë reale për 2+ orë, jo 1 e vetme.
                         function hasMoreLater(k, skipIdx) {
@@ -8354,11 +8852,22 @@ if (systemData.classes && systemData.classes.length > 0) {
                                 var tId = getSubjectTeacherId(classObj.id, k);
                                 return !usedToday[k] && isTeacherFree(tId, shift, day, hour) && !usesOtherShiftDay(tId, shift, day);
                             },
+                            // RREGULL ABSOLUT (me kërkesë të admin-it): "jo dy ndërrime të njëjtën
+                            // ditë" S'MUND të shkelet MË nga gjenerimi automatik - as si "rrugëdalje
+                            // e fundit". Nivelet 5-6 (më parë e injoronin këtë rregull kur s'kishte
+                            // zgjidhje tjetër) tani E RESPEKTOJNË gjithashtu - nëse asnjë vend s'gjendet
+                            // pa e shkelur, ora mbetet PA VEND (shkon te "orë pa vend"), në vend që
+                            // ta shkelë rregullin.
                             function(k) {
-                                return !usedToday[k] && isTeacherFree(getSubjectTeacherId(classObj.id, k), shift, day, hour);
+                                var tId = getSubjectTeacherId(classObj.id, k);
+                                return !usedToday[k] && isTeacherFree(tId, shift, day, hour) && !usesOtherShiftDay(tId, shift, day);
                             },
+                            // RRUGËDALJE E KONTROLLUAR: lejo PËRSËRITJE të lëndës këtë ditë (deri
+                            // në 2 gjithsej - jo më shumë, kufi absolut me kërkesë të admin-it),
+                            // ende duke respektuar ndarjen e ndërrimeve.
                             function(k) {
-                                return isTeacherFree(getSubjectTeacherId(classObj.id, k), shift, day, hour);
+                                var tId = getSubjectTeacherId(classObj.id, k);
+                                return (usedToday[k] || 0) < 2 && isTeacherFree(tId, shift, day, hour) && !usesOtherShiftDay(tId, shift, day);
                             }
                         ];
                         var found = -1;
@@ -8368,17 +8877,85 @@ if (systemData.classes && systemData.classes.length > 0) {
                         if (found === -1) return; // askush s'është i lirë në këtë moment - lëre bosh, mos e detyro
                         var subjectKey = queue.splice(found, 1)[0];
                         newSchedule[day][hour] = subjectKey;
-                        usedToday[subjectKey] = true;
+                        usedToday[subjectKey] = (usedToday[subjectKey] || 0) + 1;
                         markTeacherBusy(getSubjectTeacherId(classObj.id, subjectKey), shift, day, hour, classObj.id);
                     });
                 });
                 classObj.schedule = newSchedule;
+
+                // RIRREGULLIM (Klasa e Gjashtë): grumbullon TË GJITHA boshllëqet natyrore në NJË
+                // DITË TË VETME (ajo që tashmë ka MË SHUMË boshllëqe, për të minimizuar lëvizjet),
+                // duke i "shtyrë" në fund të asaj dite (orët e fundit, jo në mes) - ditët e tjera
+                // mbushen PLOTËSISHT. Nëse boshllëqet ishin tashmë natyrshëm në më shumë se një
+                // ditë, i mbledh të gjitha në ditën "kryesore" duke shkëmbyer me orë të zëna atje.
+                if (needsCompactShortDay) {
+                    var emptyCells = [];
+                    days.forEach(function(day) {
+                        hours.forEach(function(hour) { if (!newSchedule[day][hour]) emptyCells.push({ day: day, hour: hour }); });
+                    });
+                    if (emptyCells.length === deficit) {
+                        var countByDay = {};
+                        emptyCells.forEach(function(c) { countByDay[c.day] = (countByDay[c.day] || 0) + 1; });
+                        var targetDay = null;
+                        days.forEach(function(d) {
+                            if (countByDay[d] && (!targetDay || countByDay[d] > countByDay[targetDay])) targetDay = d;
+                        });
+                        // Hapi 1: mbush çdo boshllëk JASHTË ditës-synim, duke huazuar një orë të
+                        // zënë NGA vetë dita-synim (kështu boshllëku "kalon" atje).
+                        emptyCells.filter(function(c) { return c.day !== targetDay; }).forEach(function(c) {
+                            for (var h = 1; h <= 6; h++) {
+                                if (newSchedule[targetDay][h]) {
+                                    var content = newSchedule[targetDay][h];
+                                    var tid = getSubjectTeacherId(classObj.id, content);
+                                    if (isTeacherFree(tid, shift, c.day, c.hour)) {
+                                        newSchedule[c.day][c.hour] = content;
+                                        newSchedule[targetDay][h] = '';
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                        // Hapi 2: brenda ditës-synim, ngjesh çdo boshllëk drejt FUNDIT (jo mesit) -
+                        // përsërit derisa çdo boshllëk i mbetur të mos ketë asnjë orë të zënë pas
+                        // vetes (domethënë, të gjitha boshllëqet janë tashmë "bishtin" e ditës).
+                        var changed = true;
+                        while (changed) {
+                            changed = false;
+                            for (var h = 1; h <= 6 && !changed; h++) {
+                                if (!newSchedule[targetDay][h]) {
+                                    for (var h2 = h + 1; h2 <= 6; h2++) {
+                                        if (newSchedule[targetDay][h2]) {
+                                            newSchedule[targetDay][h] = newSchedule[targetDay][h2];
+                                            newSchedule[targetDay][h2] = '';
+                                            changed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Rilexo pozicionet PËRFUNDIMTARE të boshllëqeve - hapat e MËVONSHËM (ngjeshja,
+                    // plotësimi i ditëve të dobëta) TA RESPEKTOJNË dhe s'i mbushin aksidentalisht.
+                    var finalEmptyCells = [];
+                    days.forEach(function(day) {
+                        hours.forEach(function(hour) { if (!newSchedule[day][hour]) finalEmptyCells.push({ day: day, hour: hour }); });
+                    });
+                    classObj._reservedEmptySlots = finalEmptyCells;
+                    classObj._reservedEmptySlot = finalEmptyCells.length === 1 ? finalEmptyCells[0] : null;
+                }
                 var placedForClass = classRequired - queue.length;
                 totalPlaced += placedForClass;
+                classObj._unplacedQueue = queue.slice(); // ruaj mbetjet - i duhen "Rregullimit Agresiv"
                 if (queue.length > 0) classesWithGaps.push(classObj.className + ' (' + queue.length + ' pa vend)');
             });
 
             var gapsFixed = eliminateGapDaysForTeachers();
+            var compactedCount = compactTeacherDailySchedules();
+            var weakDaysFixedCount = fixWeakDaysForTeachers();
+            // Ngjeshja mund të ketë krijuar mundësi të reja pas huazimit të orëve - rirendit edhe
+            // një herë për siguri (i lirë, thjesht mbyll boshllëqe të mbetura të vogla).
+            compactTeacherDailySchedules();
 
             // ==================== RAPORTIMI PAS GJENERIMIT ====================
             // Kontrollon çdo mësimdhënës, në secilin ndërrim, për: ditë me VETËM 1 orë (nën
@@ -8387,15 +8964,23 @@ if (systemData.classes && systemData.classes.length > 0) {
             // që admini t'i shohë dhe t'i rregullojë manualisht nëse duhet).
             var weakDaysReport = [];
             var sandwichedFreeDaysReport = [];
+            var days2 = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours2 = [1, 2, 3, 4, 5, 6];
+            var allReportedTeacherIds = {};
+            Object.keys(teacherDailyCount).forEach(function(tid) { allReportedTeacherIds[tid] = true; });
+            // I rindërtojmë raportet nga GJENDJA AKTUALE (pas eliminimit të boshllëqeve,
+            // ngjeshjes, dhe plotësimit të ditëve të dobëta) - jo nga "teacherDailyCount" e
+            // ngrirë (llogaritur PARA këtyre rregullimeve, pra do të ishte e vjetëruar).
             ['paradite', 'pasdite'].forEach(function(shift) {
-                Object.keys(teacherDailyCount).forEach(function(teacherId) {
-                    var perDay = teacherDailyCount[teacherId] && teacherDailyCount[teacherId][shift];
-                    if (!perDay) return;
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(allReportedTeacherIds).forEach(function(teacherId) {
+                    var row = data.rows[teacherId];
+                    if (!row) return;
                     var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
                     var tName = teacher ? teacher.name : teacherId;
-                    var dayIndices = days.map(function(d) { return perDay[d] || 0; });
-                    dayIndices.forEach(function(v, i) {
-                        if (v === 1) weakDaysReport.push(tName + ' (' + shift + ', ' + days[i] + ')');
+                    days2.forEach(function(day) {
+                        var count = hours2.filter(function(h) { return row.grid[day][h]; }).length;
+                        if (count === 1) weakDaysReport.push(tName + ' (' + shift + ', ' + day + ')');
                     });
                 });
             });
@@ -8404,8 +8989,6 @@ if (systemData.classes && systemData.classes.length > 0) {
             // punon te tjetri atë ditë; kjo NUK numërohet si "ditë e lirë" e vërtetë (e lejuar,
           // sipas kërkesës - "ditë të lira lejohen nëse punohet në dy ndërrime, por të
             // sinkronizuara").
-            var allReportedTeacherIds = {};
-            Object.keys(teacherDailyCount).forEach(function(tid) { allReportedTeacherIds[tid] = true; });
             Object.keys(allReportedTeacherIds).forEach(function(teacherId) {
                 var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
                 var tName = teacher ? teacher.name : teacherId;
@@ -8421,11 +9004,36 @@ if (systemData.classes && systemData.classes.length > 0) {
                 });
             });
 
+            var internalGapsReport = [];
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                Object.keys(allReportedTeacherIds).forEach(function(teacherId) {
+                    var row = data.rows[teacherId];
+                    if (!row) return;
+                    var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
+                    var tName = teacher ? teacher.name : teacherId;
+                    days2.forEach(function(day) {
+                        var occupied = hours2.filter(function(h) { return row.grid[day][h]; });
+                        if (occupied.length < 2) return;
+                        var minH = Math.min.apply(null, occupied), maxH = Math.max.apply(null, occupied);
+                        for (var h = minH; h <= maxH; h++) {
+                            if (!row.grid[day][h]) { internalGapsReport.push(tName + ' (' + shift + ', ' + day + ')'); break; }
+                        }
+                    });
+                });
+            });
+
             saveToLocal();
             refreshDisplay();
             var msg = "🤖 Orari i " + systemData.classes.length + " klasave u gjenerua! (" + totalPlaced + " nga " + totalRequired + " orë u vendosën gjithsej)";
             if (gapsFixed > 0) {
                 msg += "\n✅ " + gapsFixed + " ditë bosh u eliminuan automatikisht (orë u zhvendosën për t'i mbushur).";
+            }
+            if (compactedCount > 0) {
+                msg += "\n✅ " + compactedCount + " pauza brenda ditës u ngjeshën (orë u afruan mes vete).";
+            }
+            if (weakDaysFixedCount > 0) {
+                msg += "\n✅ " + weakDaysFixedCount + " ditë me vetëm 1 orë u plotësuan (huazuar nga ditë me tepricë).";
             }
             if (weakDaysReport.length > 0) {
                 msg += "\n⚠️ Ditë me vetëm 1 orë (nën minimumin 2): " + weakDaysReport.slice(0, 10).join(', ') +
@@ -8434,6 +9042,10 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (sandwichedFreeDaysReport.length > 0) {
                 msg += "\n⚠️ Ditë të lira të ngujuara mes ditësh pune: " + sandwichedFreeDaysReport.slice(0, 10).join(', ') +
                     (sandwichedFreeDaysReport.length > 10 ? ' (+' + (sandwichedFreeDaysReport.length - 10) + ' të tjera)' : '');
+            }
+            if (internalGapsReport.length > 0) {
+                msg += "\n⚠️ Pauza brenda ditës (s'u ngjeshën dot - klasa e synuar e zënë): " + internalGapsReport.slice(0, 10).join(', ') +
+                    (internalGapsReport.length > 10 ? ' (+' + (internalGapsReport.length - 10) + ' të tjera)' : '');
             }
             if (classesWithGaps.length > 0) {
                 msg += " ⚠️ Klasat me orë pa vend (konflikt mësimdhënësi ose vend i pamjaftueshëm): " + classesWithGaps.join(', ');
@@ -8494,10 +9106,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                 hours.forEach(function(hour) {
                     if (queue.length === 0) return;
                     var found = queue.findIndex(function(k) { return !usedToday[k]; });
-                    if (found === -1) found = 0; // s'ka më lëndë "të freskëta" për sot - lejo përsëritje si rrugëdalje e fundit
+                    if (found === -1) found = queue.findIndex(function(k) { return (usedToday[k] || 0) < 2; }); // rrugëdalje e kontrolluar - max 2, jo pa kufi
+                    if (found === -1) return; // as 2 s'mjaftojnë - lëre bosh, mos e detyro më shumë
                     var subjectKey = queue.splice(found, 1)[0];
                     newSchedule[day][hour] = subjectKey;
-                    usedToday[subjectKey] = true;
+                    usedToday[subjectKey] = (usedToday[subjectKey] || 0) + 1;
                 });
             });
             classObj.schedule = newSchedule;
@@ -8676,102 +9289,209 @@ if (systemData.classes && systemData.classes.length > 0) {
             return { key: value, requiredName: null };
         }
 
-        function buildRosterBlockRowHtml(t, sortedClasses, preselectedSubjectKey, isFirstRow, summaryHtml) {
-            var html = '<tr data-teacher-id="' + t.id + '" class="roster-block-row" style="' + (isFirstRow ? '' : 'background:#fafafa;') + '">';
-            if (isFirstRow) {
-                html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + escapeHtml(t.name) +
-                    ' <span onclick="removeTeacherFromRoster(\'' + t.id + '\')" title="Hiq mësimdhënësin" style="cursor:pointer; color:#c62828; font-size:11px; margin-left:6px;">✕</span>' +
-                    '<div class="roster-current-summary" style="font-size:10px; color:#2e7d32; margin-top:3px;">' + summaryHtml + '</div>' +
-                    '<div style="margin-top:4px;"><span onclick="addSubjectBlockRow(\'' + t.id + '\')" style="cursor:pointer; color:#0b4b6e; font-size:10px; text-decoration:underline;">+ Lëndë tjetër</span></div>' +
-                    '</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;">' + getTeacherTotalHours(t.id) + '</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + buildTimeOffMiniGrid(t.id) + '</td>';
-            } else {
-                html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top; color:#999; font-size:11px;">↳ ' + escapeHtml(t.name) + '</td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee;"></td>' +
-                    '<td style="padding:5px; border-bottom:1px solid #eee;"></td>';
-            }
-            html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><select class="roster-subject-select" style="width:100%; padding:3px; height:26px;">';
+        // Ndërton NJË RRESHT TË VETËM për mësimdhënësin, me zgjedhje TË SHUMËFISHTË lëndësh (jo
+        // më "+ Lëndë tjetër" me rreshta shtesë) - kliko checkbox-at e lëndëve, dhe poshtë
+        // shfaqen automatikisht aq kuti klasash sa lëndë të zgjedhura ka.
+        function buildRosterRowHtml(t, sortedClasses) {
+            var assignedSubjectKeys = getTeacherAssignedRosterSubjects(t, sortedClasses);
+            var summaryHtml = buildRosterSummaryHtml(t, sortedClasses);
+            var html = '<tr data-teacher-id="' + t.id + '">';
+            html += '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + escapeHtml(t.name) +
+                ' <span onclick="removeTeacherFromRoster(\'' + t.id + '\')" title="Hiq mësimdhënësin" style="cursor:pointer; color:#c62828; font-size:11px; margin-left:6px;">✕</span>' +
+                '<div class="roster-current-summary" style="font-size:10px; color:#2e7d32; margin-top:3px;">' + summaryHtml + '</div>' +
+                '</td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;">' + getTeacherTotalHours(t.id) + '</td>' +
+                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' + buildTimeOffMiniGrid(t.id) + '</td>';
+            // Lënda - zgjedhje E SHUMËFISHTË (checkbox për secilën).
+            html += '<td style="padding:5px; border-bottom:1px solid #eee; position:relative; vertical-align:top;">' +
+                '<details class="roster-subjects-dropdown">' +
+                '<summary class="roster-subjects-summary" style="padding:3px 6px; height:18px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:white; font-size:12px; list-style:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+                (assignedSubjectKeys.length > 0 ? assignedSubjectKeys.length + ' lëndë të zgjedhura' : '-- Zgjidh lëndët --') + '</summary>' +
+                '<div style="position:absolute; z-index:25; background:white; border:1px solid #ccc; border-radius:0 0 4px 4px; padding:4px; max-height:200px; overflow-y:auto; min-width:170px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">';
             getRosterSubjectOptions().forEach(function(opt) {
-                var selectedAttr = (opt.value === preselectedSubjectKey) ? ' selected' : '';
-                html += '<option value="' + opt.value + '"' + selectedAttr + '>' + escapeHtml(opt.label) + '</option>';
+                var checkedAttr = assignedSubjectKeys.indexOf(opt.value) !== -1 ? ' checked' : '';
+                html += '<label style="display:block; padding:2px 4px; white-space:nowrap;"><input type="checkbox" class="roster-subject-checkbox" value="' + opt.value + '"' + checkedAttr + '> ' + escapeHtml(opt.label) + '</label>';
             });
-            html += '</select></td>' +
-                '<td style="padding:5px; border-bottom:1px solid #eee; position:relative; vertical-align:top;">' +
-                '<details class="roster-classes-dropdown">' +
-                '<summary class="roster-classes-summary" style="padding:3px 6px; height:18px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:white; font-size:12px; list-style:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Zgjidh klasat --</summary>' +
-                '<div style="position:absolute; z-index:20; background:white; border:1px solid #ccc; border-radius:0 0 4px 4px; padding:4px; max-height:160px; overflow-y:auto; min-width:140px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">';
-            sortedClasses.forEach(function(cls) {
-                html += '<label style="display:block; padding:2px 4px; white-space:nowrap;"><input type="checkbox" class="roster-class-checkbox" value="' + cls.id + '"> ' + escapeHtml(cls.className) + '</label>';
+            html += '</div></details></td>';
+            // Klasët - NJË BLLOK PËR SECILËN lëndë të zgjedhur (mbushet dinamikisht).
+            html += '<td class="roster-classes-multi-cell" style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">';
+            assignedSubjectKeys.forEach(function(subjectValue) {
+                html += buildRosterSubjectClassBlockHtml(t.id, subjectValue, sortedClasses);
             });
-            html += '</div></details></td>' +
+            html += '</td>' +
                 '<td style="padding:5px; border-bottom:1px solid #eee; text-align:center; font-weight:bold; vertical-align:top;" class="roster-total-hours">0</td>' +
                 '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-warning" style="padding:3px 8px; font-size:11px;" onclick="undoRosterRow(this)">↩️ Undo</button></td>' +
                 '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-success" style="padding:3px 8px; font-size:11px;" onclick="commitRosterAssignment(this)">✅ Cakto</button></td>' +
-                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;">' +
-                (isFirstRow ? '<button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearRosterAssignment(this)">🗑️ Fshijë</button>' :
-                    '<span onclick="removeSubjectBlockRow(this)" title="Hiq këtë rresht (nëse s\'e ke ruajtur ende)" style="cursor:pointer; color:#c62828; font-size:14px;">✕</span>') +
-                '</td></tr>';
+                '<td style="padding:5px; border-bottom:1px solid #eee; vertical-align:top;"><button class="btn btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearRosterAssignment(this)">🗑️ Fshijë</button></td>' +
+                '</tr>';
             return html;
         }
 
-        function wireUpRosterBlockRow(row) {
-            row.querySelector('.roster-subject-select').addEventListener('change', function() { refreshRosterRow(row); applyRosterActiveFilter(); });
-            row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
+        // Kthen listën e "vlerave" lëndësh (mund të jenë variante zgjedhoreje si
+        // "msimzgjedhor::Robotikë") që ky mësimdhënës aktualisht i jep, sipas caktimeve reale.
+        function getTeacherAssignedRosterSubjects(t, sortedClasses) {
+            var found = [];
+            getRosterSubjectOptions().forEach(function(opt) {
+                var parsed = parseRosterSubjectValue(opt.value);
+                var hasAny = sortedClasses.some(function(cls) {
+                    return classOffersSubject(cls.id, opt.value) && getSubjectTeacherId(cls.id, parsed.key) === t.id;
+                });
+                if (hasAny) found.push(opt.value);
+            });
+            return found;
+        }
+
+        function buildRosterSummaryHtml(t, sortedClasses) {
+            var summaryParts = [];
+            getRosterSubjectOptions().forEach(function(opt) {
+                var parsed = parseRosterSubjectValue(opt.value);
+                var classesForThis = sortedClasses.filter(function(cls) {
+                    return classOffersSubject(cls.id, opt.value) && getSubjectTeacherId(cls.id, parsed.key) === t.id;
+                });
+                if (classesForThis.length > 0) {
+                    summaryParts.push(opt.label.replace(' (zgjedhore)', '') + ' (' + classesForThis.map(function(c) { return c.className; }).join(', ') + ')');
+                }
+            });
+            return summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
+        }
+
+        // Ndërton bllokun (etiketë + kuti klasash) për NJË lëndë specifike, brenda "Klasët".
+        function buildRosterSubjectClassBlockHtml(teacherId, subjectValue, sortedClasses) {
+            var opt = getRosterSubjectOptions().find(function(o) { return o.value === subjectValue; });
+            var label = opt ? opt.label : subjectValue;
+            var html = '<div class="roster-subject-class-block" data-subject-value="' + escapeHtml(subjectValue) + '" style="margin-bottom:6px; padding:4px; background:#f7f9fb; border-radius:5px;">' +
+                '<div style="font-size:10px; color:#555; font-weight:bold; margin-bottom:2px;">' + escapeHtml(label) + '</div>' +
+                '<details class="roster-classes-dropdown">' +
+                '<summary class="roster-classes-summary" style="padding:3px 6px; height:18px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:white; font-size:12px; list-style:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Zgjidh klasat --</summary>' +
+                '<div style="position:absolute; z-index:30; background:white; border:1px solid #ccc; border-radius:0 0 4px 4px; padding:4px; max-height:160px; overflow-y:auto; min-width:140px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">';
+            sortedClasses.forEach(function(cls) {
+                html += '<label style="display:block; padding:2px 4px; white-space:nowrap;"><input type="checkbox" class="roster-class-checkbox" value="' + cls.id + '"> ' + escapeHtml(cls.className) + '</label>';
+            });
+            html += '</div></details></div>';
+            return html;
+        }
+
+        function wireUpRosterRow(row) {
+            row.querySelectorAll('.roster-subject-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() { handleRosterSubjectCheckboxChange(row, cb); });
+            });
+            row.querySelectorAll('.roster-subject-class-block').forEach(function(block) {
+                wireUpRosterSubjectClassBlock(row, block);
+            });
+            // Njësoj si te "Zgjidh klasat" - edhe dropdown-i i "Lëndës" "shpëton" jashtë kufirit
+            // të lëvizshëm të listës kur hapet, që të mos "priten" checkbox-at e fundit (mund të
+            // mos duken/klikohen dot te lista e gjatë me 15 lëndë).
+            var subjectsDetails = row.querySelector('.roster-subjects-dropdown');
+            var subjectsPopup = subjectsDetails ? subjectsDetails.querySelector('div') : null;
+            if (subjectsDetails && subjectsPopup) {
+                subjectsDetails.addEventListener('toggle', function() {
+                    if (subjectsDetails.open) {
+                        var rect = subjectsDetails.getBoundingClientRect();
+                        subjectsPopup.style.position = 'fixed';
+                        subjectsPopup.style.top = rect.bottom + 'px';
+                        subjectsPopup.style.left = rect.left + 'px';
+                        subjectsPopup.style.zIndex = '9999';
+                    }
+                });
+            }
+            updateRosterRowTotal(row);
+        }
+
+        // Kur (ç)shënohet një checkbox lënde: shton/heq bllokun përkatës të klasave në
+        // "Klasët", dhe përditëson përmbledhjen ("X lëndë të zgjedhura").
+        function handleRosterSubjectCheckboxChange(row, cb) {
+            var subjectValue = cb.value;
+            var classesMultiCell = row.querySelector('.roster-classes-multi-cell');
+            var existingBlock = null;
+            classesMultiCell.querySelectorAll('.roster-subject-class-block').forEach(function(b) {
+                if (b.dataset.subjectValue === subjectValue) existingBlock = b;
+            });
+            if (cb.checked) {
+                if (!existingBlock) {
+                    var teacherId = row.dataset.teacherId;
+                    var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+                    var html = buildRosterSubjectClassBlockHtml(teacherId, subjectValue, sortedClasses);
+                    classesMultiCell.insertAdjacentHTML('beforeend', html);
+                    var newBlock = null;
+                    classesMultiCell.querySelectorAll('.roster-subject-class-block').forEach(function(b) {
+                        if (b.dataset.subjectValue === subjectValue) newBlock = b;
+                    });
+                    if (newBlock) wireUpRosterSubjectClassBlock(row, newBlock);
+                    // MBYLL dropdown-in e "Lëndës" menjëherë - ndryshe mbetej i hapur dhe
+                    // pozicionohej MBI bllokun e ri të "Klasëve" që sapo u shfaq, duke bërë që
+                    // klikimi i parë mbi "Zgjidh klasat" thjesht ta mbyllte "Lëndën" (pa e
+                    // hapur vetë "Zgjidh klasat") - dukej sikur butoni "s'reagonte".
+                    var subjectsDropdown = row.querySelector('.roster-subjects-dropdown');
+                    if (subjectsDropdown) subjectsDropdown.removeAttribute('open');
+                }
+            } else if (existingBlock) {
+                var hasChecked = existingBlock.querySelectorAll('.roster-class-checkbox:checked').length > 0;
+                if (hasChecked && !confirm("Ky bllok ka klasa të zgjedhura që s'i ke ruajtur ende (me 'Cakto'). Ta heq gjithsesi nga pamja?")) {
+                    cb.checked = true;
+                    return;
+                }
+                existingBlock.remove();
+            }
+            var summaryEl = row.querySelector('.roster-subjects-summary');
+            var checkedCount = row.querySelectorAll('.roster-subject-checkbox:checked').length;
+            if (summaryEl) summaryEl.textContent = checkedCount > 0 ? checkedCount + ' lëndë të zgjedhura' : '-- Zgjidh lëndët --';
+            updateRosterRowTotal(row);
+            applyRosterActiveFilter();
+        }
+
+        // Lidh checkbox-at e klasave BRENDA një blloku-lënde specifik: para-zgjedh klasat ku ky
+        // mësimdhënës ËSHTË tashmë i caktuar për këtë variant lënde, dhe kontrollon konflikte.
+        function wireUpRosterSubjectClassBlock(row, block) {
+            var subjectValue = block.dataset.subjectValue;
+            var parsed = parseRosterSubjectValue(subjectValue);
+            var teacherId = row.dataset.teacherId;
+
+            // RREGULLIM: dropdown-i "Zgjidh klasat" përdorte position:absolute, e cila mund të
+            // "priste" (fshihej pjesërisht/plotësisht) nga kufiri i lëvizshëm (overflow-y:auto) i
+            // vetë kutisë ku ndodhet lista - dukej sikur "nuk reagonte" fare kur klikohej, edhe
+            // pse teknikisht hapej. Tani, kur hapet, e kthejmë përkohësisht në position:fixed, të
+            // pozicionuar saktë nën buton (llogaritur me JS) - kështu "shpëton" gjithmonë jashtë
+            // çdo kufizimi lëvizjeje dhe mbetet e dukshme/e klikueshme.
+            var detailsEl = block.querySelector('.roster-classes-dropdown');
+            var popupDiv = detailsEl ? detailsEl.querySelector('div') : null;
+            if (detailsEl && popupDiv) {
+                detailsEl.addEventListener('toggle', function() {
+                    if (detailsEl.open) {
+                        var rect = detailsEl.getBoundingClientRect();
+                        popupDiv.style.position = 'fixed';
+                        popupDiv.style.top = rect.bottom + 'px';
+                        popupDiv.style.left = rect.left + 'px';
+                        popupDiv.style.zIndex = '9999';
+                    }
+                });
+            }
+
+            block.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
+                var offers = classOffersSubject(cb.value, subjectValue);
+                cb.disabled = !offers;
+                cb.checked = offers && getSubjectTeacherId(cb.value, parsed.key) === teacherId;
+                var label = cb.parentElement;
+                if (label) {
+                    label.style.opacity = offers ? '1' : '0.4';
+                    label.title = offers ? '' : 'Kjo klasë s\'e ka këtë lëndë';
+                }
                 cb.addEventListener('change', function() {
-                    // Kontroll i MENJËHERSHËM: nëse klasa e sapo-shënuar tashmë ka NJË
-                    // MËSIMDHËNËS TJETËR për këtë lëndë, e paralajmërojmë dhe e ç'shënojmë
-                    // menjëherë - pa pritur klikimin e "Cakto".
                     if (cb.checked) {
-                        var teacherId = row.dataset.teacherId;
-                        var subjectValue = row.querySelector('.roster-subject-select').value;
-                        var parsed = parseRosterSubjectValue(subjectValue);
                         var existingTeacherId = getSubjectTeacherId(cb.value, parsed.key);
                         if (existingTeacherId && existingTeacherId !== teacherId) {
                             var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
                             var cls = systemData.classes.find(function(c) { return c.id === cb.value; });
-                            var subjectName = parsed.requiredName || (ALL_SUBJECTS.find(function(s) { return s.key === parsed.key; }) || {}).name || parsed.key;
-                            alert("⛔ S'mund ta zgjedhësh " + (cls ? cls.className : cb.value) + " - " + subjectName +
+                            var opt = getRosterSubjectOptions().find(function(o) { return o.value === subjectValue; });
+                            alert("⛔ S'mund ta zgjedhësh " + (cls ? cls.className : cb.value) + " - " + (opt ? opt.label : subjectValue) +
                                 " atje jepet tashmë nga " + (existingTeacher ? existingTeacher.name : 'panjohur') +
                                 ".\n\nNëse do ta ndryshosh, hiqe fillimisht te ai mësimdhënës, ose përdor 'Cakto' për ta zëvendësuar me konfirmim.");
                             cb.checked = false;
                             return;
                         }
                     }
-                    updateRosterRowTotal(row); updateRosterSummaryText(row);
+                    updateRosterRowTotal(row);
                 });
             });
-            refreshRosterRow(row);
-        }
-
-        // "+ Lëndë tjetër" - shton një rresht TË RI, bosh, PËR TË NJËJTIN mësimdhënës, direkt
-        // poshtë rreshtave ekzistues të tij - kështu mund të caktosh disa lëndë pa pasur nevojë
-        // të ndërrosh dropdown-in e vetëm çdo herë (duke humbur zgjedhjen paraardhëse).
-        function addSubjectBlockRow(teacherId) {
-            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
-            if (!t) return;
-            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
-            // gjej rreshtin e FUNDIT të këtij mësimdhënësi, për ta shtuar menjëherë pas tij
-            var rows = document.querySelectorAll('tr[data-teacher-id="' + teacherId + '"]');
-            var lastRow = rows[rows.length - 1];
-            if (!lastRow) return;
-            var html = buildRosterBlockRowHtml(t, sortedClasses, null, false, '');
-            lastRow.insertAdjacentHTML('afterend', html);
-            var newRow = lastRow.nextElementSibling;
-            wireUpRosterBlockRow(newRow);
-            applyRosterActiveFilter();
-        }
-
-        // Heq një rresht-lëndë SHTESË (jo të parin) - nëse ka caktime të ruajtura aty, i
-        // paralajmëron përpara se ta heqë vetëm nga PAMJA (nuk i fshin caktimet e ruajtura -
-        // për atë përdor "🗑️ Fshijë" te rreshti kryesor).
-        function removeSubjectBlockRow(el) {
-            var row = el.closest('tr');
-            var hasChecked = row.querySelectorAll('.roster-class-checkbox:checked').length > 0;
-            if (hasChecked && !confirm("Ky rresht ka klasa të zgjedhura që s'i ke ruajtur ende (me 'Cakto'). Ta heq gjithsesi nga pamja?")) {
-                return;
-            }
-            row.remove();
         }
 
         // Filtron rreshtat e "Listës së Mësimdhënësve" sipas AKTIVIT PROFESIONAL (grupim
@@ -8813,27 +9533,19 @@ if (systemData.classes && systemData.classes.length > 0) {
             return sub && sub.group === window.rosterActiveFilter;
         }
 
-        // Fsheh/shfaq rreshtat sipas filtrit - nëse TË GJITHË rreshtat e një mësimdhënësi
-        // fshihen, fshihet krejtësisht (s'lë hapësirë bosh); nëse mbetet së paku një, ai bëhet
-        // "rreshti i parë" i dukshëm (merr emrin/përmbledhjen edhe nëse origjinalisht ishte
-        // rresht shtesë).
+        // Fsheh/shfaq rreshtat sipas filtrit - meqë tani ka NJË RRESHT PËR MËSIMDHËNËS (me disa
+        // lëndë brenda), një mësimdhënës mbetet i dukshëm nëse TË PAKTËN NJË nga lëndët e tij
+        // aktualisht të zgjedhura (checkbox-at e shënuar) i takon aktivit të filtruar.
         function applyRosterActiveFilter() {
             var allRows = document.querySelectorAll('#teacherRosterContainer tr[data-teacher-id]');
-            var byTeacher = {};
             allRows.forEach(function(row) {
-                var tid = row.dataset.teacherId;
-                if (!byTeacher[tid]) byTeacher[tid] = [];
-                byTeacher[tid].push(row);
-            });
-            Object.keys(byTeacher).forEach(function(tid) {
-                var rows = byTeacher[tid];
-                var visibleRows = rows.filter(function(row) {
-                    var sel = row.querySelector('.roster-subject-select');
-                    return sel && subjectValueMatchesActiveFilter(sel.value);
-                });
-                rows.forEach(function(row) { row.style.display = visibleRows.indexOf(row) === -1 ? 'none' : ''; });
+                if (!window.rosterActiveFilter) { row.style.display = ''; return; }
+                var checkedSubjects = Array.prototype.map.call(row.querySelectorAll('.roster-subject-checkbox:checked'), function(cb) { return cb.value; });
+                var matches = checkedSubjects.some(function(v) { return subjectValueMatchesActiveFilter(v); });
+                row.style.display = matches ? '' : 'none';
             });
         }
+
 
         function renderTeacherRoster() {
             var container = document.getElementById('teacherRosterContainer');
@@ -8852,66 +9564,30 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<th style="padding:6px;"></th>' +
                 '<th style="padding:6px;"></th></tr></thead><tbody>';
             sorted.forEach(function(t) {
-                var summaryParts = [];
-                var assignedSubjectKeys = []; // mban VLERA (jo domosdo çelësa të thjeshtë) - "kimi" ose "msimzgjedhor::Robotikë"
-                ALL_SUBJECTS.forEach(function(sub) {
-                    if (sub.key !== 'msimzgjedhor') {
-                        var classesForThisSubject = sortedClasses.filter(function(cls) {
-                            return getSubjectTeacherId(cls.id, sub.key) === t.id;
-                        });
-                        if (classesForThisSubject.length > 0) {
-                            summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
-                            assignedSubjectKeys.push(sub.key);
-                        }
-                        return;
-                    }
-                    // Lënda zgjedhore - grupo NDARAS sipas emrit real të secilës klasë, pasi
-                    // ndryshon nga një aktiv te tjetri edhe pse ndajnë të njëjtin çelës.
-                    var byName = {};
-                    sortedClasses.forEach(function(cls) {
-                        if (getSubjectTeacherId(cls.id, 'msimzgjedhor') !== t.id) return;
-                        var s = cls.subjectsOrder.find(function(x) { return x.key === 'msimzgjedhor'; });
-                        var name = s ? s.name : sub.name;
-                        if (!byName[name]) byName[name] = [];
-                        byName[name].push(cls.className);
-                    });
-                    Object.keys(byName).sort().forEach(function(name) {
-                        summaryParts.push(name + ' (' + byName[name].join(', ') + ')');
-                        assignedSubjectKeys.push('msimzgjedhor::' + name);
-                    });
-                });
-                var summaryHtml = summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
-                // Nëse mësimdhënësi jep 2+ lëndë, shfaq NJË RRESHT PËR SECILËN lëndë (të gjitha
-                // të redaktueshme njëherësh) - jo vetëm të parën, siç ishte më parë.
-                if (assignedSubjectKeys.length === 0) assignedSubjectKeys = [null]; // asnjë caktim ende - një rresht bosh
-                assignedSubjectKeys.forEach(function(subjectKey, i) {
-                    html += buildRosterBlockRowHtml(t, sortedClasses, subjectKey, i === 0, i === 0 ? summaryHtml : '');
-                });
+                html += buildRosterRowHtml(t, sortedClasses);
             });
             html += '</tbody></table>';
             container.innerHTML = html;
 
             document.querySelectorAll('#teacherRosterContainer tr[data-teacher-id]').forEach(function(row) {
-                wireUpRosterBlockRow(row);
+                wireUpRosterRow(row);
             });
             renderRosterProfessionalActiveFilter();
             applyRosterActiveFilter();
-        }
 
-        function updateRosterSummaryText(row) {
-            var summary = row.querySelector('.roster-classes-summary');
-            var checked = Array.prototype.filter.call(row.querySelectorAll('.roster-class-checkbox'), function(cb) { return cb.checked; });
-            if (checked.length === 0) {
-                summary.textContent = '-- Zgjidh klasat --';
-            } else {
-                var names = checked.map(function(cb) { return cb.parentElement.textContent.trim(); });
-                summary.textContent = names.length <= 2 ? names.join(', ') : names.length + ' klasa';
-                summary.title = names.join(', ');
+            // MBYLLJE AUTOMATIKE: dropdown-i i lëndëve (me 15 lëndë) është shumë i gjatë dhe
+            // mbulonte rreshtat poshtë kur mbetej i hapur - tani mbyllet vetvetiu sapo klikohet
+            // KUDO tjetër (jo brenda vetë dropdown-it), kështu s'pengon më punën.
+            if (!window._rosterAutoCloseListenerAdded) {
+                document.addEventListener('click', function(e) {
+                    document.querySelectorAll('#teacherRosterContainer details[open]').forEach(function(d) {
+                        if (!d.contains(e.target)) d.removeAttribute('open');
+                    });
+                });
+                window._rosterAutoCloseListenerAdded = true;
             }
         }
 
-        // Rifreskon rreshtin kur ndryshon lënda e zgjedhur: para-zgjedh klasat ku ky
-        // mësimdhënës ESHTE tashmë i caktuar për këtë lëndë, dhe përditëson totalin.
         // A e ka kjo klasë vërtet këtë lëndë (te Plani Mësimor/subjectsOrder i saj)? Përdoret
         // që "Lista e Mësimdhënësve" të mos lejojë caktime të pamundura (p.sh. Kimi te VI, ku
         // Kimia u hoq më parë te "Menaxho Lëndët" për atë klasë).
@@ -8926,149 +9602,127 @@ if (systemData.classes && systemData.classes.length > 0) {
             });
         }
 
-        function refreshRosterRow(row) {
-            var teacherId = row.dataset.teacherId;
-            var subjectValue = row.querySelector('.roster-subject-select').value;
-            var realKey = parseRosterSubjectValue(subjectValue).key;
-            row.querySelectorAll('.roster-class-checkbox').forEach(function(cb) {
-                var offers = classOffersSubject(cb.value, subjectValue);
-                cb.disabled = !offers;
-                cb.checked = offers && getSubjectTeacherId(cb.value, realKey) === teacherId;
-                var label = cb.parentElement;
-                if (label) {
-                    label.style.opacity = offers ? '1' : '0.4';
-                    label.title = offers ? '' : 'Kjo klasë s\'e ka këtë lëndë (fshirë te "Menaxho Lëndët")';
-                }
-            });
-            updateRosterSummaryText(row);
-            updateRosterRowTotal(row);
-        }
 
         function updateRosterTeacherSummary(row) {
             var teacherId = row.dataset.teacherId;
-            // Përmbledhja shfaqet VETËM te rreshti i PARË i këtij mësimdhënësi (jo çdo rresht-
-            // lëndë) - e gjejmë atë specifikisht, pasi ndryshimi mund të ketë ardhur nga ndonjë
-            // rresht SHTESË (lëndë e dytë/tretë), jo domosdo i pari.
-            var firstRow = document.querySelector('tr[data-teacher-id="' + teacherId + '"]');
-            var summaryDiv = firstRow ? firstRow.querySelector('.roster-current-summary') : null;
+            var summaryDiv = row.querySelector('.roster-current-summary');
             if (!summaryDiv) return;
             var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
-            var summaryParts = [];
-            ALL_SUBJECTS.forEach(function(sub) {
-                if (sub.key !== 'msimzgjedhor') {
-                    var classesForThisSubject = sortedClasses.filter(function(cls) {
-                        return getSubjectTeacherId(cls.id, sub.key) === teacherId;
-                    });
-                    if (classesForThisSubject.length > 0) {
-                        summaryParts.push(sub.name + ' (' + classesForThisSubject.map(function(c) { return c.className; }).join(', ') + ')');
-                    }
-                    return;
-                }
-                var byName = {};
-                sortedClasses.forEach(function(cls) {
-                    if (getSubjectTeacherId(cls.id, 'msimzgjedhor') !== teacherId) return;
-                    var s = cls.subjectsOrder.find(function(x) { return x.key === 'msimzgjedhor'; });
-                    var name = s ? s.name : sub.name;
-                    if (!byName[name]) byName[name] = [];
-                    byName[name].push(cls.className);
-                });
-                Object.keys(byName).sort().forEach(function(name) {
-                    summaryParts.push(name + ' (' + byName[name].join(', ') + ')');
-                });
-            });
-            summaryDiv.innerHTML = summaryParts.length > 0 ? '✓ ' + summaryParts.join(' | ') : '<span style="color:#999;">(pa caktime ende)</span>';
+            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
+            if (!t) return;
+            summaryDiv.innerHTML = buildRosterSummaryHtml(t, sortedClasses);
         }
 
+        // Mbledh totalin e orëve NËPËR TË GJITHA bllokjet-lëndë të këtij rreshti (jo vetëm një).
         function updateRosterRowTotal(row) {
-            var subjectValue = row.querySelector('.roster-subject-select').value;
-            var realKey = parseRosterSubjectValue(subjectValue).key;
             var total = 0;
-            row.querySelectorAll('.roster-class-checkbox:checked').forEach(function(cb) {
-                var curriculum = (systemData.curriculum && systemData.curriculum[cb.value]) || {};
-                total += (curriculum[realKey] && curriculum[realKey].hoursPerWeek) || 0;
+            row.querySelectorAll('.roster-subject-class-block').forEach(function(block) {
+                var subjectValue = block.dataset.subjectValue;
+                var realKey = parseRosterSubjectValue(subjectValue).key;
+                block.querySelectorAll('.roster-class-checkbox:checked').forEach(function(cb) {
+                    var curriculum = (systemData.curriculum && systemData.curriculum[cb.value]) || {};
+                    total += (curriculum[realKey] && curriculum[realKey].hoursPerWeek) || 0;
+                });
             });
-            row.querySelector('.roster-total-hours').textContent = total;
+            var totalEl = row.querySelector('.roster-total-hours');
+            if (totalEl) totalEl.textContent = total;
         }
 
-        // "Undo" - rikthen rreshtin te gjendja e ruajtur (heq zgjedhje të papërfunduara, pa i
-        // prekur caktimet që tashmë janë ruajtur).
+        // "Undo" - rikthen rreshtin te gjendja e RUAJTUR (rirendit krejt rreshtin nga e para,
+        // duke hequr çdo zgjedhje të papërfunduar, pa i prekur caktimet që tashmë janë ruajtur).
         function undoRosterRow(btn) {
             var row = btn.closest('tr');
-            refreshRosterRow(row);
+            var teacherId = row.dataset.teacherId;
+            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
+            if (!t) return;
+            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+            var newRowHtml = buildRosterRowHtml(t, sortedClasses);
+            row.outerHTML = newRowHtml;
+            var newRow = document.querySelector('tr[data-teacher-id="' + teacherId + '"]');
+            if (newRow) wireUpRosterRow(newRow);
             showNotification("↩️ Rreshti u rikthye te gjendja e ruajtur.");
         }
 
         // "Cakto" - e bën zgjedhjen e klasave PËR KËTË LËNDË të jetë gjendja PËRFUNDIMTARE: e
         // cakton këtë mësimdhënës te klasat e zgjedhura, dhe e HEQ nga çdo klasë tjetër ku ishte
         // caktuar më parë për të NJËJTËN lëndë por tani s'është më e zgjedhur.
+        // "Cakto" - përpunon TË GJITHA bllokjet-lëndë të këtij rreshti njëherësh (jo vetëm një) -
+        // secili bllok i ka klasat e VETA, dhe ruhen të gjitha bashkë.
         function commitRosterAssignment(btn) {
             var row = btn.closest('tr');
             var teacherId = row.dataset.teacherId;
             var teacherName = (systemData.teachers.find(function(t) { return t.id === teacherId; }) || {}).name || '';
-            var subjectValue = row.querySelector('.roster-subject-select').value;
-            var parsed = parseRosterSubjectValue(subjectValue);
-            var subjectKey = parsed.key;
-            var subjectName = parsed.requiredName || (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
-            var selectedClassIds = Array.prototype.filter.call(row.querySelectorAll('.roster-class-checkbox'), function(cb) { return cb.checked; })
-                .map(function(cb) { return cb.value; });
+            var blocks = row.querySelectorAll('.roster-subject-class-block');
+            if (blocks.length === 0) {
+                showNotification("ℹ️ Zgjidh të paktën një lëndë fillimisht (kliko kutinë 'Lënda').");
+                return;
+            }
+            var totalAssignedCount = 0;
+            var allUnassignedReports = [];
 
-            // ALARM: nëse ndonjë nga klasat e zgjedhura tashmë ka NJË MËSIMDHËNËS TJETËR për
-            // këtë lëndë, e paralajmërojmë qartë admin-in PARA se ta mbishkruajmë - shmang
-            // gabime aksidentale (dy mësimdhënës për të njëjtën lëndë-klasë, njëri fshin tjetrin
-            // pa u vënë re).
-            var conflicts = [];
-            selectedClassIds.forEach(function(classId) {
-                var existingTeacherId = getSubjectTeacherId(classId, subjectKey);
-                if (existingTeacherId && existingTeacherId !== teacherId) {
-                    var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
-                    var cls = systemData.classes.find(function(c) { return c.id === classId; });
-                    conflicts.push((cls ? cls.className : classId) + ' (aktualisht: ' + (existingTeacher ? existingTeacher.name : 'panjohur') + ')');
+            for (var bi = 0; bi < blocks.length; bi++) {
+                var block = blocks[bi];
+                var subjectValue = block.dataset.subjectValue;
+                var parsed = parseRosterSubjectValue(subjectValue);
+                var subjectKey = parsed.key;
+                var subjectName = parsed.requiredName || (ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; }) || {}).name || subjectKey;
+                var selectedClassIds = Array.prototype.filter.call(block.querySelectorAll('.roster-class-checkbox'), function(cb) { return cb.checked; })
+                    .map(function(cb) { return cb.value; });
+
+                // ALARM: nëse ndonjë nga klasat e zgjedhura tashmë ka NJË MËSIMDHËNËS TJETËR për
+                // këtë lëndë specifike, e paralajmërojmë PARA se ta mbishkruajmë.
+                var conflicts = [];
+                selectedClassIds.forEach(function(classId) {
+                    var existingTeacherId = getSubjectTeacherId(classId, subjectKey);
+                    if (existingTeacherId && existingTeacherId !== teacherId) {
+                        var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
+                        var cls = systemData.classes.find(function(c) { return c.id === classId; });
+                        conflicts.push((cls ? cls.className : classId) + ' (aktualisht: ' + (existingTeacher ? existingTeacher.name : 'panjohur') + ')');
+                    }
+                });
+                if (conflicts.length > 0) {
+                    var msg = "⚠️ KUJDES (" + subjectName + "): tashmë ka mësimdhënës TJETËR të caktuar te:\n\n" +
+                        conflicts.join('\n') + "\n\nNëse vazhdon, " + teacherName + " do t'i ZËVENDËSOJË ata për " + subjectName + ". Vazhdo (VETËM për këtë lëndë)?";
+                    if (!confirm(msg)) continue; // kjo lëndë e vetme kapërcehet, vazhdo me të tjerat
                 }
-            });
-            if (conflicts.length > 0) {
-                var msg = "⚠️ KUJDES: " + subjectName + " tashmë ka mësimdhënës TJETËR të caktuar te:\n\n" +
-                    conflicts.join('\n') +
-                    "\n\nNëse vazhdon, " + teacherName + " do t'i ZËVENDËSOJË ata. Vazhdo?";
-                if (!confirm(msg)) return;
+
+                // "Shkëputja" (heqja e caktimit te klasat jo-të-zgjedhura) prek VETËM klasat që i
+                // takojnë KËTIJ VARIANTI specifik të lëndës.
+                systemData.classes.forEach(function(cls) {
+                    if (!classOffersSubject(cls.id, subjectValue)) return;
+                    var shouldBeAssigned = selectedClassIds.indexOf(cls.id) !== -1;
+                    var currentlyAssigned = getSubjectTeacherId(cls.id, subjectKey) === teacherId;
+                    if (shouldBeAssigned && !currentlyAssigned) {
+                        setSubjectTeacherId(cls.id, subjectKey, teacherId);
+                    } else if (!shouldBeAssigned && currentlyAssigned) {
+                        setSubjectTeacherId(cls.id, subjectKey, null);
+                    }
+                });
+                totalAssignedCount += selectedClassIds.length;
+
+                var unassignedForThis = systemData.classes.filter(function(c) {
+                    return classOffersSubject(c.id, subjectValue) && !getSubjectTeacherId(c.id, subjectKey);
+                }).map(function(c) { return c.className; }).sort();
+                if (unassignedForThis.length > 0) allUnassignedReports.push(subjectName + ': ' + unassignedForThis.join(', '));
             }
 
-            // "Shkëputja" (heqja e caktimit te klasat jo-të-zgjedhura) prek VETËM klasat që i
-            // takojnë KËTIJ VARIANTI specifik (p.sh. VETËM klasat me "Robotikë", jo ato me "IT",
-            // edhe pse ndajnë të njëjtin çelës të brendshëm 'msimzgjedhor').
-            systemData.classes.forEach(function(cls) {
-                if (!classOffersSubject(cls.id, subjectValue)) return;
-                var shouldBeAssigned = selectedClassIds.indexOf(cls.id) !== -1;
-                var currentlyAssigned = getSubjectTeacherId(cls.id, subjectKey) === teacherId;
-                if (shouldBeAssigned && !currentlyAssigned) {
-                    setSubjectTeacherId(cls.id, subjectKey, teacherId);
-                } else if (!shouldBeAssigned && currentlyAssigned) {
-                    setSubjectTeacherId(cls.id, subjectKey, null);
-                }
-            });
             // Përdorim forcePushToCloud (ZËVENDËSIM I PLOTË, jo ruajtje e vonuar/e bashkuar) -
             // përndryshe një sinkronizim automatik mund ta "humbiste" ndryshimin para se të
             // arrinte të ruhej (kjo ishte shkaku i defektit "s'po i ruan të dhënat").
             localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
             updateRosterRowTotal(row);
             updateRosterTeacherSummary(row);
-            row.querySelector('.roster-classes-dropdown').removeAttribute('open');
-
-            // Lajmërim shtesë: cilat klasa AKOMA s'kanë ASNJË mësimdhënës për këtë lëndë,
-            // që admini ta shohë menjëherë ku mbetet mangësi, pa pasur nevojë ta kontrollojë
-            // vetë klasë-për-klasë.
-            var unassignedClasses = systemData.classes.filter(function(c) {
-                return classOffersSubject(c.id, subjectValue) && !getSubjectTeacherId(c.id, subjectKey);
-            }).map(function(c) { return c.className; }).sort();
+            row.querySelectorAll('.roster-classes-dropdown').forEach(function(d) { d.removeAttribute('open'); });
 
             _suppressNextRemoteRefresh = true;
             forcePushToCloud(function(ok) {
                 var msg = ok ?
-                    "✅ U ruajt në cloud: " + selectedClassIds.length + " klasa për këtë lëndë!" :
+                    "✅ U ruajt në cloud: " + totalAssignedCount + " klasa gjithsej (" + blocks.length + " lëndë)!" :
                     "⚠️ U ruajt lokalisht, por ruajtja në cloud dështoi.";
-                if (unassignedClasses.length > 0) {
-                    msg += "\n📋 " + subjectName + " ende PA mësimdhënës te: " + unassignedClasses.join(', ');
+                if (allUnassignedReports.length > 0) {
+                    msg += "\n📋 Ende pa mësimdhënës: " + allUnassignedReports.join(' | ');
                 } else {
-                    msg += "\n🎉 " + subjectName + " tani ka mësimdhënës te TË GJITHA klasat!";
+                    msg += "\n🎉 Të gjitha klasat kanë mësimdhënës për këto lëndë!";
                 }
                 showNotification(msg);
             });
@@ -9076,23 +9730,36 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // "Fshijë" - e heq krejtësisht këtë mësimdhënës nga lënda e zgjedhur, në TË GJITHA
         // klasat (pavarësisht se cilat qenë të shënuara) - zbrazje e shpejtë e caktimit.
+        // "Fshijë" - e heq krejtësisht këtë mësimdhënës nga TË GJITHA lëndët e caktuara aktualisht
+        // (jo vetëm një), në TË GJITHA klasat e tyre.
         function clearRosterAssignment(btn) {
             var row = btn.closest('tr');
             var teacherId = row.dataset.teacherId;
-            var subjectValue = row.querySelector('.roster-subject-select').value;
-            var parsed = parseRosterSubjectValue(subjectValue);
-            if (!confirm("A je i sigurt që dëshiron ta heqësh këtë mësimdhënës nga kjo lëndë, në TË GJITHA klasat?")) return;
+            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
+            if (!t) return;
+            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+            var assignedNow = getTeacherAssignedRosterSubjects(t, sortedClasses);
+            if (assignedNow.length === 0) {
+                showNotification("ℹ️ Ky mësimdhënës s'ka caktime ende për t'u fshirë.");
+                return;
+            }
+            if (!confirm("A je i sigurt që dëshiron ta heqësh këtë mësimdhënës nga TË GJITHA lëndët e tij (" + assignedNow.length + "), në të gjitha klasat?")) return;
             var removedCount = 0;
-            systemData.classes.forEach(function(cls) {
-                if (!classOffersSubject(cls.id, subjectValue)) return;
-                if (getSubjectTeacherId(cls.id, parsed.key) === teacherId) {
-                    setSubjectTeacherId(cls.id, parsed.key, null);
-                    removedCount++;
-                }
+            assignedNow.forEach(function(subjectValue) {
+                var parsed = parseRosterSubjectValue(subjectValue);
+                systemData.classes.forEach(function(cls) {
+                    if (!classOffersSubject(cls.id, subjectValue)) return;
+                    if (getSubjectTeacherId(cls.id, parsed.key) === teacherId) {
+                        setSubjectTeacherId(cls.id, parsed.key, null);
+                        removedCount++;
+                    }
+                });
             });
             localStorage.setItem('schoolSystemFinalV5_4', JSON.stringify(systemData));
-            refreshRosterRow(row);
-            updateRosterTeacherSummary(row);
+            var newRowHtml = buildRosterRowHtml(t, sortedClasses);
+            row.outerHTML = newRowHtml;
+            var newRow = document.querySelector('tr[data-teacher-id="' + teacherId + '"]');
+            if (newRow) wireUpRosterRow(newRow);
             _suppressNextRemoteRefresh = true;
             forcePushToCloud(function(ok) {
                 showNotification(ok ? "🗑️ U hoq nga " + removedCount + " klasa dhe u ruajt në cloud!" :
@@ -9559,6 +10226,35 @@ if (systemData.classes && systemData.classes.length > 0) {
             return map;
         }
 
+        // Ngjyrë UNIKE PËR LËNDË (jo për klasë) - e njëjta lëndë ka GJITHMONË të njëjtën ngjyrë
+        // KUDO në sistem (çdo mësimdhënës, çdo klasë) - kështu duket menjëherë p.sh. "kjo qelizë
+        // është Matematikë" pa pasur nevojë të lexosh tekstin, dhe një mësimdhënës që jep disa
+        // lëndë i sheh qartë të dalluara nga njëra-tjetra në rreshtin e vet.
+        var SUBJECT_COLOR_PALETTE = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00897b',
+            '#d81b60', '#3949ab', '#6d4c41', '#c0ca33', '#00acc1', '#f4511e', '#7cb342', '#5e35b1', '#039be5'
+        ];
+        function getSubjectColorMap() {
+            var map = {};
+            ALL_SUBJECTS.forEach(function(s, idx) {
+                map[s.key] = SUBJECT_COLOR_PALETTE[idx % SUBJECT_COLOR_PALETTE.length];
+            });
+            return map;
+        }
+
+        // Ngjyrë unike PËR MËSIMDHËNËS (jo klasë, jo lëndë) - përdoret kur zgjidhet një klasë
+        // specifike te tabela (shih handleTeacherScheduleCellClick) - çdo qelizë e asaj klase,
+        // pavarësisht se te cili rresht mësimdhënësi ndodhet, merr ngjyrën e VETË ATIJ
+        // mësimdhënësi, kështu duket menjëherë se kush e jep secilën orë të klasës.
+        function getTeacherColorMap(shift) {
+            var data = buildTeacherScheduleData(shift);
+            var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
+            var map = {};
+            teacherIds.forEach(function(tid, idx) {
+                map[tid] = CLASS_COLOR_PALETTE[idx % CLASS_COLOR_PALETTE.length];
+            });
+            return map;
+        }
+
         function buildTeacherScheduleData(shift) {
             var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
             var hours = [1, 2, 3, 4, 5, 6];
@@ -9638,7 +10334,24 @@ if (systemData.classes && systemData.classes.length > 0) {
                 }
             });
 
-            var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
+            // Radhit mësimdhënësit sipas RENDIT TË LËNDËVE në sistem (njësoj si te printimi) -
+            // jo alfabetikisht sipas emrit.
+            function getSubjOrderIdx(row) {
+                var minIdx = ALL_SUBJECTS.length;
+                data.days.forEach(function(day) {
+                    data.hours.forEach(function(h) {
+                        var cell = row.grid[day][h];
+                        if (!cell || !cell.subjectKey) return;
+                        var idx = ALL_SUBJECTS.findIndex(function(s) { return s.key === cell.subjectKey; });
+                        if (idx !== -1 && idx < minIdx) minIdx = idx;
+                    });
+                });
+                return minIdx;
+            }
+            var teacherIds = Object.keys(data.rows).sort(function(a, b) {
+                var diff = getSubjOrderIdx(data.rows[a]) - getSubjOrderIdx(data.rows[b]);
+                return diff !== 0 ? diff : data.rows[a].name.localeCompare(data.rows[b].name);
+            });
 
             var html = '<table style="width:100%; border-collapse:collapse; font-size:11px;" border="1">' +
                 '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:11;">' +
@@ -9656,7 +10369,30 @@ if (systemData.classes && systemData.classes.length > 0) {
                 html += '<tr><td colspan="' + (2 + data.days.length * data.hours.length) + '" style="padding:10px; text-align:center; color:#999;">Asnjë orar i gjeneruar ende për këtë ndërrim - përdor "🤖 Gjenero Orarin (Të Gjitha Klasat)".</td></tr>';
             }
             var sel = window.teacherScheduleSelectedCell;
-            var colorMap = getClassColorMap(shift);
+            window.teacherScheduleColorMode = window.teacherScheduleColorMode || 'none';
+            var colorMode = window.teacherScheduleColorMode;
+            var colorMap = colorMode === 'subject' ? getSubjectColorMap() : (colorMode === 'teacher' ? getTeacherColorMap(shift) : (colorMode === 'class' ? getClassColorMap(shift) : {}));
+            // Kur është zgjedhur një qelizë (klikuar një klasë), gjejmë ID-në e KLASËS së saj -
+            // përdoret për të theksuar TË GJITHA qelizat e asaj klase (te çdo mësimdhënës), dhe
+            // hartën e ngjyrave PËR MËSIMDHËNËS për t'i ngjyrosur secilën sipas mësimdhënësit të
+            // vet real.
+            var selectedClassId = null;
+            var teacherColorMapForSelection = null;
+            var selectedClassObj = null;
+            if (sel) {
+                var selCell = data.rows[sel.teacherId] && data.rows[sel.teacherId].grid[sel.day][sel.hour];
+                if (selCell) {
+                    selectedClassId = selCell.classId;
+                    teacherColorMapForSelection = getTeacherColorMap(shift);
+                    selectedClassObj = systemData.classes.find(function(c) { return c.id === selectedClassId; });
+                }
+            }
+            var otherShift = shift === 'paradite' ? 'pasdite' : 'paradite';
+            var otherShiftData = selectedClassId ? buildTeacherScheduleData(otherShift) : null;
+            function teacherHasOtherShiftActivityOnDay(teacherId, day) {
+                if (!otherShiftData || !otherShiftData.rows[teacherId]) return false;
+                return [1, 2, 3, 4, 5, 6].some(function(h) { return !!otherShiftData.rows[teacherId].grid[day][h]; });
+            }
             teacherIds.forEach(function(teacherId) {
                 var row = data.rows[teacherId];
                 html += '<tr><td style="padding:3px; text-align:left; font-weight:bold; white-space:nowrap;">' + escapeHtml(row.name) + '</td>';
@@ -9665,37 +10401,78 @@ if (systemData.classes && systemData.classes.length > 0) {
                         var cell = row.grid[day][hour];
                         var blocked = isTeacherBlocked(teacherId, shift, day, hour);
                         var isSelected = sel && sel.teacherId === teacherId && sel.day === day && sel.hour === hour;
-                        var classColor = cell ? (colorMap[cell.classId] || '#e8f5e9') : '';
-                        var bg = isSelected ? '#ffca28' : classColor;
-                        var textColor = (cell && !isSelected) ? 'white' : '';
-                        if (sel && !isSelected && !blocked) {
-                            var kind = canMoveToCell(data, sel, teacherId, day, hour);
-                            if (kind === 'clean') { bg = '#a5d6a7'; textColor = ''; } // jeshile e fortë - lëvizje e pastër
-                            else if (kind === 'confirm') { bg = '#ffe082'; textColor = ''; } // portokalli e lehtë - kërkon konfirmim
+                        var colorKey = colorMode === 'subject' ? cell && cell.subjectKey : (colorMode === 'teacher' ? teacherId : cell && cell.classId);
+                        var cellColor = cell ? (colorMode === 'none' ? '' : (colorMap[colorKey] || '#e8f5e9')) : '';
+                        var bg = isSelected ? '#ffca28' : cellColor;
+                        var textColor = (cell && !isSelected && colorMode !== 'none') ? 'white' : '';
+                        var shiftConflictMark = false; // e mbajtur vetëm për kompatibilitet (s'përdoret më)
+                        if (selectedClassId && !blocked) {
+                            if (cell && cell.classId === selectedClassId) {
+                                // Kjo qelizë i takon klasës së zgjedhur - ngjyra e VETË
+                                // mësimdhënësit të saj (jo isSelected, që mbetet e artë).
+                                if (!isSelected) { bg = teacherColorMapForSelection[teacherId] || '#78909c'; textColor = 'white'; }
+                            } else if (!cell && teacherId === sel.teacherId) {
+                                // Hapësirë bosh te rreshti i TË NJËJTIT mësimdhënës - PO VETËM
+                                // nëse VETË KLASA s'ka TASHMË një lëndë TJETËR në atë orë (kjo
+                                // mbetet, sepse do të ishte konflikt real i pamundur). RREGULLI i
+                                // "jo dy ndërrime të njëjtën ditë" u HOQ me kërkesë të admin-it -
+                                // s'ka më kufizim as vizual, as praktik këtu.
+                                var classAlreadyBusy = selectedClassObj && selectedClassObj.schedule[day] && selectedClassObj.schedule[day][hour];
+                                if (!classAlreadyBusy) {
+                                    bg = '#39ff14'; textColor = '';
+                                }
+                            }
                         }
                         if (blocked) { bg = '#616161'; textColor = 'white'; } // gri e errët - i bllokuar, ka përparësi mbi çdo ngjyrë tjetër
-                        var content = blocked ? '✕' : (cell ? escapeHtml(cell.className) : '');
+                        var isLocked = false;
+                        if (cell) {
+                            var clsForLockCheck = systemData.classes.find(function(c) { return c.id === cell.classId; });
+                            isLocked = !!(clsForLockCheck && clsForLockCheck._lockedSlots && clsForLockCheck._lockedSlots[day] && clsForLockCheck._lockedSlots[day][hour]);
+                        }
+                        var content = blocked ? '✕' : (shiftConflictMark ? '✕' : (cell ? (isLocked ? '🔒' : '') + escapeHtml(classNameSlash(cell.className)) : ''));
+                        var cellTitle = blocked ? 'I bllokuar - kliko "🚫 Modaliteti i Bllokimit" për ta hequr' :
+                            (shiftConflictMark ? 'Punon tashmë në ndërrimin tjetër këtë ditë - s\'mund të zgjidhet' :
+                                (isLocked ? 'E KYÇUR - s\'ndryshon kur rigjenerohet Orari. Kliko "🔒 Modaliteti i Kyçjes" për ta zhbllokuar.' : ''));
                         html += '<td class="teacher-sched-cell" data-teacher-id="' + teacherId + '" data-shift="' + shift +
                             '" data-day="' + day + '" data-hour="' + hour + '" ' +
                             'style="padding:3px; text-align:center; cursor:pointer; font-weight:bold;' + (bg ? ' background:' + bg + ';' : '') +
-                            (textColor ? ' color:' + textColor + ';' : '') + '" title="' + (blocked ? 'I bllokuar - kliko "🚫 Modaliteti i Bllokimit" për ta hequr' : '') + '">' +
+                            (isLocked ? ' box-shadow: inset 0 0 0 2px #ff9800;' : '') +
+                            (textColor ? ' color:' + textColor + ';' : '') + '" title="' + cellTitle + '">' +
                             content + '</td>';
                     });
                 });
                 html += '<td style="padding:3px; text-align:center; font-weight:bold;">' + row.total + '</td></tr>';
             });
             html += '</tbody></table>';
-            // Legjenda e ngjyrave - cila klasë ka cilën ngjyrë (si te aSc Timetables).
-            var classesInShift = systemData.classes.filter(function(c) { return getClassShift(c) === shift; })
-                .sort(function(a, b) { return a.className.localeCompare(b.className); });
-            if (classesInShift.length > 0) {
+            // Legjenda e ngjyrave - varet nga modaliteti aktual (klasë, lëndë, ose mësimdhënës).
+            if (colorMode === 'subject') {
                 html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
-                    '<strong style="font-size:12px; color:#555;">Legjenda e klasave:</strong><div style="margin-top:5px;">';
-                classesInShift.forEach(function(c) {
+                    '<strong style="font-size:12px; color:#555;">Legjenda e lëndëve:</strong><div style="margin-top:5px;">';
+                ALL_SUBJECTS.forEach(function(s) {
                     html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
-                        colorMap[c.id] + ';">' + escapeHtml(c.className) + '</span>';
+                        colorMap[s.key] + ';">' + escapeHtml(s.name) + '</span>';
                 });
                 html += '</div></div>';
+            } else if (colorMode === 'teacher') {
+                html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
+                    '<strong style="font-size:12px; color:#555;">Legjenda e mësimdhënësve:</strong><div style="margin-top:5px;">';
+                teacherIds.forEach(function(tid) {
+                    html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
+                        colorMap[tid] + ';">' + escapeHtml(data.rows[tid].name) + '</span>';
+                });
+                html += '</div></div>';
+            } else if (colorMode === 'class') {
+                var classesInShift = systemData.classes.filter(function(c) { return getClassShift(c) === shift; })
+                    .sort(function(a, b) { return a.className.localeCompare(b.className); });
+                if (classesInShift.length > 0) {
+                    html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
+                        '<strong style="font-size:12px; color:#555;">Legjenda e klasave:</strong><div style="margin-top:5px;">';
+                    classesInShift.forEach(function(c) {
+                        html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
+                            colorMap[c.id] + ';">' + escapeHtml(c.className) + '</span>';
+                    });
+                    html += '</div></div>';
+                }
             }
             container.innerHTML = html;
             document.querySelectorAll('.teacher-sched-cell').forEach(function(td) {
@@ -9732,24 +10509,92 @@ if (systemData.classes && systemData.classes.length > 0) {
                 if (cls && getClassShift(cls) === shift) indices.push(i);
             });
             if (indices.length === 0) { el.innerHTML = ''; return; }
+            var teacherColorMapForPending = getTeacherColorMap(shift);
+            var placingActiveHere = window.teacherSchedulePendingPlacing &&
+                indices.indexOf(window.teacherSchedulePendingPlacing.idx) !== -1;
             var html = '<div style="margin-top:10px; padding:10px; background:#fff3e0; border:1px solid #ffb74d; border-radius:8px;">' +
                 '<strong style="color:#e65100;">⏳ Në pritje për t\'u vendosur (' + indices.length + '):</strong> ' +
-                '<span style="font-size:11px; color:#e65100;">kliko "📌 Vendos" pastaj kliko qelizën ku do ta vendosësh</span><div style="margin-top:6px;">';
+                '<button class="btn btn-success" style="padding:3px 10px; font-size:11px; margin-left:6px;" onclick="autoPlaceAllPending(\'' + shift + '\')">🤖 Vendos të Gjitha Automatikisht</button>' +
+                (placingActiveHere ?
+                    ' <button class="btn btn-warning" style="padding:3px 10px; font-size:11px;" onclick="cancelPlacingPendingItem(\'' + shift + '\')">✕ Anulo Vendosjen</button>' +
+                    ' <span style="font-size:11px; color:#c62828; margin-left:6px;">👉 Kliko një qelizë BOSH te klasa e duhur (shih ngjyrën e zgjedhur lart)</span>' :
+                    ' <span style="font-size:11px; color:#e65100; margin-left:8px;">ose kliko një qelizë poshtë për ta vendosur manualisht</span>') +
+                '<div style="margin-top:6px;">';
             indices.forEach(function(idx) {
                 var item = allQ[idx];
                 var isPlacing = window.teacherSchedulePendingPlacing && window.teacherSchedulePendingPlacing.idx === idx;
-                html += '<span style="display:inline-block; margin:3px; padding:4px 8px; background:' + (isPlacing ? '#ffca28' : 'white') + '; border:1px solid #ffb74d; border-radius:14px; font-size:12px;">' +
+                var teacherIdForItem = getSubjectTeacherId(item.classId, item.subjectKey);
+                var chipColor = isPlacing ? '#ffca28' : (teacherColorMapForPending[teacherIdForItem] || '#90a4ae');
+                // Qelizë KOMPAKTE me ngjyrën e mësimdhënësit (jo më kuti e gjatë me tekst) - kliko
+                // për ta zgjedhur për vendosje, pastaj kliko qelizën bosh ku do ta vendosësh.
+                html += '<span onclick="startPlacingPendingItem(' + idx + ', \'' + shift + '\')" title="' +
                     escapeHtml(item.className) + ' - ' + escapeHtml(item.subjectName) +
-                    ' <button class="btn" style="padding:1px 6px; font-size:10px; background:#ff9800; color:white; border:none; border-radius:10px; cursor:pointer;" onclick="startPlacingPendingItem(' + idx + ', \'' + shift + '\')">📌 Vendos</button>' +
-                    ' <span onclick="removePendingItem(' + idx + ', \'' + shift + '\')" style="cursor:pointer; color:#c62828; margin-left:2px;" title="Hiq nga pritja (fshihet plotësisht)">✕</span></span>';
+                    ' (kliko për ta vendosur)" style="display:inline-flex; align-items:center; margin:3px; ' +
+                    'width:34px; height:26px; background:' + chipColor + '; color:white; border-radius:5px; ' +
+                    'font-size:10px; font-weight:bold; justify-content:center; cursor:pointer; position:relative;">' +
+                    classNameSlash(item.className) +
+                    '<span onclick="event.stopPropagation(); removePendingItem(' + idx + ', \'' + shift + '\')" ' +
+                    'style="position:absolute; top:-6px; right:-6px; background:#c62828; color:white; border-radius:50%; width:14px; height:14px; font-size:9px; line-height:14px; text-align:center;" title="Hiq nga pritja">✕</span></span>';
             });
             html += '</div></div>';
             el.innerHTML = html;
         }
 
+        // "🤖 Vendos të Gjitha Automatikisht" - provon të vendosë ÇDO element në pritje (të këtij
+        // ndërrimi) direkt në një vend BOSH të lirë (klasë + mësimdhënës të dy të lirë) - pa
+        // ricaktim mësimdhënësi. Ato që s'gjejnë vend automatikisht MBETEN në pritje, për t'i
+        // vendosur manualisht.
+        function autoPlaceAllPending(shift) {
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var allQ = window.teacherSchedulePendingQueue;
+            var placedCount = 0;
+            var stillPending = [];
+            allQ.forEach(function(item) {
+                var cls = systemData.classes.find(function(c) { return c.id === item.classId; });
+                if (!cls || getClassShift(cls) !== shift) { stillPending.push(item); return; }
+                var teacherId = getSubjectTeacherId(item.classId, item.subjectKey);
+                var placed = false;
+                var otherShiftKeyPending = shift === 'paradite' ? 'pasdite' : 'paradite';
+                for (var di = 0; di < days.length && !placed; di++) {
+                    var day = days[di];
+                    var activityForPending = getTeacherCombinedDayActivity(teacherId);
+                    if (activityForPending[day] && activityForPending[day][otherShiftKeyPending]) continue; // rregull absolut
+                    for (var hi = 0; hi < hours.length && !placed; hi++) {
+                        var hour = hours[hi];
+                        if (cls.schedule[day][hour]) continue;
+                        if (isTeacherBlocked(teacherId, shift, day, hour)) continue;
+                        if (!isTeacherFreeInCurrentSchedules(teacherId, shift, day, hour)) continue;
+                        cls.schedule[day][hour] = item.subjectKey;
+                        placed = true;
+                        placedCount++;
+                    }
+                }
+                if (!placed) stillPending.push(item);
+            });
+            window.teacherSchedulePendingQueue = stillPending;
+            saveToLocal();
+            renderTeacherScheduleTable(shift);
+            showNotification(placedCount > 0 ?
+                "🤖 " + placedCount + " orë u vendosën automatikisht!" + (stillPending.length > 0 ? " (" + stillPending.filter(function(i) { var c = systemData.classes.find(function(cc) { return cc.id === i.classId; }); return c && getClassShift(c) === shift; }).length + " mbetën në pritje - vendosi manualisht)" : "") :
+                "ℹ️ Asnjë s'u vendos automatikisht - të gjitha kërkojnë vend manual (kliko '📌 Vendos').");
+        }
+
         function startPlacingPendingItem(idx, shift) {
+            // Klikim i DYTË mbi TË NJËJTIN element pritjeje - anulo modalitetin e vendosjes (kjo
+            // ishte mangësia: më parë s'kishte mënyrë të daljes nëse klikimi i parë dështonte).
+            if (window.teacherSchedulePendingPlacing && window.teacherSchedulePendingPlacing.idx === idx) {
+                window.teacherSchedulePendingPlacing = null;
+                renderTeacherScheduleTable(shift);
+                return;
+            }
             window.teacherSchedulePendingPlacing = { idx: idx };
             window.teacherScheduleSelectedCell = null;
+            renderTeacherScheduleTable(shift);
+        }
+
+        function cancelPlacingPendingItem(shift) {
+            window.teacherSchedulePendingPlacing = null;
             renderTeacherScheduleTable(shift);
         }
 
@@ -9771,10 +10616,43 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (window.teacherScheduleBlockMode) showNotification("🚫 Modaliteti i Bllokimit AKTIV - kliko qelizat ku mësimdhënësi s'është i disponueshëm.");
         }
 
+        // MODALITETI I KYÇJES (🔒): mbron një orë të VENDOSUR nga rigjenerimi - kur klikohet
+        // "🤖 Gjenero Orarin", orët e kyçura RUHEN ekzaktësisht siç janë, pa u prekur.
+        function toggleLockMode() {
+            window.teacherScheduleLockMode = !window.teacherScheduleLockMode;
+            window.teacherScheduleSelectedCell = null;
+            window.teacherSchedulePendingPlacing = null;
+            var btn = document.getElementById('teacherScheduleLockModeBtn');
+            if (btn) btn.className = 'btn ' + (window.teacherScheduleLockMode ? 'btn-warning' : 'btn-info');
+            var shift = window.currentTeacherScheduleShift || 'paradite';
+            renderTeacherScheduleTable(shift);
+            if (window.teacherScheduleLockMode) showNotification("🔒 Modaliteti i Kyçjes AKTIV - kliko orët e vendosura që do t'i mbrosh nga rigjenerimi.");
+        }
+
+        function toggleCellLock(classId, day, hour) {
+            var cls = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!cls) return;
+            if (!cls._lockedSlots) cls._lockedSlots = {};
+            if (!cls._lockedSlots[day]) cls._lockedSlots[day] = {};
+            cls._lockedSlots[day][hour] = !cls._lockedSlots[day][hour];
+            saveToLocal();
+        }
+
         function handleTeacherScheduleCellClick(td, shift) {
             var teacherId = td.dataset.teacherId;
             var day = td.dataset.day;
             var hour = parseInt(td.dataset.hour, 10);
+
+            // MËNYRA "MODALITETI I KYÇJES": klikimi ndez/fik kyçjen e kësaj ore TË VENDOSUR - vetëm
+            // për qeliza të mbushura (s'ka kuptim të kyçësh një vend bosh).
+            if (window.teacherScheduleLockMode) {
+                var dataForLock = buildTeacherScheduleData(shift);
+                var cellForLock = dataForLock.rows[teacherId] && dataForLock.rows[teacherId].grid[day][hour];
+                if (!cellForLock) { showNotification("ℹ️ Vetëm orë të vendosura mund të kyçen."); return; }
+                toggleCellLock(cellForLock.classId, day, hour);
+                renderTeacherScheduleTable(shift);
+                return;
+            }
 
             // MËNYRA "MODALITETI I BLLOKIMIT": klikimi thjesht ndez/fik bllokimin e kësaj ore
             // për këtë mësimdhënës - s'ndërhyn fare me lëvizjen/pritjen.
@@ -9785,28 +10663,24 @@ if (systemData.classes && systemData.classes.length > 0) {
             }
 
             // MËNYRA "VENDOS ELEMENT PRITJEJE": nëse jemi duke vendosur diçka nga radha e
-            // pritjes, ky klikim e vendos atje (nëse është e mundur).
+            // pritjes, ky klikim e vendos direkt - PA asnjë dritare ndalimi/konfirmimi (kërkesë e
+            // admin-it: "asnjë kufizim s'duhet të ndalojë veprimet"). Nëse qeliza e klasës është
+            // e zënë, ajo që ishte aty shkon VETË në pritje (jo humbje e heshtur, thjesht
+            // automatike, pa pyetur).
             if (window.teacherSchedulePendingPlacing) {
                 var pendingIdx = window.teacherSchedulePendingPlacing.idx;
                 var pendingItem = window.teacherSchedulePendingQueue[pendingIdx];
                 if (!pendingItem) { window.teacherSchedulePendingPlacing = null; renderTeacherScheduleTable(shift); return; }
-                if (isTeacherBlocked(teacherId, shift, day, hour)) {
-                    alert("Kjo orë është E BLLOKUAR për këtë mësimdhënës. Zgjidh një qelizë tjetër.");
-                    return;
-                }
                 var pendingClass = systemData.classes.find(function(c) { return c.id === pendingItem.classId; });
                 if (!pendingClass) return;
-                if (pendingClass.schedule[day][hour]) {
-                    alert("Kjo orë s'është bosh te klasa " + pendingClass.className + ". Zgjidh një qelizë bosh për këtë klasë.");
-                    return;
+
+                var existingAtSlot = pendingClass.schedule[day][hour];
+                if (existingAtSlot && existingAtSlot !== pendingItem.subjectKey) {
+                    pushToPendingQueue(pendingClass.id, existingAtSlot);
                 }
+
                 var currentTeacherId = getSubjectTeacherId(pendingItem.classId, pendingItem.subjectKey);
                 if (currentTeacherId && currentTeacherId !== teacherId) {
-                    var newTeacherName = (systemData.teachers.find(function(t) { return t.id === teacherId; }) || {}).name || '';
-                    if (!confirm("Kjo do ta RICAKTOJË lëndën \"" + pendingItem.subjectName + "\" te " + pendingClass.className +
-                            " nga mësimdhënësi aktual te " + newTeacherName + " (për TË GJITHA orët e kësaj lënde te kjo klasë, jo vetëm këtë). Vazhdo?")) {
-                        return;
-                    }
                     setSubjectTeacherId(pendingItem.classId, pendingItem.subjectKey, teacherId);
                 }
                 pendingClass.schedule[day][hour] = pendingItem.subjectKey;
@@ -9834,10 +10708,23 @@ if (systemData.classes && systemData.classes.length > 0) {
                 return;
             }
 
+            // RREGULL I RI: lëvizja lejohet VETËM brenda rreshtit të TË NJËJTIT mësimdhënës (jo
+            // më ricaktim te mësimdhënës tjetër përmes këtij klikimi) - nëse klikohet një qelizë
+            // e një mësimdhënësi tjetër, thjesht e injorojmë (mbetet zgjedhja origjinale).
+            if (sel.teacherId !== teacherId) {
+                showNotification("ℹ️ Mund ta lëvizësh vetëm brenda rreshtit të " +
+                    (systemData.teachers.find(function(t) { return t.id === sel.teacherId; }) || {}).name + ".");
+                return;
+            }
+
             if (isTeacherBlocked(teacherId, shift, day, hour)) {
                 alert("Kjo orë është E BLLOKUAR për këtë mësimdhënës. Zgjidh një qelizë tjetër.");
                 return;
             }
+
+            // KËRKESË E ADMINIT: asnjë kufizim s'duhet ta pengojë - hoqëm plotësisht dritaren e
+            // paralajmërimit/konfirmimit për "punë në të dy ndërrimet të njëjtën ditë". Lëvizja
+            // kryhet direkt, pa ndërprerje.
 
             var allData = buildTeacherScheduleData(shift);
             var sourceCell = allData.rows[sel.teacherId].grid[sel.day][sel.hour];
@@ -9846,18 +10733,6 @@ if (systemData.classes && systemData.classes.length > 0) {
 
             var sourceClass = systemData.classes.find(function(c) { return c.id === sourceCell.classId; });
             if (!sourceClass) return;
-
-            // Nëse qeliza-cak i takon NJË MËSIMDHËNËSI TJETËR nga burimi, kjo do ta RICAKTOJË
-            // lëndën te ai mësimdhënës (jo vetëm ta lëvizë kohën) - kërkohet konfirmim i qartë.
-            if (sel.teacherId !== teacherId) {
-                var newTeacherObj = systemData.teachers.find(function(t) { return t.id === teacherId; });
-                if (!confirm("Kjo do ta RICAKTOJË lëndën \"" + (ALL_SUBJECTS.find(function(s) { return s.key === sourceCell.subjectKey; }) || {}).name +
-                        "\" te " + sourceClass.className + " nga mësimdhënësi aktual te " + (newTeacherObj ? newTeacherObj.name : '') +
-                        " (për TË GJITHA orët e kësaj lënde te kjo klasë). Vazhdo?")) {
-                    return;
-                }
-                setSubjectTeacherId(sourceCell.classId, sourceCell.subjectKey, teacherId);
-            }
 
             if (targetCell) {
                 var targetClass = systemData.classes.find(function(c) { return c.id === targetCell.classId; });
@@ -9868,9 +10743,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                     sourceClass.schedule[sel.day][sel.hour] = sourceClass.schedule[day][hour];
                     sourceClass.schedule[day][hour] = tmp;
                 } else {
-                    // klasa të ndryshme: X (burimi) shkon te dita/ora e re BRENDA klasës së vet;
-                    // çfarëdo që klasa burimore ka TASHMË në atë orë (nëse ka) shkon në pritje;
-                    // dhe Y (qeliza-cak, që ishte te klasa tjetër) gjithashtu shkon në pritje.
+                    // klasa të ndryshme, i njëjti mësimdhënës: X (burimi) shkon te dita/ora e re
+                    // BRENDA klasës së vet; çfarëdo që klasa burimore ka TASHMË në atë orë (nëse
+                    // ka) shkon në pritje; dhe Y (qeliza-cak, që ishte te klasa tjetër)
+                    // gjithashtu shkon në pritje.
                     var existingInSourceClassAtNewSlot = sourceClass.schedule[day][hour];
                     if (existingInSourceClassAtNewSlot) pushToPendingQueue(sourceClass.id, existingInSourceClassAtNewSlot);
                     pushToPendingQueue(targetClass.id, targetCell.subjectKey);
@@ -9900,6 +10776,21 @@ if (systemData.classes && systemData.classes.length > 0) {
             document.getElementById('teacherScheduleShiftParadite').className = 'btn ' + (shift === 'paradite' ? 'btn-primary' : 'btn-info');
             document.getElementById('teacherScheduleShiftPasdite').className = 'btn ' + (shift === 'pasdite' ? 'btn-primary' : 'btn-info');
             renderTeacherScheduleTable(shift);
+        }
+
+        // Ndërron mes ngjyrosjes "sipas klasës" (parazgjedhur) dhe "sipas lëndës" - kjo e dyta
+        // i jep çdo lënde një ngjyrë UNIKE, të njëjtën kudo në sistem, kështu që dallon menjëherë
+        // vizualisht cilën lëndë jep mësimdhënësi në çdo qelizë (e dobishme veçanërisht kur një
+        // mësimdhënës jep disa lëndë të ndryshme).
+        function toggleTeacherScheduleColorMode() {
+            var order = ['none', 'class', 'subject', 'teacher'];
+            var current = window.teacherScheduleColorMode || 'none';
+            var next = order[(order.indexOf(current) + 1) % order.length];
+            window.teacherScheduleColorMode = next;
+            var btn = document.getElementById('teacherScheduleColorModeBtn');
+            var labels = { none: '🎨 Ngjyro sipas: Asnjë', class: '🎨 Ngjyro sipas: Klasës', subject: '🎨 Ngjyro sipas: Lëndës', teacher: '🎨 Ngjyro sipas: Mësimdhënësit' };
+            if (btn) btn.textContent = labels[next];
+            renderTeacherScheduleTable(window.currentTeacherScheduleShift || 'paradite');
         }
 
         // Cakton AUTOMATIKISHT lëndët pa mësimdhënës te mësimdhënës EKZISTUES që kanë më PAK
@@ -9997,41 +10888,31 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         function printTeacherSchedule() {
-            var shift = window.currentTeacherScheduleShift || 'paradite';
-            var shiftLabel = shift === 'paradite' ? 'PARADITE' : 'PASDITE';
-            var data = buildTeacherScheduleData(shift);
-            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
-            var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
+            var dayLabels = { ehene: 'Mo', emarte: 'Tu', emerKure: 'We', eenjte: 'Th', epremte: 'Fr' };
 
-            function toArabic(className) {
+            function toArabicSlash(className) {
                 var map = { IX: '9', VIII: '8', VII: '7', VI: '6' };
-                return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return map[roman] + '-' + num; });
-            }
-            // Vetëm te ky orar i printuar - jo askund tjetër - emri shfaqet pa mbiemër, që të
-            // kursehet hapësirë horizontale (30 kolona ditë+orë janë shumë të ngjeshura).
-            function firstNameOnly(fullName) {
-                return (fullName || '').trim().split(/\s+/)[0];
+                return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return map[roman] + '/' + num; });
             }
 
-            function buildSheetTable(teacherIdsSubset) {
-                var html = '<table><thead><tr><th rowspan="2" style="text-align:left;">Emri</th>';
+            function buildSheetTable(data, shift, teacherIdsSubset) {
+                var html = '<table><thead><tr><th rowspan="2" style="text-align:left;"></th>';
                 data.days.forEach(function(day) {
                     html += '<th colspan="' + data.hours.length + '">' + dayLabels[day] + '</th>';
                 });
-                html += '<th rowspan="2">Total</th></tr><tr>';
+                html += '<th rowspan="2">TOTALI</th></tr><tr>';
                 data.days.forEach(function() {
                     data.hours.forEach(function(h) { html += '<th style="font-weight:normal;">' + h + '</th>'; });
                 });
                 html += '</tr></thead><tbody>';
                 teacherIdsSubset.forEach(function(tid) {
                     var row = data.rows[tid];
-                    html += '<tr><td style="text-align:left; font-weight:bold; white-space:nowrap;">' + escapeHtml(firstNameOnly(row.name)) + '</td>';
+                    html += '<tr><td style="text-align:left; font-weight:bold; white-space:nowrap;">' + escapeHtml((row.name || '').toUpperCase()) + '</td>';
                     data.days.forEach(function(day) {
                         data.hours.forEach(function(h) {
                             var cell = row.grid[day][h];
                             var blocked = isTeacherBlocked(tid, shift, day, h);
-                            html += '<td style="' + (blocked ? 'background:#616161;color:white;' : (cell ? 'background:#e8f5e9; font-weight:bold;' : '')) + '">' +
-                                (blocked ? '✕' : (cell ? toArabic(cell.className) : '')) + '</td>';
+                            html += '<td>' + (blocked ? '' : (cell ? toArabicSlash(cell.className) : '')) + '</td>';
                         });
                     });
                     html += '<td style="font-weight:bold;">' + row.total + '</td></tr>';
@@ -10040,24 +10921,85 @@ if (systemData.classes && systemData.classes.length > 0) {
                 return html;
             }
 
-            // NDARJE NË 2 FLETË: deri në 15 mësimdhënës te fleta e parë, pjesa tjetër te e
-            // dyta - kështu secila fletë mbetet e lexueshme, pa u ngjeshur.
-            var group1 = teacherIds.slice(0, 15);
-            var group2 = teacherIds.slice(15);
-            var titleBase = 'ORARI I MËSIMDHËNËSVE - ' + shiftLabel + ' ' + (systemData.schoolInfo.year || '');
-            var pagesHtml = '<h2 style="text-align:center;">' + titleBase + ' (Fleta 1)</h2>' + buildSheetTable(group1);
-            if (group2.length > 0) {
-                pagesHtml += '<div style="page-break-before:always;"><h2 style="text-align:center;">' + titleBase + ' (Fleta 2)</h2>' + buildSheetTable(group2) + '</div>';
+            // Printon TË DY ndërrimet (Paradite + Pasdite) NJËHERËSH - deri në 4 fleta gjithsej
+            // (2 për secilin ndërrim, sipas 15 mësimdhënësve/fletë) - jo vetëm ndërrimin
+            // aktualisht të zgjedhur.
+            // Radhit mësimdhënësit sipas RENDIT TË LËNDËVE në sistem (ALL_SUBJECTS), jo
+            // alfabetikisht sipas emrit - kështu ata që japin të njëjtën lëndë/fushë grupohen
+            // bashkë (p.sh. të gjithë mësimdhënësit e gjuhëve, pastaj matematika, etj.).
+            function getSubjectOrderIndexForTeacher(teacherId, row) {
+                var minIdx = ALL_SUBJECTS.length; // parazgjedhje - mbetet i fundit nëse s'gjendet
+                var days2 = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+                days2.forEach(function(day) {
+                    [1, 2, 3, 4, 5, 6].forEach(function(h) {
+                        var cell = row.grid[day][h];
+                        if (!cell || !cell.subjectKey) return;
+                        var idx = ALL_SUBJECTS.findIndex(function(s) { return s.key === cell.subjectKey; });
+                        if (idx !== -1 && idx < minIdx) minIdx = idx;
+                    });
+                });
+                return minIdx;
             }
 
+            // Për mësimdhënësit e LËNDËS ME ZGJEDHJE (emra të ndryshëm sipas aktivit - Robotikë,
+            // IT, etj., të vendosura te "🎯 Lënda Zgjedhore sipas Aktiveve") - i rendit sipas
+            // AKTIVIT (VI/VII/VIII/IX) të klasave ku e japin, LEXUAR DIREKT nga klasat reale të
+            // sistemit (jo nga emra të supozuar), jo alfabetikisht apo rastësisht.
+            var AKTIV_ORDER = { 'VI': 0, 'VII': 1, 'VIII': 2, 'IX': 3 };
+            function getElectiveAktivIndexForTeacher(teacherId, row) {
+                var minAktiv = 99;
+                var days2 = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+                days2.forEach(function(day) {
+                    [1, 2, 3, 4, 5, 6].forEach(function(h) {
+                        var cell = row.grid[day][h];
+                        if (!cell || cell.subjectKey !== 'msimzgjedhor') return;
+                        var prefix = cell.className.split('-')[0];
+                        var aktivIdx = AKTIV_ORDER[prefix];
+                        if (aktivIdx !== undefined && aktivIdx < minAktiv) minAktiv = aktivIdx;
+                    });
+                });
+                return minAktiv;
+            }
+
+            var pagesHtml = '';
+            var isFirstSheet = true;
+            ['paradite', 'pasdite'].forEach(function(shift) {
+                var data = buildTeacherScheduleData(shift);
+                var teacherIds = Object.keys(data.rows).sort(function(a, b) {
+                    var idxA = getSubjectOrderIndexForTeacher(a, data.rows[a]);
+                    var idxB = getSubjectOrderIndexForTeacher(b, data.rows[b]);
+                    if (idxA !== idxB) return idxA - idxB;
+                    // Të dy japin TË NJËJTËN lëndë (p.sh. lëndën me zgjedhje) - nëse është
+                    // lënda me zgjedhje, thyej barazimin sipas aktivit real.
+                    var aktivA = getElectiveAktivIndexForTeacher(a, data.rows[a]);
+                    var aktivB = getElectiveAktivIndexForTeacher(b, data.rows[b]);
+                    if (aktivA !== aktivB) return aktivA - aktivB;
+                    return data.rows[a].name.localeCompare(data.rows[b].name);
+                });
+                if (teacherIds.length === 0) return;
+                var shiftLabel = shift === 'paradite' ? 'PARADITE' : 'PASDITE';
+                var titleBase = 'ORARI I MËSIMDHËNËSVE - ' + shiftLabel + ' ' + (systemData.schoolInfo.year || '');
+                var group1 = teacherIds.slice(0, 15);
+                var group2 = teacherIds.slice(15);
+                pagesHtml += '<div' + (isFirstSheet ? '' : ' style="page-break-before:always;"') + '>' +
+                    '<h1 style="text-align:center;">' + titleBase + '</h1>' + buildSheetTable(data, shift, group1) + '</div>';
+                isFirstSheet = false;
+                if (group2.length > 0) {
+                    // Fleta 2 - PA titull të përsëritur (kursen hapësirë vertikale për shkrim
+                    // edhe më të madh, meqë titulli tashmë u shfaq te Fleta 1).
+                    pagesHtml += '<div style="page-break-before:always;">' + buildSheetTable(data, shift, group2) + '</div>';
+                }
+            });
+
             var printWindow = window.open('', '_blank');
-            printWindow.document.write('<html><head><title>Orari i Mësimdhënësve - ' + shiftLabel + '</title>' +
+            printWindow.document.write('<html><head><title>Orari i Mësimdhënësve</title>' +
                 '<style>' +
                 'body{font-family:Arial;}' +
-                'table{width:100%; border-collapse:collapse; margin-top:5mm;}' +
-                'th, td{font-size:13px; padding:4px 3px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
-                'th{background:#0b4b6e; color:white;}' +
-                '@page{size:A4 landscape; margin:6mm;}' +
+                'h1{font-size:22px; margin-bottom:4px;}' +
+                'table{width:100%; border-collapse:collapse; margin-top:2mm;}' +
+                'th, td{font-size:14px; padding:4px 2px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
+                'th{background:#f2f2f2; color:#000; border:1px solid #333;}' +
+                '@page{size:A4 landscape; margin:4mm;}' +
                 '</style></head><body>' + pagesHtml + '</body></html>');
             printWindow.document.close();
             printWindow.print();
@@ -10125,8 +11067,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                     data.days.forEach(function(day) {
                         var cell = row.grid[day][hour];
                         var blocked = isTeacherBlocked(teacherId, shift, day, hour);
-                        html += '<td style="padding:8px; text-align:center; ' + (blocked ? 'background:#616161; color:white;' : (cell ? 'background:#e8f5e9; font-weight:bold;' : '')) + '">' +
-                            (blocked ? '✕' : (cell ? escapeHtml(cell.className) : '')) + '</td>';
+                        html += '<td style="padding:8px; text-align:center; ' + (cell && !blocked ? 'background:#e8f5e9; font-weight:bold;' : '') + '">' +
+                            (blocked ? '' : (cell ? escapeHtml(classNameSlash(cell.className)) : '')) + '</td>';
                     });
                     html += '</tr>';
                 });
@@ -10157,6 +11099,84 @@ if (systemData.classes && systemData.classes.length > 0) {
                 'body{font-family:Arial; font-size:22px;}' +
                 'table{width:100%; border-collapse:collapse; margin-bottom:10mm;}' +
                 'th, td{font-size:22px !important; padding:10px 8px !important;}' +
+                '@page{margin:10mm;}' +
+                '</style></head><body>' + content + '</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // ==================== ORARI I KLASËS (INDIVIDUAL) ====================
+        // E RËNDËSISHME: lexon DIREKT nga classObj.schedule[day][hour] - E NJËJTA fushë e të
+        // dhënave që përdorin "⏰ Orari" (redaktimi i klasës), gjenerimi automatik, dhe "Orari i
+        // Mësimdhënësve" - kështu që kjo pamje është GJITHMONË e sinkronizuar automatikisht me
+        // gjithçka tjetër, pa kopje apo ruajtje të veçantë të vetën.
+        function openSingleClassScheduleModal() {
+            if (!requireAdmin()) return;
+            var container = document.getElementById('singleClassSchedulePickerContainer');
+            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+            var html = '<select id="singleClassScheduleSelect" onchange="renderSingleClassSchedule()" style="width:100%; padding:8px; font-size:14px;">' +
+                '<option value="">-- Zgjidh klasën --</option>';
+            sortedClasses.forEach(function(c) {
+                html += '<option value="' + c.id + '">' + escapeHtml(c.className) + '</option>';
+            });
+            html += '</select>';
+            container.innerHTML = html;
+            document.getElementById('singleClassScheduleContainer').innerHTML = '';
+            showModal('singleClassScheduleModal');
+        }
+
+        function closeSingleClassScheduleModal() {
+            hideModal('singleClassScheduleModal');
+        }
+
+        function renderSingleClassSchedule() {
+            var classId = document.getElementById('singleClassScheduleSelect').value;
+            var container = document.getElementById('singleClassScheduleContainer');
+            if (!classId) { container.innerHTML = ''; return; }
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!classObj) { container.innerHTML = ''; return; }
+            initClassSchedule(classId); // siguron që classObj.schedule ekziston (funksioni ekzistues, i përbashkët)
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;" border="1">' +
+                '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:8px;">Ora</th>';
+            days.forEach(function(day) { html += '<th style="padding:8px;">' + dayLabels[day] + '</th>'; });
+            html += '</tr></thead><tbody>';
+            hours.forEach(function(hour) {
+                html += '<tr><td style="padding:8px; text-align:center; font-weight:bold; background:#f5f5f5;">' + hour + '</td>';
+                days.forEach(function(day) {
+                    // LEXIM DIREKT - jo kopje - nga classObj.schedule (i njëjti burim që përdor
+                    // gjithçka tjetër: redaktimi, gjenerimi automatik, Orari i Mësimdhënësve).
+                    var subjectKey = classObj.schedule && classObj.schedule[day] && classObj.schedule[day][hour];
+                    var cellContent = '';
+                    if (subjectKey) {
+                        var sub = classObj.subjectsOrder.find(function(s) { return s.key === subjectKey; }) ||
+                            ALL_SUBJECTS.find(function(s) { return s.key === subjectKey; });
+                        var teacherId = getSubjectTeacherId(classId, subjectKey);
+                        var teacher = teacherId ? systemData.teachers.find(function(t) { return t.id === teacherId; }) : null;
+                        cellContent = '<strong>' + (sub ? escapeHtml(sub.name) : subjectKey) + '</strong>' +
+                            (teacher ? '<br><span style="font-size:11px; color:#666;">' + escapeHtml(teacher.name) + '</span>' : '');
+                    }
+                    html += '<td style="padding:6px; text-align:center; ' + (subjectKey ? 'background:#e8f5e9;' : '') + '">' + cellContent + '</td>';
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = '<h2 style="text-align:center; color:#0b4b6e;">' + escapeHtml(classNameForPrint(classObj.className)) + '</h2>' + html;
+        }
+
+        function printSingleClassSchedule() {
+            var classId = document.getElementById('singleClassScheduleSelect').value;
+            if (!classId) { alert("Zgjidh një klasë fillimisht!"); return; }
+            var classObj = systemData.classes.find(function(c) { return c.id === classId; });
+            var content = document.getElementById('singleClassScheduleContainer').innerHTML;
+            var printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Orari - ' + escapeHtml(classObj.className) + '</title>' +
+                '<style>' +
+                'body{font-family:Arial; font-size:18px;}' +
+                'table{width:100%; border-collapse:collapse; margin-bottom:10mm;}' +
+                'th, td{font-size:16px !important; padding:8px !important;}' +
                 '@page{margin:10mm;}' +
                 '</style></head><body>' + content + '</body></html>');
             printWindow.document.close();
@@ -16438,6 +17458,8 @@ function renderAdminDashboard() {
                 <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
                 <button class="btn btn-admin" onclick="openActiveSubjectsModal()">📚 Menaxho Lëndët (sipas Aktivit)</button>
                 <button class="btn btn-danger" onclick="migrateAccountsToFirebaseAuth()" title="Krijon llogari të vërteta Firebase (email+fjalëkalim) për siguri më të fortë">🔒 Siguria e Sistemit</button>
+                <button class="btn btn-purple" onclick="openSingleClassScheduleModal()">📚 Orari i Klasës (Individual)</button>
+                <button class="btn btn-info" onclick="openWorkingDaysModal()">📅 Ditët e Punës (Mësimdhënës)</button>
                 <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
             </div>
 
