@@ -1612,6 +1612,52 @@
         </div>
     </div>
 
+    <div id="smiaModal" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <button class="modal-close" onclick="closeSmiaModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">📋 SMIA - Regjistri i Paraleleve</h2>
+            <p style="font-size:12px; color:#666; margin-bottom:10px;">Të dhëna që kërkon periodikisht sistemi SMIA (MASHT) - klasa/paralelja/kujdestari/numri i nxënësve plotësohen automatikisht; pjesa tjetër plotësohet një herë dhe ruhet për herë tjetër.</p>
+            <select id="smiaClassSelect" onchange="renderSmiaClassView()" style="width:100%; padding:8px; font-size:14px; margin-bottom:10px;">
+                <option value="">-- Zgjidh klasën --</option>
+            </select>
+            <div id="smiaContentContainer" style="max-height:55vh; overflow-y:auto;"></div>
+            <div class="print-btn-group no-print" style="margin-top:15px;">
+                <button class="btn btn-warning" onclick="closeSmiaModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacherListModal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <button class="modal-close" onclick="closeTeacherListModal()">×</button>
+            <h2 style="color:#0b4b6e; margin-bottom:10px;">👨‍🏫 Mësimdhënësit</h2>
+            <div id="teacherListViewContainer" style="max-height:60vh; overflow-y:auto;"></div>
+            <div class="print-btn-group no-print" style="margin-top:15px;">
+                <button class="btn btn-warning" onclick="closeTeacherListModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacherContractModal" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <button class="modal-close" onclick="closeTeacherContractModal()">×</button>
+            <h2 id="teacherContractTitle" style="color:#0b4b6e; margin-bottom:10px;"></h2>
+            <div id="teacherContractRowsContainer" style="max-height:40vh; overflow-y:auto; margin-bottom:15px;"></div>
+            <div style="padding:10px; background:#f5f5f5; border-radius:8px;">
+                <strong style="font-size:12px; color:#555;">+ Shto Lëndë e Re</strong>
+                <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                    <select id="teacherContractAddSubject" style="flex:2; padding:6px;"></select>
+                    <select id="teacherContractAddClass" style="flex:1; padding:6px;"></select>
+                    <input id="teacherContractAddHours" type="number" placeholder="Orë/javë" style="flex:1; padding:6px; min-width:70px;">
+                    <button class="btn btn-success" onclick="addContractRow()">+ Shto</button>
+                </div>
+            </div>
+            <div class="print-btn-group no-print" style="margin-top:15px;">
+                <button class="btn btn-warning" onclick="closeTeacherContractModal()">Mbyll</button>
+            </div>
+        </div>
+    </div>
+
     <div id="workingDaysModal" class="modal">
         <div class="modal-content" style="max-width:550px;">
             <button class="modal-close" onclick="closeWorkingDaysModal()">×</button>
@@ -1666,11 +1712,13 @@
                 <button id="teacherScheduleColorModeBtn" class="btn btn-purple" onclick="toggleTeacherScheduleColorMode()">🎨 Ngjyro sipas: Asnjë</button>
                 <button id="teacherScheduleBlockModeBtn" class="btn btn-danger" onclick="toggleBlockMode()">🚫 Modaliteti i Bllokimit</button>
                 <button id="teacherScheduleLockModeBtn" class="btn btn-info" onclick="toggleLockMode()">🔒 Modaliteti i Kyçjes</button>
+                <button class="btn btn-warning" onclick="toggleWholeTableLock(window.currentTeacherScheduleShift || 'paradite')" title="Kyç/Zhbllokon TË GJITHA orët e vendosura, për të gjithë mësimdhënësit, njëherësh">🔐 Kyç/Zhbllo Gjithë Tabelën</button>
                 <button class="btn btn-info" onclick="openWorkingDaysModal()" title="Cakto shpejt ditët kur secili mësimdhënës punon në Paradite/Pasdite">📅 Ditët e Punës (Mësimdhënës)</button>
                 <button class="btn btn-warning" onclick="confirmAutoFillAllSchedules()" title="Gjeneron Orarin për të gjitha klasat njëherësh, duke shmangur konflikte mësimdhënësish mes klasave">🤖 Gjenero Orarin (Të Gjitha Klasat)</button>
                 <button class="btn btn-danger" onclick="confirmAggressiveFillRemaining()" title="Provon të vendosë orët e mbetura pa vend, duke lejuar shkelje të vogla (2 orë të së njëjtës lëndë të njëjtën ditë, pauza, ditë me 1 orë) - përdore VETËM pas 'Gjenero Orarin', kur ka ende orë pa vend">🔧 Rregullim Agresiv (Orët e Mbetura)</button>
                 <button class="btn btn-info" onclick="confirmBalanceDualShiftTeachers()" title="Balancon ditët e përdorura nga mësimdhënësit që punojnë në të dy ndërrimet - i shpërndan në më shumë ditë, jo të ngjeshura vetëm në 1-2">⚖️ Balanco Ditët e Ndërrimeve</button>
                 <button class="btn btn-purple" onclick="openTeacherRosterModal()" title="Lista e plotë e mësimdhënësve - shto ose hiq">👥 Lista e Mësimdhënësve</button>
+                <button class="btn btn-info" onclick="openTeacherListModal()" title="Pamje e re, e thjeshtë: listë + detaje për secilin mësimdhënës veç e veç">📋 Mësimdhënësit (Pamje e Re)</button>
                 <button class="btn btn-danger" onclick="openMissingSubjectsModal()" title="Klasat me lëndë ende pa mësimdhënës">⚠️ Klasat pa Mësimdhënës</button>
                 <button class="btn btn-success" onclick="printTeacherSchedule()">🖨️ Printo</button>
                 <button class="btn btn-purple" onclick="openSingleTeacherScheduleModal()">📄 Orari i Mësimdhënësit (Individual)</button>
@@ -1682,6 +1730,7 @@
 
             <div id="teacherSchedulePendingContainer"></div>
             <div id="teacherScheduleContainer" style="overflow-x:auto; overflow-y:auto; max-height:65vh;"></div>
+            <input type="color" id="legendColorPickerHidden" style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;">
             <div class="print-btn-group no-print">
                 <button class="btn btn-warning" onclick="closeTeacherScheduleModal()">Mbyll</button>
             </div>
@@ -3141,7 +3190,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                         <button class="btn btn-admin" onclick="openAdminCurriculumModal()">📚 Plani Mësimor</button>
                         <button class="btn btn-admin" onclick="openHolidayModal()">🎉 Festat</button>
                         <button class="btn btn-admin" onclick="openActiveModal()">🏷️ Menaxho Aktivet</button>
-                        <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
+                        <button class="btn btn-admin" onclick="openSmiaModal()">📋 SMIA - Regjistri i Paraleleve</button>
                         <button class="btn btn-admin" onclick="takeBackup()">💾 Backup në Memorie</button>
                         <button class="btn btn-admin" onclick="backupToFile()">💿 Shkarko Backup</button>
                         <button class="btn btn-admin" onclick="restoreFromFile()">📂 Restauro nga Backup</button>
@@ -8266,6 +8315,199 @@ if (systemData.classes && systemData.classes.length > 0) {
                 systemData.teacherDualShiftOverride[teacherId][day]);
         }
 
+        // ==================== SMIA - REGJISTRI I PARALELEVE ====================
+        // Sistemi SMIA (Sistemi i Menaxhimit të Informatave në Arsim, MASHT) kërkon periodikisht
+        // nga shkollat një grup specifik të dhënash - për klasë (kujdestari, profili, gjuha e
+        // dytë, klasë e kombinuar, klasë me nevoja të veçanta) dhe për SECILIN nxënës (mosha,
+        // etnia, largësia e udhëtimit, lloji i dëmtimit, gjendja familjare, ndihma sociale, i
+        // ri/përsëritës, të ardhur nga jashtë). Ruhen NDARA (systemData.smiaClassData /
+        // smiaStudentData) - nuk prekin fare strukturat ekzistuese të nxënësve/klasave.
+        // Kategoritë standarde zyrtare (të njëjta si përdoren në dokumente të tjera zyrtare të
+        // Kosovës, p.sh. regjistrimi i popullsisë për etninë) - nëse sistemi REAL i SMIA përdor
+        // terma paksa të ndryshëm, mjafton të ndryshohen këto lista, pjesa tjetër e kodit mbetet
+        // e njëjtë.
+        var SMIA_ETHNICITY_OPTIONS = ['Shqiptare', 'Serbe', 'Boshnjake', 'Turke', 'Rome', 'Ashkali',
+            'Egjiptiane', 'Gorane', 'Malazeze', 'Kroate', 'Tjetër'
+        ];
+        var SMIA_DISTANCE_OPTIONS = ['0-1 km', '1-3 km', '3-5 km', 'Mbi 5 km'];
+        var SMIA_DISABILITY_OPTIONS = ['Asnjë', 'Dëmtim në shikim', 'Dëmtim në dëgjim', 'Dëmtim në të folur',
+            'Dëmtim fizik/lëvizor', 'Dëmtim intelektual', 'Autizëm', 'Kombinim dëmtimesh', 'Tjetër'
+        ];
+        var SMIA_FAMILY_OPTIONS = ['Të dy prindërit', 'Vetëm nëna', 'Vetëm babai', 'Jetim',
+            'Kujdestar/i afërm tjetër'
+        ];
+        var SMIA_YESNO_OPTIONS = ['Jo', 'Po'];
+
+        function buildSmiaSelect(studentId, fieldName, currentValue, options) {
+            var html = '<select class="smia-student-field" data-student-id="' + studentId + '" data-field="' +
+                fieldName + '" style="padding:3px; max-width:110px;"><option value="">--</option>';
+            options.forEach(function(opt) {
+                html += '<option value="' + escapeHtml(opt) + '"' + (currentValue === opt ? ' selected' : '') + '>' + escapeHtml(opt) + '</option>';
+            });
+            html += '</select>';
+            return html;
+        }
+
+        function getSmiaClassData(classId) {
+            if (!systemData.smiaClassData) systemData.smiaClassData = {};
+            if (!systemData.smiaClassData[classId]) {
+                systemData.smiaClassData[classId] = {
+                    profiliShkollor: '', gjuhaDyte: '', klaseKombinuar: false,
+                    klaseNevojaVeçanta: false, ndrrimiParaleles: ''
+                };
+            }
+            return systemData.smiaClassData[classId];
+        }
+        function getSmiaStudentData(classId, studentId) {
+            if (!systemData.smiaStudentData) systemData.smiaStudentData = {};
+            if (!systemData.smiaStudentData[classId]) systemData.smiaStudentData[classId] = {};
+            if (!systemData.smiaStudentData[classId][studentId]) {
+                systemData.smiaStudentData[classId][studentId] = {
+                    age: '', ethnicity: '', travelDistance: '', disabilityType: '',
+                    familySituation: '', socialAssistance: '', registeredType: 'I ri',
+                    incomeFromAbroad: ''
+                };
+            }
+            return systemData.smiaStudentData[classId][studentId];
+        }
+
+        function openSmiaModal() {
+            if (!requireAdmin()) return;
+            var select = document.getElementById('smiaClassSelect');
+            var html = '<option value="">-- Zgjidh klasën --</option>';
+            systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); }).forEach(function(c) {
+                html += '<option value="' + c.id + '">' + escapeHtml(c.className) + '</option>';
+            });
+            select.innerHTML = html;
+            document.getElementById('smiaContentContainer').innerHTML = '';
+            showModal('smiaModal');
+        }
+        function closeSmiaModal() {
+            hideModal('smiaModal');
+        }
+
+        function renderSmiaClassView() {
+            var classId = document.getElementById('smiaClassSelect').value;
+            var container = document.getElementById('smiaContentContainer');
+            if (!classId) { container.innerHTML = ''; return; }
+            var cls = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!cls) return;
+            var smiaClass = getSmiaClassData(classId);
+            var homeroom = systemData.teachers.find(function(t) { return t.id === cls.teacherId; });
+            var males = cls.students.filter(function(s) { return s.gender === 'M'; }).length;
+            var females = cls.students.filter(function(s) { return s.gender === 'F'; }).length;
+
+            var classNameParts = cls.className.split('-');
+            var html = '<div style="padding:12px; background:#f5f5f5; border-radius:8px; margin-bottom:15px;">' +
+                '<strong>📋 Të dhëna të klasës (auto + manuale)</strong>' +
+                '<table style="width:100%; margin-top:8px; font-size:13px;">' +
+                '<tr><td style="padding:4px; font-weight:bold;">Klasa</td><td style="padding:4px;">' + escapeHtml(classNameParts[0]) + '</td>' +
+                '<td style="padding:4px; font-weight:bold;">Paralelja</td><td style="padding:4px;">' + escapeHtml(classNameParts[1] || '') + '</td></tr>' +
+                '<tr><td style="padding:4px; font-weight:bold;">Kujdestari</td><td style="padding:4px;" colspan="3">' + (homeroom ? escapeHtml(homeroom.name) : '⚠️ I pacaktuar') + '</td></tr>' +
+                '<tr><td style="padding:4px; font-weight:bold;">Numri i nxënësve</td><td style="padding:4px;" colspan="3">' + cls.students.length + ' (M: ' + males + ' | F: ' + females + ')</td></tr>' +
+                '</table>' +
+                '<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">' +
+                '<label style="flex:1; min-width:150px;">Profili shkollor (Drejtimi)<br><input id="smiaProfiliShkollor" value="' + escapeHtml(smiaClass.profiliShkollor) + '" style="width:100%; padding:5px;"></label>' +
+                '<label style="flex:1; min-width:150px;">Gjuhë e dytë zyrtare<br><input id="smiaGjuhaDyte" value="' + escapeHtml(smiaClass.gjuhaDyte) + '" style="width:100%; padding:5px;"></label>' +
+                '</div>' +
+                '<div style="margin-top:8px;">' +
+                '<label style="margin-right:15px;"><input type="checkbox" id="smiaKlaseKombinuar" ' + (smiaClass.klaseKombinuar ? 'checked' : '') + '> Klasë e kombinuar</label>' +
+                '<label><input type="checkbox" id="smiaKlaseNevojaVecanta" ' + (smiaClass.klaseNevojaVeçanta ? 'checked' : '') + '> Klasë me nevoja të veçanta</label>' +
+                '</div>' +
+                '<button class="btn btn-success" style="margin-top:8px;" onclick="saveSmiaClassData(\'' + classId + '\')">💾 Ruaj të Dhënat e Klasës</button>' +
+                '</div>';
+
+            html += '<strong>👨‍🎓 Detajet për secilin nxënës</strong>' +
+                '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:6px;">' +
+                '<thead><tr style="background:#0b4b6e; color:white;">' +
+                '<th style="padding:4px;">Emri</th><th style="padding:4px;">Mosha</th><th style="padding:4px;">Përkatësia etnike</th>' +
+                '<th style="padding:4px;">Largësia e udhëtimit</th><th style="padding:4px;">Lloji i dëmtimit</th>' +
+                '<th style="padding:4px;">Gjendja familjare</th><th style="padding:4px;">Ndihma Sociale</th>' +
+                '<th style="padding:4px;">I ri/Përsëritës</th><th style="padding:4px;">Të ardhur nga jashtë</th></tr></thead><tbody>';
+            cls.students.forEach(function(s) {
+                var sd = getSmiaStudentData(classId, s.id);
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:4px; font-weight:bold; white-space:nowrap;">' + escapeHtml(s.name) + '</td>' +
+                    '<td><input class="smia-student-field" data-student-id="' + s.id + '" data-field="age" value="' + escapeHtml(sd.age) + '" style="width:45px; padding:3px;"></td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'ethnicity', sd.ethnicity, SMIA_ETHNICITY_OPTIONS) + '</td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'travelDistance', sd.travelDistance, SMIA_DISTANCE_OPTIONS) + '</td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'disabilityType', sd.disabilityType, SMIA_DISABILITY_OPTIONS) + '</td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'familySituation', sd.familySituation, SMIA_FAMILY_OPTIONS) + '</td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'socialAssistance', sd.socialAssistance, SMIA_YESNO_OPTIONS) + '</td>' +
+                    '<td><select class="smia-student-field" data-student-id="' + s.id + '" data-field="registeredType" style="padding:3px;">' +
+                    '<option value="I ri"' + (sd.registeredType === 'I ri' ? ' selected' : '') + '>I ri</option>' +
+                    '<option value="Përsëritës"' + (sd.registeredType === 'Përsëritës' ? ' selected' : '') + '>Përsëritës</option></select></td>' +
+                    '<td>' + buildSmiaSelect(s.id, 'incomeFromAbroad', sd.incomeFromAbroad, SMIA_YESNO_OPTIONS) + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table></div>' +
+                '<button class="btn btn-success" style="margin-top:10px;" onclick="saveSmiaStudentData(\'' + classId + '\')">💾 Ruaj Detajet e Nxënësve</button>' +
+                '<button class="btn btn-info" style="margin-top:10px; margin-left:6px;" onclick="printSmiaReport(\'' + classId + '\')">🖨️ Printo Regjistrin</button>';
+            container.innerHTML = html;
+        }
+
+        function saveSmiaClassData(classId) {
+            var smiaClass = getSmiaClassData(classId);
+            smiaClass.profiliShkollor = document.getElementById('smiaProfiliShkollor').value;
+            smiaClass.gjuhaDyte = document.getElementById('smiaGjuhaDyte').value;
+            smiaClass.klaseKombinuar = document.getElementById('smiaKlaseKombinuar').checked;
+            smiaClass.klaseNevojaVeçanta = document.getElementById('smiaKlaseNevojaVecanta').checked;
+            saveToLocal();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? '✅ Të dhënat e klasës u ruajtën në cloud!' : '⚠️ U ruajt lokalisht, cloud dështoi.');
+            });
+        }
+
+        function saveSmiaStudentData(classId) {
+            document.querySelectorAll('.smia-student-field').forEach(function(el) {
+                var sd = getSmiaStudentData(classId, el.dataset.studentId);
+                sd[el.dataset.field] = el.value;
+            });
+            saveToLocal();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? '✅ Detajet e nxënësve u ruajtën në cloud!' : '⚠️ U ruajt lokalisht, cloud dështoi.');
+            });
+        }
+
+        function printSmiaReport(classId) {
+            var cls = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!cls) return;
+            var smiaClass = getSmiaClassData(classId);
+            var homeroom = systemData.teachers.find(function(t) { return t.id === cls.teacherId; });
+            var males = cls.students.filter(function(s) { return s.gender === 'M'; }).length;
+            var females = cls.students.filter(function(s) { return s.gender === 'F'; }).length;
+            var classNameParts = cls.className.split('-');
+
+            var html = '<html><head><title>Regjistri i Paraleleve - ' + escapeHtml(cls.className) + '</title>' +
+                '<style>body{font-family:Arial; font-size:12px;} table{width:100%; border-collapse:collapse; margin-bottom:15px;} th,td{border:1px solid #333; padding:5px; text-align:center;} h2{text-align:center;}</style></head><body>' +
+                '<h2>Regjistri i paraleleve - ' + (systemData.schoolInfo ? escapeHtml(systemData.schoolInfo.year || '') : '') + '</h2>' +
+                '<table><tr><th>Klasa</th><td>' + escapeHtml(classNameParts[0]) + '</td><th>Paralelja</th><td>' + escapeHtml(classNameParts[1] || '') + '</td></tr>' +
+                '<tr><th>Kujdestari i klasës</th><td colspan="3">' + (homeroom ? escapeHtml(homeroom.name) : '') + '</td></tr>' +
+                '<tr><th>Profili shkollor (Drejtimi)</th><td>' + escapeHtml(smiaClass.profiliShkollor) + '</td><th>Gjuhë e dytë zyrtare</th><td>' + escapeHtml(smiaClass.gjuhaDyte) + '</td></tr>' +
+                '<tr><th>Klasë e kombinuar</th><td>' + (smiaClass.klaseKombinuar ? 'Po' : 'Jo') + '</td><th>Klasë me nevoja të veçanta</th><td>' + (smiaClass.klaseNevojaVeçanta ? 'Po' : 'Jo') + '</td></tr>' +
+                '<tr><th>Numri i nxënësve</th><td colspan="3">Gjithsej: ' + cls.students.length + ' | M: ' + males + ' | F: ' + females + '</td></tr></table>';
+
+            html += '<table><thead><tr><th>Emri</th><th>Mosha</th><th>Përkatësia etnike</th><th>Gjinia</th>' +
+                '<th>Largësia e udhëtimit</th><th>Lloji i dëmtimit</th><th>Gjendja familjare</th>' +
+                '<th>Ndihma Sociale</th><th>I ri/Përsëritës</th><th>Të ardhur nga jashtë</th></tr></thead><tbody>';
+            cls.students.forEach(function(s) {
+                var sd = getSmiaStudentData(classId, s.id);
+                html += '<tr><td>' + escapeHtml(s.name) + '</td><td>' + escapeHtml(sd.age) + '</td><td>' + escapeHtml(sd.ethnicity) +
+                    '</td><td>' + escapeHtml(s.gender) + '</td><td>' + escapeHtml(sd.travelDistance) + '</td><td>' + escapeHtml(sd.disabilityType) +
+                    '</td><td>' + escapeHtml(sd.familySituation) + '</td><td>' + escapeHtml(sd.socialAssistance) +
+                    '</td><td>' + escapeHtml(sd.registeredType) + '</td><td>' + escapeHtml(sd.incomeFromAbroad) + '</td></tr>';
+            });
+            html += '</tbody></table></body></html>';
+
+            var w = window.open('', '_blank');
+            w.document.write(html);
+            w.document.close();
+            w.print();
+        }
+
+
         function getClassShift(classObj) {
             if (classObj.shift) return classObj.shift; // lejo mbivendosje manuale nëse ndonjëherë vendoset
             var level = (classObj.className || '').split('-')[0];
@@ -9221,6 +9463,154 @@ if (systemData.classes && systemData.classes.length > 0) {
 
         // ==================== LISTA E PLOTË E MËSIMDHËNËSVE (staf, jo llogari hyrjeje) ====================
         // ==================== KLASAT ME LËNDË PA MËSIMDHËNËS (dritare e qëndrueshme) ====================
+        // ==================== LISTA E MËSIMDHËNËSVE (E RE) - Listë + Detaje ====================
+        // Ndarë në dy pamje, si aSc Timetables: një listë e thjeshtë (emër + orë + ditët e lira),
+        // dhe klikimi te "📋 Lëndët" hap detajet e atij mësimdhënësi specifik (Lëndë | Klasë |
+        // Orë/javë), me shtim/heqje/ndryshim aty. Ripërdor funksionet ekzistuese të verifikuara
+        // (classOffersSubject, getSubjectTeacherId, setSubjectTeacherId, etj.) - pa i prekur.
+        function openTeacherListModal() {
+            if (!requireAdmin()) return;
+            renderTeacherListView();
+            showModal('teacherListModal');
+        }
+
+        function closeTeacherListModal() {
+            hideModal('teacherListModal');
+        }
+
+        function renderTeacherListView() {
+            var container = document.getElementById('teacherListViewContainer');
+            if (!container) return;
+            var sorted = systemData.teachers.slice().sort(function(a, b) { return a.name.localeCompare(b.name); });
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
+                '<thead><tr style="background:#0b4b6e; color:white;">' +
+                '<th style="padding:6px; text-align:left;">Emri</th>' +
+                '<th style="padding:6px;">Orë Gjithsej</th>' +
+                '<th style="padding:6px;">Ditët e Lira</th>' +
+                '<th style="padding:6px;"></th>' +
+                '<th style="padding:6px;"></th></tr></thead><tbody>';
+            sorted.forEach(function(t) {
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px; font-weight:bold;">' + escapeHtml(t.name) + '</td>' +
+                    '<td style="padding:6px; text-align:center; font-weight:bold;">' + getTeacherTotalHours(t.id) + '</td>' +
+                    '<td style="padding:6px;">' + buildTimeOffMiniGrid(t.id) + '</td>' +
+                    '<td style="padding:6px;"><button class="btn btn-info" style="padding:4px 10px; font-size:12px;" onclick="openTeacherContractModal(\'' + t.id + '\')">📋 Lëndët</button></td>' +
+                    '<td style="padding:6px;"><button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="removeTeacherFromRoster(\'' + t.id + '\')">🗑️</button></td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // ==================== DETAJET E MËSIMDHËNËSIT ("Contract") ====================
+        function openTeacherContractModal(teacherId) {
+            window.currentContractTeacherId = teacherId;
+            renderTeacherContractView();
+            showModal('teacherContractModal');
+        }
+
+        function closeTeacherContractModal() {
+            hideModal('teacherContractModal');
+            renderTeacherListView(); // pasqyro çdo ndryshim (orë totale, etj.) kur kthehesh te lista
+        }
+
+        function renderTeacherContractView() {
+            var teacherId = window.currentContractTeacherId;
+            var t = systemData.teachers.find(function(tt) { return tt.id === teacherId; });
+            if (!t) return;
+            document.getElementById('teacherContractTitle').textContent = '📋 ' + t.name;
+
+            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+            var assignedValues = getTeacherAssignedRosterSubjects(t, sortedClasses);
+
+            // Ndërto listën e rreshtave (lëndë, klasë) - një rresht për SECILËN klasë ku jep
+            // secilën lëndë (jo e grupuar), për t'iu ngjasuar tabelës "Contract" të aSc.
+            var rows = [];
+            assignedValues.forEach(function(value) {
+                var parsed = parseRosterSubjectValue(value);
+                var opt = getRosterSubjectOptions().find(function(o) { return o.value === value; });
+                sortedClasses.forEach(function(cls) {
+                    if (classOffersSubject(cls.id, value) && getSubjectTeacherId(cls.id, parsed.key) === teacherId) {
+                        var curriculum = (systemData.curriculum[cls.id] && systemData.curriculum[cls.id][parsed.key]) || {};
+                        rows.push({ subjectLabel: opt ? opt.label : parsed.key, subjectValue: value, className: cls.className, classId: cls.id, hoursPerWeek: curriculum.hoursPerWeek || 0 });
+                    }
+                });
+            });
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
+                '<thead><tr style="background:#f2f2f2;">' +
+                '<th style="padding:6px; text-align:left; border-bottom:2px solid #ccc;">Lënda</th>' +
+                '<th style="padding:6px; border-bottom:2px solid #ccc;">Klasa</th>' +
+                '<th style="padding:6px; border-bottom:2px solid #ccc;">Orë/javë</th>' +
+                '<th style="padding:6px; border-bottom:2px solid #ccc;"></th></tr></thead><tbody>';
+            if (rows.length === 0) {
+                html += '<tr><td colspan="4" style="padding:15px; text-align:center; color:#999;">Ende pa lëndë të caktuara.</td></tr>';
+            }
+            rows.forEach(function(r, idx) {
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(r.subjectLabel) + '</td>' +
+                    '<td style="padding:6px; text-align:center;">' + escapeHtml(r.className) + '</td>' +
+                    '<td style="padding:6px; text-align:center;">' + r.hoursPerWeek + '</td>' +
+                    '<td style="padding:6px; text-align:center;"><span onclick="removeContractRow(\'' + r.classId + '\', \'' + escapeHtml(r.subjectValue) + '\')" style="cursor:pointer; color:#c62828;" title="Hiq">✕</span></td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('teacherContractRowsContainer').innerHTML = html;
+
+            // Formulari "Shto Lëndë e Re" - zgjidh lëndë + klasë + orë, shto si rresht i ri.
+            var subjectOptHtml = '<option value="">-- Lënda --</option>';
+            getRosterSubjectOptions().forEach(function(opt) {
+                subjectOptHtml += '<option value="' + opt.value + '">' + escapeHtml(opt.label) + '</option>';
+            });
+            var classOptHtml = '<option value="">-- Klasa --</option>';
+            sortedClasses.forEach(function(cls) {
+                classOptHtml += '<option value="' + cls.id + '">' + escapeHtml(cls.className) + '</option>';
+            });
+            document.getElementById('teacherContractAddSubject').innerHTML = subjectOptHtml;
+            document.getElementById('teacherContractAddClass').innerHTML = classOptHtml;
+            document.getElementById('teacherContractAddHours').value = '';
+        }
+
+        function addContractRow() {
+            var teacherId = window.currentContractTeacherId;
+            var value = document.getElementById('teacherContractAddSubject').value;
+            var classId = document.getElementById('teacherContractAddClass').value;
+            var hours = parseFloat(document.getElementById('teacherContractAddHours').value);
+            if (!value || !classId) { alert('Zgjidh lëndën dhe klasën!'); return; }
+            var parsed = parseRosterSubjectValue(value);
+            if (!classOffersSubject(classId, value)) { alert('Kjo klasë s\'e ka këtë lëndë!'); return; }
+            var existingTeacherId = getSubjectTeacherId(classId, parsed.key);
+            if (existingTeacherId && existingTeacherId !== teacherId) {
+                var existingTeacher = systemData.teachers.find(function(t) { return t.id === existingTeacherId; });
+                if (!confirm('Kjo klasë tashmë ka mësimdhënës TJETËR (' + (existingTeacher ? existingTeacher.name : '') + ') për këtë lëndë. Ta zëvendësoj?')) return;
+            }
+            setSubjectTeacherId(classId, parsed.key, teacherId);
+            if (!isNaN(hours) && hours > 0) {
+                if (!systemData.curriculum[classId]) systemData.curriculum[classId] = {};
+                if (!systemData.curriculum[classId][parsed.key]) systemData.curriculum[classId][parsed.key] = { hoursPerWeek: 0, hoursDoneSem1: 0, hoursDoneSem2: 0 };
+                systemData.curriculum[classId][parsed.key].hoursPerWeek = hours;
+            }
+            saveToLocal();
+            renderTeacherContractView();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? '✅ U shtua dhe u ruajt në cloud!' : '⚠️ U ruajt lokalisht, cloud dështoi.');
+            });
+        }
+
+        function removeContractRow(classId, subjectValue) {
+            var parsed = parseRosterSubjectValue(subjectValue);
+            if (!confirm('Ta heq këtë lëndë nga kjo klasë për këtë mësimdhënës?')) return;
+            setSubjectTeacherId(classId, parsed.key, null);
+            saveToLocal();
+            renderTeacherContractView();
+            _suppressNextRemoteRefresh = true;
+            forcePushToCloud(function(ok) {
+                showNotification(ok ? '✅ U hoq dhe u ruajt në cloud!' : '⚠️ U ruajt lokalisht, cloud dështoi.');
+            });
+        }
+
+
         function openTeacherRosterModal() {
             if (!requireAdmin()) return;
             renderTeacherRoster();
@@ -10217,12 +10607,54 @@ if (systemData.classes && systemData.classes.length > 0) {
         var CLASS_COLOR_PALETTE = ['#ef5350', '#42a5f5', '#66bb6a', '#ffca28', '#ab47bc', '#26a69a',
             '#ff7043', '#5c6bc0', '#8d6e63', '#ec407a', '#26c6da', '#9ccc65'
         ];
+        // Ngjyrat e p\u00ebrshtatura manualisht nga admini (mbivendosin ngjyr\u00ebn automatike, p\u00ebr \u00e7do
+        // modalitet ve\u00e7 e ve\u00e7 - "class"/"subject"/"teacher") - ruhen te systemData, kesht\u00eb
+        // mbeten p\u00ebrgjith\u00ebn (nuk humbasin kur rifreskohet faqja apo ndryshon nd\u00ebrrimi).
+        function getCustomColor(mode, key) {
+            return systemData.customColors && systemData.customColors[mode] && systemData.customColors[mode][key];
+        }
+        function setCustomColor(mode, key, hexColor) {
+            if (!systemData.customColors) systemData.customColors = {};
+            if (!systemData.customColors[mode]) systemData.customColors[mode] = {};
+            systemData.customColors[mode][key] = hexColor;
+            saveToLocal();
+        }
+        function clearCustomColor(mode, key) {
+            if (systemData.customColors && systemData.customColors[mode]) {
+                delete systemData.customColors[mode][key];
+                saveToLocal();
+            }
+        }
+
+        // Kliko një etiketë legjende → hap zgjedhësin e ngjyrës (input color i fshehur, i
+        // ripërdorur për të gjitha). Shift+klik → rikthen ngjyrën automatike (heq personalizimin).
+        function handleLegendBadgeClick(evt, mode, key, shift) {
+            if (evt.shiftKey) {
+                clearCustomColor(mode, key);
+                renderTeacherScheduleTable(shift);
+                return;
+            }
+            var picker = document.getElementById('legendColorPickerHidden');
+            picker.value = evt.currentTarget.style.backgroundColor ?
+                rgbToHex(evt.currentTarget.style.backgroundColor) : '#000000';
+            picker.onchange = function() {
+                setCustomColor(mode, key, picker.value);
+                renderTeacherScheduleTable(shift);
+            };
+            picker.click();
+        }
+        function rgbToHex(rgb) {
+            var m = rgb.match(/\d+/g);
+            if (!m) return '#000000';
+            return '#' + m.slice(0, 3).map(function(x) { return ('0' + parseInt(x).toString(16)).slice(-2); }).join('');
+        }
+
         function getClassColorMap(shift) {
             var classesInShift = systemData.classes.filter(function(c) { return getClassShift(c) === shift; })
                 .sort(function(a, b) { return a.className.localeCompare(b.className); });
             var map = {};
             classesInShift.forEach(function(c, idx) {
-                map[c.id] = CLASS_COLOR_PALETTE[idx % CLASS_COLOR_PALETTE.length];
+                map[c.id] = getCustomColor('class', c.id) || CLASS_COLOR_PALETTE[idx % CLASS_COLOR_PALETTE.length];
             });
             return map;
         }
@@ -10237,7 +10669,7 @@ if (systemData.classes && systemData.classes.length > 0) {
         function getSubjectColorMap() {
             var map = {};
             ALL_SUBJECTS.forEach(function(s, idx) {
-                map[s.key] = SUBJECT_COLOR_PALETTE[idx % SUBJECT_COLOR_PALETTE.length];
+                map[s.key] = getCustomColor('subject', s.key) || SUBJECT_COLOR_PALETTE[idx % SUBJECT_COLOR_PALETTE.length];
             });
             return map;
         }
@@ -10251,7 +10683,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             var teacherIds = Object.keys(data.rows).sort(function(a, b) { return data.rows[a].name.localeCompare(data.rows[b].name); });
             var map = {};
             teacherIds.forEach(function(tid, idx) {
-                map[tid] = CLASS_COLOR_PALETTE[idx % CLASS_COLOR_PALETTE.length];
+                map[tid] = getCustomColor('teacher', tid) || CLASS_COLOR_PALETTE[idx % CLASS_COLOR_PALETTE.length];
             });
             return map;
         }
@@ -10354,15 +10786,15 @@ if (systemData.classes && systemData.classes.length > 0) {
                 return diff !== 0 ? diff : data.rows[a].name.localeCompare(data.rows[b].name);
             });
 
-            var html = '<table style="width:100%; border-collapse:collapse; font-size:11px;" border="1">' +
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;" border="1">' +
                 '<thead><tr style="background:#0b4b6e; color:white; position:sticky; top:0; z-index:11;">' +
-                '<th rowspan="2" style="padding:4px;">Emri i mësimdhënësit</th>';
-            data.days.forEach(function(day) {
-                html += '<th colspan="' + data.hours.length + '" style="padding:4px;">' + dayLabels[day] + '</th>';
+                '<th rowspan="2" style="padding:6px;">Emri i mësimdhënësit</th>';
+            data.days.forEach(function(day, dayIdx) {
+                html += '<th colspan="' + data.hours.length + '" style="padding:6px;' + (dayIdx > 0 ? ' border-left:3px solid #08344a;' : '') + '">' + dayLabels[day] + '</th>';
             });
-            html += '<th rowspan="2" style="padding:4px;">Total</th></tr><tr style="background:#0b4b6e; color:white; position:sticky; top:26px; z-index:10;">';
-            data.days.forEach(function() {
-                data.hours.forEach(function(h) { html += '<th style="padding:2px; font-weight:normal;">' + h + '</th>'; });
+            html += '<th rowspan="2" style="padding:6px;">Total</th></tr><tr style="background:#0b4b6e; color:white; position:sticky; top:32px; z-index:10;">';
+            data.days.forEach(function(day, dayIdx) {
+                data.hours.forEach(function(h) { html += '<th style="padding:4px; font-weight:normal;' + (h === 1 && dayIdx > 0 ? ' border-left:3px solid #08344a;' : '') + '">' + h + '</th>'; });
             });
             html += '</tr></thead><tbody>';
 
@@ -10396,8 +10828,12 @@ if (systemData.classes && systemData.classes.length > 0) {
             }
             teacherIds.forEach(function(teacherId) {
                 var row = data.rows[teacherId];
-                html += '<tr><td style="padding:3px; text-align:left; font-weight:bold; white-space:nowrap;">' + escapeHtml(row.name) + '</td>';
-                data.days.forEach(function(day) {
+                var rowFullyLocked = isTeacherRowFullyLocked(teacherId, shift);
+                html += '<tr><td style="padding:5px; text-align:left; font-weight:bold; white-space:nowrap;">' +
+                    '<span onclick="toggleTeacherRowLock(\'' + teacherId + '\', \'' + shift + '\')" style="cursor:pointer; margin-right:5px;" title="' +
+                    (rowFullyLocked ? 'Zhbllo këtë mësimdhënës' : 'Kyç këtë mësimdhënës (të gjitha orët e vendosura)') + '">' +
+                    (rowFullyLocked ? '🔒' : '🔓') + '</span>' + escapeHtml(row.name) + '</td>';
+                data.days.forEach(function(day, dayIdx) {
                     data.hours.forEach(function(hour) {
                         var cell = row.grid[day][hour];
                         var blocked = isTeacherBlocked(teacherId, shift, day, hour);
@@ -10430,36 +10866,46 @@ if (systemData.classes && systemData.classes.length > 0) {
                             var clsForLockCheck = systemData.classes.find(function(c) { return c.id === cell.classId; });
                             isLocked = !!(clsForLockCheck && clsForLockCheck._lockedSlots && clsForLockCheck._lockedSlots[day] && clsForLockCheck._lockedSlots[day][hour]);
                         }
-                        var content = blocked ? '✕' : (shiftConflictMark ? '✕' : (cell ? (isLocked ? '🔒' : '') + escapeHtml(classNameSlash(cell.className)) : ''));
+                        var content = blocked ? '✕' : (shiftConflictMark ? '✕' : (cell ? escapeHtml(classNameSlash(cell.className)) : ''));
+                        // Treguesi i kyçjes tani është një "/" i vogël në cepin poshtë-djathtas të
+                        // qelizës (jo më "🔒" para tekstit) - kursen hapësirë, qeliza mbetet e
+                        // pastër dhe e lexueshme edhe pas zmadhimit të fontit.
+                        if (isLocked && content) {
+                            content += '<span style="position:absolute; bottom:0px; right:0px; font-size:16px; font-weight:900; color:white; background:#ff6f00; width:16px; height:16px; line-height:16px; text-align:center; border-radius:3px 0 0 0; box-shadow:0 0 2px rgba(0,0,0,0.5);">/</span>';
+                        }
                         var cellTitle = blocked ? 'I bllokuar - kliko "🚫 Modaliteti i Bllokimit" për ta hequr' :
                             (shiftConflictMark ? 'Punon tashmë në ndërrimin tjetër këtë ditë - s\'mund të zgjidhet' :
                                 (isLocked ? 'E KYÇUR - s\'ndryshon kur rigjenerohet Orari. Kliko "🔒 Modaliteti i Kyçjes" për ta zhbllokuar.' : ''));
                         html += '<td class="teacher-sched-cell" data-teacher-id="' + teacherId + '" data-shift="' + shift +
                             '" data-day="' + day + '" data-hour="' + hour + '" ' +
-                            'style="padding:3px; text-align:center; cursor:pointer; font-weight:bold;' + (bg ? ' background:' + bg + ';' : '') +
+                            'style="padding:4px; text-align:center; cursor:pointer; font-weight:bold; position:relative;' + (bg ? ' background:' + bg + ';' : '') +
+                            (hour === 1 && dayIdx > 0 ? ' border-left:3px solid #333;' : '') +
                             (isLocked ? ' box-shadow: inset 0 0 0 2px #ff9800;' : '') +
                             (textColor ? ' color:' + textColor + ';' : '') + '" title="' + cellTitle + '">' +
                             content + '</td>';
                     });
                 });
-                html += '<td style="padding:3px; text-align:center; font-weight:bold;">' + row.total + '</td></tr>';
+                html += '<td style="padding:5px; text-align:center; font-weight:bold;">' + row.total + '</td></tr>';
             });
             html += '</tbody></table>';
             // Legjenda e ngjyrave - varet nga modaliteti aktual (klasë, lëndë, ose mësimdhënës).
+            // Çdo etiketë tani është E KLIKUESHME - kliko për të zgjedhur ngjyrë të
+            // personalizuar (mbivendos atë automatiken), ose Shift+klik për ta kthyer te
+            // ngjyra automatike.
             if (colorMode === 'subject') {
                 html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
-                    '<strong style="font-size:12px; color:#555;">Legjenda e lëndëve:</strong><div style="margin-top:5px;">';
+                    '<strong style="font-size:12px; color:#555;">Legjenda e lëndëve (kliko për ngjyrë tënden, Shift+klik për ta rikthyer):</strong><div style="margin-top:5px;">';
                 ALL_SUBJECTS.forEach(function(s) {
-                    html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
-                        colorMap[s.key] + ';">' + escapeHtml(s.name) + '</span>';
+                    html += '<span onclick="handleLegendBadgeClick(event, \'subject\', \'' + s.key + '\', \'' + shift + '\')" style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
+                        colorMap[s.key] + '; cursor:pointer;">' + escapeHtml(s.name) + '</span>';
                 });
                 html += '</div></div>';
             } else if (colorMode === 'teacher') {
                 html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
-                    '<strong style="font-size:12px; color:#555;">Legjenda e mësimdhënësve:</strong><div style="margin-top:5px;">';
+                    '<strong style="font-size:12px; color:#555;">Legjenda e mësimdhënësve (kliko për ngjyrë tënden, Shift+klik për ta rikthyer):</strong><div style="margin-top:5px;">';
                 teacherIds.forEach(function(tid) {
-                    html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
-                        colorMap[tid] + ';">' + escapeHtml(data.rows[tid].name) + '</span>';
+                    html += '<span onclick="handleLegendBadgeClick(event, \'teacher\', \'' + tid + '\', \'' + shift + '\')" style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
+                        colorMap[tid] + '; cursor:pointer;">' + escapeHtml(data.rows[tid].name) + '</span>';
                 });
                 html += '</div></div>';
             } else if (colorMode === 'class') {
@@ -10467,10 +10913,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                     .sort(function(a, b) { return a.className.localeCompare(b.className); });
                 if (classesInShift.length > 0) {
                     html += '<div style="margin-top:10px; padding:8px; background:#f5f5f5; border-radius:6px;">' +
-                        '<strong style="font-size:12px; color:#555;">Legjenda e klasave:</strong><div style="margin-top:5px;">';
+                        '<strong style="font-size:12px; color:#555;">Legjenda e klasave (kliko për ngjyrë tënden, Shift+klik për ta rikthyer):</strong><div style="margin-top:5px;">';
                     classesInShift.forEach(function(c) {
-                        html += '<span style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
-                            colorMap[c.id] + ';">' + escapeHtml(c.className) + '</span>';
+                        html += '<span onclick="handleLegendBadgeClick(event, \'class\', \'' + c.id + '\', \'' + shift + '\')" style="display:inline-block; margin:2px; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:bold; color:white; background:' +
+                            colorMap[c.id] + '; cursor:pointer;">' + escapeHtml(c.className) + '</span>';
                     });
                     html += '</div></div>';
                 }
@@ -10637,6 +11083,93 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (!cls._lockedSlots[day]) cls._lockedSlots[day] = {};
             cls._lockedSlots[day][hour] = !cls._lockedSlots[day][hour];
             saveToLocal();
+        }
+
+        function setCellLockState(classId, day, hour, locked) {
+            var cls = systemData.classes.find(function(c) { return c.id === classId; });
+            if (!cls) return;
+            if (!cls._lockedSlots) cls._lockedSlots = {};
+            if (!cls._lockedSlots[day]) cls._lockedSlots[day] = {};
+            cls._lockedSlots[day][hour] = !!locked;
+        }
+
+        // ==================== KYÇJE PËR RRESHT / PËR TË GJITHË TABELËN ====================
+        // Ndryshe nga "🔒 Modaliteti i Kyçjes" (kyç NJË qelizë në herë, kur admin klikon), këto
+        // funksione kyçin/zhbllokojnë ME NJË KLIKIM të gjitha orët e VENDOSURA (jo boshllëqet) të
+        // një mësimdhënësi të VETËM, ose të GJITHË mësimdhënësve njëherësh - ripërdorin të
+        // njëjtën strukturë ekzistuese "_lockedSlots" (kështu respektohen automatikisht nga çdo
+        // funksion tjetër - gjenerimi, rregullimi agresiv, etj.).
+        function isTeacherRowFullyLocked(teacherId, shift) {
+            var data = buildTeacherScheduleData(shift);
+            var row = data.rows[teacherId];
+            if (!row) return false;
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var anyFilled = false, allLocked = true;
+            days.forEach(function(day) {
+                hours.forEach(function(hour) {
+                    var cell = row.grid[day][hour];
+                    if (!cell) return;
+                    anyFilled = true;
+                    var cls = systemData.classes.find(function(c) { return c.id === cell.classId; });
+                    var locked = cls && cls._lockedSlots && cls._lockedSlots[day] && cls._lockedSlots[day][hour];
+                    if (!locked) allLocked = false;
+                });
+            });
+            return anyFilled && allLocked;
+        }
+
+        function toggleTeacherRowLock(teacherId, shift) {
+            var data = buildTeacherScheduleData(shift);
+            var row = data.rows[teacherId];
+            if (!row) return;
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var makeLocked = !isTeacherRowFullyLocked(teacherId, shift);
+            var count = 0;
+            days.forEach(function(day) {
+                hours.forEach(function(hour) {
+                    var cell = row.grid[day][hour];
+                    if (!cell) return;
+                    setCellLockState(cell.classId, day, hour, makeLocked);
+                    count++;
+                });
+            });
+            saveToLocal();
+            renderTeacherScheduleTable(shift);
+            showNotification((makeLocked ? '🔒 U kyçën ' : '🔓 U zhbllokuan ') + count + ' orë për këtë mësimdhënës.');
+        }
+
+        function isWholeTableFullyLocked(shift) {
+            var data = buildTeacherScheduleData(shift);
+            var teacherIds = Object.keys(data.rows);
+            if (teacherIds.length === 0) return false;
+            return teacherIds.every(function(tid) { return isTeacherRowFullyLocked(tid, shift); });
+        }
+
+        function toggleWholeTableLock(shift) {
+            if (!requireAdmin()) return;
+            var makeLocked = !isWholeTableFullyLocked(shift);
+            if (!confirm((makeLocked ? 'Kjo do të KYÇË' : 'Kjo do TË ZHBLLOKOJË') + ' të gjitha orët e VENDOSURA për ' +
+                    (shift === 'paradite' ? 'PARADITE' : 'PASDITE') + ' (të gjithë mësimdhënësit njëherësh). Vazhdo?')) return;
+            var data = buildTeacherScheduleData(shift);
+            var days = ['ehene', 'emarte', 'emerKure', 'eenjte', 'epremte'];
+            var hours = [1, 2, 3, 4, 5, 6];
+            var count = 0;
+            Object.keys(data.rows).forEach(function(teacherId) {
+                var row = data.rows[teacherId];
+                days.forEach(function(day) {
+                    hours.forEach(function(hour) {
+                        var cell = row.grid[day][hour];
+                        if (!cell) return;
+                        setCellLockState(cell.classId, day, hour, makeLocked);
+                        count++;
+                    });
+                });
+            });
+            saveToLocal();
+            renderTeacherScheduleTable(shift);
+            showNotification((makeLocked ? '🔒 U kyç GJITHÇKA: ' : '🔓 U zhbllokua GJITHÇKA: ') + count + ' orë.');
         }
 
         function handleTeacherScheduleCellClick(td, shift) {
@@ -17461,6 +17994,7 @@ function renderAdminDashboard() {
                 <button class="btn btn-danger" onclick="migrateAccountsToFirebaseAuth()" title="Krijon llogari të vërteta Firebase (email+fjalëkalim) për siguri më të fortë">🔒 Siguria e Sistemit</button>
                 <button class="btn btn-purple" onclick="openSingleClassScheduleModal()">📚 Orari i Klasës (Individual)</button>
                 <button class="btn btn-info" onclick="openWorkingDaysModal()">📅 Ditët e Punës (Mësimdhënës)</button>
+                <button class="btn btn-admin" onclick="openSmiaModal()">📋 SMIA - Regjistri i Paraleleve</button>
                 <button class="btn btn-admin" onclick="showGlobalStats()">📊 Statistikat e përgjithshme</button>
             </div>
 
