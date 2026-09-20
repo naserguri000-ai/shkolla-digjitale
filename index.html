@@ -3444,6 +3444,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<button class="btn btn-success" onclick="openSchoolCalendarModal(\'' + (classObj.activeId || '') + '\')">📆 Kalendari Shkollor</button>' +
                 '<button class="btn btn-info" onclick="openTabelariModal()">📊 Tabelari i Mungesave ☁️</button>' +
                 '<button class="btn btn-info" onclick="openSmiaModal()">📋 SMIA - Regjistri i Paraleles</button>' +
+                '<button class="btn btn-purple" onclick="openSingleClassScheduleModal()">📚 Orari i Klasës Sime</button>' +
                 '<button class="btn btn-info" onclick="printSubjectSuccessTable(getCurrentClass())">🖨️ Tabela e Lëndëve</button>' +
                 '<button class="btn btn-info" onclick="printSuccessSummaryTable(getCurrentClass())">🖨️ Përmbledhja</button>' +
                 (isAdmin() ?
@@ -4616,6 +4617,16 @@ if (systemData.classes && systemData.classes.length > 0) {
             });
         }
 
+        // E njëjta kërkim si më sipër, por kthen vetë KLASËN e arkivuar (jo nxënësin) - nevojitet
+        // për të lexuar "subjectsOrder" e ASAJ VITI specifik, që të gjejmë EMRIN E VËRTETË që
+        // kishte lënda zgjedhore atë vit (ndryshon çdo vit - Flora e Fauna, Mbrojtja e Mjedisit...).
+        function findArchivedClassData(className, year) {
+            if (!systemData.archivedYears || systemData.archivedYears.length === 0) return null;
+            var archivedYear = systemData.archivedYears.find(function(a) { return a.year === year; });
+            if (!archivedYear || !archivedYear.classes) return null;
+            return archivedYear.classes.find(function(c) { return c.className === className; }) || null;
+        }
+
         function getArchivedStudentGrade(student, subKey) {
             if (!student) return 0;
             var g1 = parseInt(student.grades?.[subKey]) || 0;
@@ -4791,7 +4802,8 @@ if (systemData.classes && systemData.classes.length > 0) {
             }
 
             var rowsHtml = '';
-            allSubjects.forEach(function(sub) {
+            var regularSubjects = allSubjects.filter(function(sub) { return sub.key !== 'msimzgjedhor'; });
+            regularSubjects.forEach(function(sub) {
                 rowsHtml +=
                     '<tr><td style="border:1px solid #000; padding:2px 5px; text-align:left; font-size:12px; font-weight:500;">' +
                     sub.name + '</td>';
@@ -4836,6 +4848,48 @@ if (systemData.classes && systemData.classes.length > 0) {
                         bgColor + '; font-size:13px; font-weight:bold;">' +
                         grade + '<br><span style="font-size:11px; font-weight:normal; color:#555;">' +
                         gradeDesc + '</span></td>';
+                }
+                rowsHtml += '</tr>';
+            });
+
+            // "Mësimi me Zgjedhje" - RRESHT I VEÇANTË PËR SECILIN VIT (jo një rresht i vetëm si
+            // lëndët e tjera), sepse lënda zgjedhore ËSHTË E NDRYSHME çdo vit (klasë të ndryshme e
+            // kanë emër tjetër - Flora e Fauna, Mbrojtja e Mjedisit, Arti në Shkollë, etj.).
+            // RREGULLIM: nëse ka të dhëna të ARKIVUARA për atë vit specifik (emri i lëndës + nota),
+            // plotësohen VETË automatikisht - lihet BOSH (linjë për shkrim me dorë) VETËM kur s'ka
+            // fare të dhëna të gjetura.
+            years.forEach(function(yearLabel) {
+                var isCurrentYear = (yearLabel === systemData.schoolInfo.year);
+                var electiveName = '';
+                var electiveGrade = '';
+                if (isCurrentYear) {
+                    var currentElectiveSub = allSubjects.find(function(s) { return s.key === 'msimzgjedhor'; });
+                    if (currentElectiveSub) {
+                        electiveName = currentElectiveSub.name;
+                        var g = getFinalGrade(student, 'msimzgjedhor');
+                        if (g > 0) electiveGrade = g;
+                    }
+                } else {
+                    var archivedClassForYear = findArchivedClassData(classObj.className, yearLabel);
+                    if (archivedClassForYear && archivedClassForYear.subjectsOrder) {
+                        var archivedElectiveSub = archivedClassForYear.subjectsOrder.find(function(s) { return s.key === 'msimzgjedhor'; });
+                        if (archivedElectiveSub) electiveName = archivedElectiveSub.name;
+                    }
+                    var archivedStudentForYear = findArchivedStudentData(student.id, classObj.className, yearLabel);
+                    if (archivedStudentForYear) {
+                        var ag = getArchivedStudentGrade(archivedStudentForYear, 'msimzgjedhor');
+                        if (ag > 0) electiveGrade = ag;
+                    }
+                }
+                rowsHtml += '<tr>' +
+                    '<td style="border:1px solid #000; padding:2px 5px; text-align:left; font-size:11px; font-weight:500;">' +
+                    (electiveName ? electiveName : 'Mësimi me Zgjedhje') +
+                    '<br><span style="font-size:9px; color:#888;">(' + yearLabel + ')</span></td>';
+                for (var y2 = 0; y2 < years.length; y2++) {
+                    var isThisColumn = (years[y2] === yearLabel);
+                    rowsHtml += '<td style="border:1px solid #000; padding:3px 4px; text-align:center; font-size:13px;' +
+                        (isThisColumn ? (electiveGrade ? ' background:#e8f5e9;' : ' border-bottom:1px solid #333;') : ' background:#eee;') + '">' +
+                        (isThisColumn ? (electiveGrade || '&nbsp;') : '') + '</td>';
                 }
                 rowsHtml += '</tr>';
             });
@@ -5026,22 +5080,22 @@ if (systemData.classes && systemData.classes.length > 0) {
                 <meta charset="UTF-8">
                 <title>Fletëkalimi - ${student.name}</title>
                 <style>
-                    @page { size: A4 portrait; margin: 6mm; }
+                    @page { size: A4 portrait; margin: 5mm; }
                     body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 0; background: white; }
-                    .certificate { max-width: 210mm; margin: 0 auto; padding: 3mm 6mm; border: 2px solid #d4af37; background: white; box-sizing: border-box; }
+                    .certificate { max-width: 210mm; margin: 0 auto; padding: 2mm 5mm; border: 2px solid #d4af37; background: white; box-sizing: border-box; }
                     .header { text-align: center; border-bottom: 2px solid #0b4b6e; padding-bottom: 1mm; margin-bottom: 1mm; }
-                    .header h1 { color: #d4af37; font-size: 18px; margin: 2px 0; letter-spacing: 1px; }
-                    .header .school { font-size: 13px; font-weight: bold; color: #0b4b6e; }
-                    .student-name { font-size: 14px; font-weight: bold; text-align: center; margin: 1mm 0; padding: 1mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }
-                    .student-name .amza { font-size: 12px; color: #666; font-weight: normal; margin-left: 10px; }
-                    .info { background: #f5f5f5; padding: 1mm 2mm; margin: 1mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 11px; }
-                    table { width: 100%; border-collapse: collapse; margin: 1mm 0; font-size: 12px; }
-                    th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; }
+                    .header h1 { color: #d4af37; font-size: 16px; margin: 1px 0; letter-spacing: 1px; }
+                    .header .school { font-size: 12px; font-weight: bold; color: #0b4b6e; }
+                    .student-name { font-size: 13px; font-weight: bold; text-align: center; margin: 1mm 0; padding: 1mm; border-bottom: 1px dashed #999; border-top: 1px dashed #999; background: #f5f5f5; }
+                    .student-name .amza { font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; }
+                    .info { background: #f5f5f5; padding: 1mm 2mm; margin: 1mm 0; display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 10px; }
+                    table { width: 100%; border-collapse: collapse; margin: 1mm 0; font-size: 10px; }
+                    th, td { border: 1px solid #000; padding: 1px 3px; text-align: center; }
                     th { background: #0b4b6e; color: white; font-weight: bold; }
-                    .signatures { display: flex; justify-content: space-between; margin-top: 2mm; padding-top: 1mm; border-top: 1px solid #000; }
-                    .signature { text-align: center; width: 130px; font-size: 12px; }
-                    .signature-line { border-top: 1px solid #000; margin-top: 3mm; padding-top: 1mm; }
-                    @media print { body { margin: 0; padding: 0; } .certificate { border: 2px solid #d4af37; page-break-after: avoid; page-break-inside: avoid; } }
+                    .signatures { display: flex; justify-content: space-between; margin-top: 1.5mm; padding-top: 1mm; border-top: 1px solid #000; }
+                    .signature { text-align: center; width: 130px; font-size: 11px; }
+                    .signature-line { border-top: 1px solid #000; margin-top: 2mm; padding-top: 1mm; }
+                    @media print { body { margin: 0; padding: 0; } .certificate { border: 2px solid #d4af37; } }
                 </style>
             </head>
             <body>
@@ -5092,7 +5146,29 @@ if (systemData.classes && systemData.classes.length > 0) {
                     </div>
                 </div>
                 <script>
-                    window.onload = function() { window.print(); };
+                    // Shkallëzim automatik - detyron GJITHNJË gjithçka të hyjë në 1 faqe A4. RREGULLIM:
+                    // "transform:scale()" NUK e ndryshon planin real të faqosjes (shfletuesi ende e
+                    // llogarit ndarjen e faqeve sikur përmbajtja të ishte në madhësinë ORIGJINALE),
+                    // kështu nënshkrimet/vula vazhdonin të kalonin në faqen tjetër edhe pse dukeshin
+                    // më të vogla. "zoom" e RIVENDOS vetë planin e faqosjes në madhësinë e re. Një
+                    // vonesë e vogël (setTimeout) siguron që faqja të jetë PLOTËSISHT e vendosur para
+                    // se ta matim - matja shumë e hershme mund të japë lartësi jo të saktë. Përdorim
+                    // edhe një "jastëk sigurie" (95%) që edhe kufij të pasaktë matje të mos e kalojnë
+                    // faqen.
+                    window.onload = function() {
+                        setTimeout(function() {
+                            var cert = document.querySelector('.certificate');
+                            if (cert) {
+                                var pageHeightPx = 287 * 3.7795 * 0.95; // ~A4 me jastëk sigurie 5%
+                                var actualHeight = cert.scrollHeight;
+                                if (actualHeight > pageHeightPx) {
+                                    var scale = pageHeightPx / actualHeight;
+                                    cert.style.setProperty('zoom', scale.toFixed(3), 'important');
+                                }
+                            }
+                            window.print();
+                        }, 150);
+                    };
                 <\/script>
             </body>
             </html>`;
@@ -11869,11 +11945,51 @@ if (systemData.classes && systemData.classes.length > 0) {
             var teacherId = document.getElementById('singleTeacherScheduleSelect').value;
             if (!teacherId) { alert("Zgjidh një mësimdhënës fillimisht!"); return; }
             var teacher = systemData.teachers.find(function(t) { return t.id === teacherId; });
-            var content = document.getElementById('singleTeacherScheduleContainer').innerHTML
-                .replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) {
-                    var map = { IX: '9', VIII: '8', VII: '7', VI: '6' };
-                    return map[roman] + '-' + num;
+            var dayLabels = { ehene: 'E Hënë', emarte: 'E Martë', emerKure: 'E Mërkurë', eenjte: 'E Enjte', epremte: 'E Premte' };
+
+            // Printimi GJITHMONË i përfshin TË DYJA ndërrimet bashkë (ndryshe nga ekrani, i cili
+            // respekton ndërrimin e zgjedhur) - të ndara qartë me një titull dhe vijë ndarëse.
+            function buildShiftTable(shift) {
+                var data = buildTeacherScheduleData(shift);
+                var row = data.rows[teacherId];
+                if (!row || row.total === 0) return '';
+                var html = '<h3 style="margin-top:15px; color:#0b4b6e;">' + (shift === 'paradite' ? '☀️ Paradite' : '🌙 Pasdite') + '</h3>';
+                html += '<table style="width:100%; border-collapse:collapse;" border="1">' +
+                    '<thead><tr style="background:#0b4b6e; color:white;"><th style="padding:10px 8px;">Ora</th>';
+                data.days.forEach(function(day) { html += '<th style="padding:10px 8px;">' + dayLabels[day] + '</th>'; });
+                html += '</tr></thead><tbody>';
+                data.hours.forEach(function(hour) {
+                    html += '<tr><td style="padding:10px 8px; text-align:center; font-weight:bold; background:#f5f5f5;">' + hour + '</td>';
+                    data.days.forEach(function(day) {
+                        var cell = row.grid[day][hour];
+                        var blocked = isTeacherBlocked(teacherId, shift, day, hour);
+                        html += '<td style="padding:10px 8px; text-align:center; ' + (cell && !blocked ? 'background:#e8f5e9; font-weight:bold;' : '') + '">' +
+                            (blocked ? '' : (cell ? escapeHtml(classNameSlash(cell.className)) : '')) + '</td>';
+                    });
+                    html += '</tr>';
                 });
+                html += '</tbody></table>';
+                return html;
+            }
+
+            var paraditeHtml = buildShiftTable('paradite');
+            var pasditeHtml = buildShiftTable('pasdite');
+            var content = '<h2 style="text-align:center; color:#0b4b6e;">' + escapeHtml(teacher.name) + '</h2>';
+            if (paraditeHtml) content += paraditeHtml;
+            if (paraditeHtml && pasditeHtml) {
+                // Vija ndarëse mes dy ndërrimeve - qartë e dukshme, e trashë.
+                content += '<div style="margin:15px 0; border-top:3px dashed #0b4b6e; text-align:center;">' +
+                    '<span style="background:white; position:relative; top:-13px; padding:0 15px; color:#0b4b6e; font-weight:bold;">✂️ — — —</span></div>';
+            }
+            if (pasditeHtml) content += pasditeHtml;
+            if (!paraditeHtml && !pasditeHtml) {
+                content += '<p style="color:#999; text-align:center; padding:20px;">Ky mësimdhënës s\'ka ende orë të vendosura në Orar (asnjë ndërrim).</p>';
+            }
+
+            content = content.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) {
+                var map = { IX: '9', VIII: '8', VII: '7', VI: '6' };
+                return map[roman] + '-' + num;
+            });
             var printWindow = window.open('', '_blank');
             printWindow.document.write('<html><head><title>Orari - ' + escapeHtml(teacher.name) + '</title>' +
                 '<style>' +
@@ -11892,18 +12008,31 @@ if (systemData.classes && systemData.classes.length > 0) {
         // Mësimdhënësve" - kështu që kjo pamje është GJITHMONË e sinkronizuar automatikisht me
         // gjithçka tjetër, pa kopje apo ruajtje të veçantë të vetën.
         function openSingleClassScheduleModal() {
-            if (!requireAdmin()) return;
+            if (!requireTeacher()) return;
             var container = document.getElementById('singleClassSchedulePickerContainer');
-            var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
-            var html = '<select id="singleClassScheduleSelect" onchange="renderSingleClassSchedule()" style="width:100%; padding:8px; font-size:14px;">' +
-                '<option value="">-- Zgjidh klasën --</option>';
-            sortedClasses.forEach(function(c) {
-                html += '<option value="' + c.id + '">' + escapeHtml(c.className) + '</option>';
-            });
-            html += '</select>';
+            var html = '';
+            if (isAdmin()) {
+                var sortedClasses = systemData.classes.slice().sort(function(a, b) { return a.className.localeCompare(b.className); });
+                html = '<select id="singleClassScheduleSelect" onchange="renderSingleClassSchedule()" style="width:100%; padding:8px; font-size:14px;">' +
+                    '<option value="">-- Zgjidh klasën --</option>';
+                sortedClasses.forEach(function(c) {
+                    html += '<option value="' + c.id + '">' + escapeHtml(c.className) + '</option>';
+                });
+                html += '</select>';
+            } else {
+                // Kujdestari sheh VETËM klasën e vet - jo listën e plotë.
+                var myClass = getCurrentClass();
+                if (myClass) {
+                    html = '<select id="singleClassScheduleSelect" onchange="renderSingleClassSchedule()" style="width:100%; padding:8px; font-size:14px;">' +
+                        '<option value="' + myClass.id + '">' + escapeHtml(myClass.className) + '</option></select>';
+                } else {
+                    html = '<p style="color:#c62828;">Ende s\'je i caktuar si kujdestar i asnjë klase.</p>';
+                }
+            }
             container.innerHTML = html;
             document.getElementById('singleClassScheduleContainer').innerHTML = '';
             showModal('singleClassScheduleModal');
+            if (!isAdmin() && document.getElementById('singleClassScheduleSelect')) renderSingleClassSchedule();
         }
 
         function closeSingleClassScheduleModal() {
