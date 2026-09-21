@@ -1613,7 +1613,7 @@
     </div>
 
     <div id="smiaModal" class="modal">
-        <div class="modal-content" style="max-width:900px;">
+        <div class="modal-content" style="max-width:1500px; width:95%;">
             <button class="modal-close" onclick="closeSmiaModal()">×</button>
             <h2 style="color:#0b4b6e; margin-bottom:10px;">📋 SMIA - Regjistri i Paraleleve</h2>
             <p style="font-size:12px; color:#666; margin-bottom:10px;">Të dhëna që kërkon periodikisht sistemi SMIA (MASHT) - klasa/paralelja/kujdestari/numri i nxënësve plotësohen automatikisht; pjesa tjetër plotësohet një herë dhe ruhet për herë tjetër.</p>
@@ -11777,20 +11777,24 @@ if (systemData.classes && systemData.classes.length > 0) {
                 return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return map[roman] + '/' + num; });
             }
 
-            function buildSheetTable(data, shift, teacherIdsSubset) {
-                // NJË TABELË E VETME, E VAZHDUESHME - shfletuesi (printuesi) e ndan vetë në faqe
-                // dhe e PËRSËRIT header-in natyrshëm në secilën - kjo garanton përputhje TË
-                // PËRSOSUR mes faqeve, pasi është fjalë për fjalë e njëjta tabelë (jo dy tabela
-                // të ndara që përpiqemi t'i përputhim artificialisht, siç provuam më parë pa
-                // sukses të plotë).
-                var html = '<table><thead><tr><th rowspan="2" style="text-align:left; width:210px;"></th>';
+            function buildSheetTable(data, shift, teacherIdsSubset, skipHeader) {
+                // PROVË E RE: "colgroup" me gjerësi eksplicite VETËM për emrin dhe TOTALIN
+                // (respektohet më fort nga shfletuesi se stili te qeliza) - kolonat e orëve
+                // (30) mbeten TË PAPËRCAKTUARA (auto e plotë), duke shmangur prerjen e tekstit
+                // që "table-layout:fixed" e shkaktonte.
+                var totalHourCols = data.days.length * data.hours.length;
+                var colgroupHtml = '<colgroup><col style="width:260px;">' +
+                    '<col span="' + totalHourCols + '" style="width:35px;">' +
+                    '<col style="width:40px;"></colgroup>';
+                var thHeaderStyle = skipHeader ? 'visibility:hidden; height:0; line-height:0; padding-top:0; padding-bottom:0; margin:0; font-size:0;' : '';
+                var html = '<table style="table-layout:fixed;">' + colgroupHtml + '<thead><tr><th rowspan="2" style="text-align:left;' + thHeaderStyle + '"></th>';
                 data.days.forEach(function(day, dayIdx) {
-                    html += '<th colspan="' + data.hours.length + '"' + (dayIdx > 0 ? ' style="border-left:3px solid #000;"' : '') + '>' + dayLabels[day] + '</th>';
+                    html += '<th colspan="' + data.hours.length + '" style="font-size:16px;' + thHeaderStyle + (dayIdx > 0 ? 'border-left:3px solid #000;' : '') + '">' + dayLabels[day] + '</th>';
                 });
-                html += '<th rowspan="2" style="width:60px; font-size:15px;">TOTALI</th></tr><tr>';
+                html += '<th rowspan="2" style="font-size:11px;' + thHeaderStyle + '">TOT.</th></tr><tr>';
                 data.days.forEach(function(day, dayIdx) {
                     data.hours.forEach(function(h, hIdx) {
-                        html += '<th style="font-weight:normal;' + (hIdx === 0 && dayIdx > 0 ? ' border-left:3px solid #000;' : '') + '">' + h + '</th>';
+                        html += '<th style="font-weight:normal; font-size:16px;' + thHeaderStyle + (hIdx === 0 && dayIdx > 0 ? 'border-left:3px solid #000;' : '') + '">' + h + '</th>';
                     });
                 });
                 html += '</tr></thead>';
@@ -11805,11 +11809,11 @@ if (systemData.classes && systemData.classes.length > 0) {
                         data.hours.forEach(function(h, hIdx) {
                             var cell = row.grid[day][h];
                             var blocked = isTeacherBlocked(tid, shift, day, h);
-                            html += '<td' + (hIdx === 0 && dayIdx > 0 ? ' style="border-left:3px solid #000;"' : '') + '>' +
+                            html += '<td style="font-weight:bold;' + (hIdx === 0 && dayIdx > 0 ? ' border-left:3px solid #000;' : '') + '">' +
                                 (blocked ? '' : (cell ? toArabicSlash(cell.className) : '')) + '</td>';
                         });
                     });
-                    html += '<td style="font-weight:bold; font-size:15px;">' + row.total + '</td></tr>';
+                    html += '<td style="font-weight:bold; font-size:11px; padding:5px 1px;">' + row.total + '</td></tr>';
                 });
                 html += '</tbody></table>';
                 return html;
@@ -11874,38 +11878,129 @@ if (systemData.classes && systemData.classes.length > 0) {
                 var shiftLabel = shift === 'paradite' ? 'PARADITE' : 'PASDITE';
                 var titleBase = 'ORARI I MËSIMDHËNËSVE - ' + shiftLabel + ' ' + (systemData.schoolInfo.year || '');
 
-                // NDARJE DINAMIKE - jo më numër FIKS (15) - llogaritet SA MËSIMDHËNËS HYJNË
-                // REALISHT në një fletë A4 (bazuar te lartësia e vërtetë e faqes dhe e rreshtave
-                // me fontin aktual prej 27px), kështu fleta e parë PLOTËSOHET deri në fund përpara
-                // se të kalohet në tjetrën. Fletët PASUESE (2+) NUK e përsërisin fare header-in
-                // (ditët/orët) - fillojnë direkt me të dhëna, DHE me 0 marzhë (shih CSS-në
-                // "@page :first" më poshtë) - kështu mund të bashkohen fizikisht me fletën e parë.
-                // RREGULLIM PËRFUNDIMTAR: në vend që të ndahet MANUALISHT në "fletë" të veçanta
-                // (çka krijonte gjithmonë probleme përputhjeje mes tyre, pavarësisht sa u
-                // provua), tani është THJESHT NJË TABELË E VETME, E VAZHDUESHME - shfletuesi
-                // (printuesi) vendos VETË ku ndahet faqja, duke e PËRSËRITUR header-in natyrshëm
-                // në çdo faqe (sjellje standarde shfletuesish për tabela shumë-faqëshe) - kjo
-                // GARANTON përputhje të përsosur, sepse është FJALË PËR FJALË e njëjta tabelë,
-                // jo dy tabela të ndara që duhet të përputhen artificialisht.
-                pagesHtml += '<div' + (isFirstSheet ? '' : ' style="page-break-before:always;"') + '>' +
-                    '<h1 style="text-align:center;">' + titleBase + '</h1>' +
-                    buildSheetTable(data, shift, teacherIds, false) + '</div>';
-                isFirstSheet = false;
+                // NDARJE DINAMIKE - llogaritet SA MËSIMDHËNËS HYJNË REALISHT në një fletë A4
+                // (bazuar te lartësia e vërtetë e faqes me fontin aktual 27px), kështu fleta e
+                // parë PLOTËSOHET deri në fund përpara se të kalohet në tjetrën. Fletët PASUESE
+                // (2+) NUK e shfaqin header-in (ditët/orët) - fillojnë direkt me të dhëna, me 0
+                // marzhë - kolonat mbeten TË PËRPUTHURA me fletën e parë (shih buildSheetTable).
+                var pageHeightPx = 206 * 3.7795;
+                var pageHeightPxNoMargin = 210 * 3.7795;
+                var titleHeightPx = 30;
+                var headerRowsHeightPx = 2 * 36;
+                var dataRowHeightPx = 34;
+                var rowsOnFirstSheet = Math.max(1, Math.floor((pageHeightPx - titleHeightPx - headerRowsHeightPx) / dataRowHeightPx));
+                var rowsOnLaterSheets = Math.max(1, Math.floor(pageHeightPxNoMargin / dataRowHeightPx));
+
+                var groups = [];
+                var remaining = teacherIds.slice();
+                var firstGroupSize = Math.min(rowsOnFirstSheet, remaining.length);
+                groups.push(remaining.splice(0, firstGroupSize));
+                while (remaining.length > 0) {
+                    var nextSize = Math.min(rowsOnLaterSheets, remaining.length);
+                    groups.push(remaining.splice(0, nextSize));
+                }
+
+                groups.forEach(function(group, groupIdx) {
+                    var isVeryFirstSheetOfDoc = isFirstSheet;
+                    var isLaterSheet = groupIdx > 0;
+                    pagesHtml += '<div class="' + (isLaterSheet ? 'later-sheet' : 'first-sheet') + '"' +
+                        (isVeryFirstSheetOfDoc ? '' : ' style="page-break-before:always;"') + '>' +
+                        (groupIdx === 0 ? '<h1 style="text-align:center;">' + titleBase + '</h1>' : '') +
+                        buildSheetTable(data, shift, group, isLaterSheet) + '</div>';
+                    isFirstSheet = false;
+                });
             });
+
+            // Bën çdo qelizë (td) të redaktueshme drejtpërdrejt (si Word) - lejon ndryshime të
+            // fundit para printimit (korrigjim gabimi, shënim shtesë, etj.) pa pasur nevojë të
+            // rikthehesh te sistemi.
+            pagesHtml = pagesHtml.replace(/<td/g, '<td contenteditable="true"');
+
+            var toolbarHtml = '<div class="toolbar no-print" style="position:sticky; top:0; z-index:100; background:#0b4b6e; padding:8px 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; box-shadow:0 2px 6px rgba(0,0,0,0.3);">' +
+                '<button onclick="document.execCommand(\'bold\')" style="font-weight:bold; padding:6px 12px; cursor:pointer;" title="Bold">B</button>' +
+                '<button onclick="document.execCommand(\'italic\')" style="font-style:italic; padding:6px 12px; cursor:pointer;" title="Italic">I</button>' +
+                '<button onclick="document.execCommand(\'underline\')" style="text-decoration:underline; padding:6px 12px; cursor:pointer;" title="Nënvizim">U</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="tbFontSize(1)" style="padding:6px 12px; cursor:pointer;" title="Rrit fontin">A+</button>' +
+                '<button onclick="tbFontSize(-1)" style="padding:6px 12px; cursor:pointer;" title="Zvogëlo fontin">A-</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="document.execCommand(\'justifyLeft\')" style="padding:6px 12px; cursor:pointer;" title="Majtas">⇤</button>' +
+                '<button onclick="document.execCommand(\'justifyCenter\')" style="padding:6px 12px; cursor:pointer;" title="Qendër">⇔</button>' +
+                '<button onclick="document.execCommand(\'justifyRight\')" style="padding:6px 12px; cursor:pointer;" title="Djathtas">⇥</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Sfondi: <input type="color" onchange="tbBgColor(this.value)" value="#ffffff"></label>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Teksti: <input type="color" onchange="tbTextColor(this.value)" value="#000000"></label>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="tbAddRow()" style="padding:6px 12px; cursor:pointer; background:#43a047; color:white; border:none; border-radius:4px;" title="Shto rresht poshtë qelizës aktuale">+ Rresht</button>' +
+                '<button onclick="tbDeleteRow()" style="padding:6px 12px; cursor:pointer; background:#e53935; color:white; border:none; border-radius:4px;" title="Fshi rreshtin e qelizës aktuale">− Rresht</button>' +
+                '<button onclick="tbAddCol()" style="padding:6px 12px; cursor:pointer; background:#43a047; color:white; border:none; border-radius:4px;" title="Shto kolonë pas qelizës aktuale">+ Kolonë</button>' +
+                '<button onclick="tbDeleteCol()" style="padding:6px 12px; cursor:pointer; background:#e53935; color:white; border:none; border-radius:4px;" title="Fshi kolonën e qelizës aktuale">− Kolonë</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="window.print()" style="padding:6px 16px; cursor:pointer; background:#ff6f00; color:white; border:none; border-radius:4px; font-weight:bold;">🖨️ Printo</button>' +
+                '</div>';
+
+            var toolbarScript = '<script>' +
+                'var tbLastCell = null;' +
+                'document.addEventListener("click", function(e) { var td = e.target.closest("td"); if (td) tbLastCell = td; });' +
+                'function tbFontSize(delta) {' +
+                '  if (!tbLastCell) return;' +
+                '  var current = parseInt(getComputedStyle(tbLastCell).fontSize) || 22;' +
+                '  tbLastCell.style.fontSize = Math.max(6, current + delta * 2) + "px";' +
+                '}' +
+                'function tbBgColor(color) { if (tbLastCell) tbLastCell.style.backgroundColor = color; }' +
+                'function tbTextColor(color) { if (tbLastCell) tbLastCell.style.color = color; }' +
+                'function tbAddRow() {' +
+                '  if (!tbLastCell) return;' +
+                '  var tr = tbLastCell.closest("tr");' +
+                '  var newTr = tr.cloneNode(true);' +
+                '  Array.prototype.forEach.call(newTr.querySelectorAll("td"), function(td) { td.textContent = ""; });' +
+                '  tr.parentNode.insertBefore(newTr, tr.nextSibling);' +
+                '}' +
+                'function tbDeleteRow() {' +
+                '  if (!tbLastCell) return;' +
+                '  var tr = tbLastCell.closest("tr");' +
+                '  if (confirm("Fshi këtë rresht?")) { tr.parentNode.removeChild(tr); tbLastCell = null; }' +
+                '}' +
+                'function tbAddCol() {' +
+                '  if (!tbLastCell) return;' +
+                '  var table = tbLastCell.closest("table");' +
+                '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
+                '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
+                '    var cell = row.children[colIdx];' +
+                '    var newCell = document.createElement(cell.tagName);' +
+                '    newCell.setAttribute("contenteditable", "true");' +
+                '    newCell.style.cssText = cell.style.cssText;' +
+                '    if (cell.nextSibling) row.insertBefore(newCell, cell.nextSibling); else row.appendChild(newCell);' +
+                '  });' +
+                '}' +
+                'function tbDeleteCol() {' +
+                '  if (!tbLastCell) return;' +
+                '  if (!confirm("Fshi këtë kolonë (te të gjitha rreshtat)?")) return;' +
+                '  var table = tbLastCell.closest("table");' +
+                '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
+                '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
+                '    if (row.children[colIdx]) row.removeChild(row.children[colIdx]);' +
+                '  });' +
+                '  tbLastCell = null;' +
+                '}' +
+                '<\/script>';
 
             var printWindow = window.open('', '_blank');
             printWindow.document.write('<html><head><title>Orari i Mësimdhënësve</title>' +
                 '<style>' +
-                'body{font-family:Arial;}' +
+                'body{font-family:Arial; margin:0;}' +
                 'h1{font-size:22px; margin-bottom:4px;}' +
                 'table{width:100%; border-collapse:collapse; margin-top:2mm;}' +
-                'th, td{font-size:27px; padding:5px 2px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
+                'th, td{font-size:22px; padding:5px 2px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
                 'th{background:#f2f2f2; color:#000; border:1px solid #333;}' +
-                'thead{display:table-header-group;}' + // përsërit header-in NATYRSHËM në çdo faqe
                 '@page{size:A4 landscape; margin:2mm;}' +
-                '</style></head><body>' + pagesHtml + '</body></html>');
+                '@page firstsheet{margin:2mm;}' +
+                '@page latersheet{margin:0;}' +
+                '.first-sheet{page:firstsheet;}' +
+                '.later-sheet{page:latersheet;}' +
+                '@media print { .no-print{display:none !important;} }' +
+                '</style></head><body>' + toolbarHtml + pagesHtml + toolbarScript + '</body></html>');
             printWindow.document.close();
-            printWindow.print();
         }
 
         // Orari i printueshëm i VETËM NJË mësimdhënësi - më i qartë dhe i lexueshëm se tabela e
