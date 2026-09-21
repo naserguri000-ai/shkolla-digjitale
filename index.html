@@ -2708,6 +2708,7 @@
                         var loadedStudentCount = (systemData.classes || []).reduce(function(sum, c) { return sum + (c.students || []).length; }, 0);
                         updateKnownGoodCounts(loadedClassCount, loadedStudentCount);
                         console.log("✅ Të dhënat u ngarkuan nga cloud (me formatet e rregulluara)");
+                        window.cloudDataFullyLoaded = true;
                         if (currentUser) refreshDisplay();
                         showNotification("✅ Të dhënat u ngarkuan nga cloud!");
                     } else {
@@ -2809,13 +2810,23 @@
                     showMainApp();
                     return;
                 }
-                var teacher = systemData.teachers.find(function(t) { return t.username === u; });
-                if (teacher) {
-                    currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
-                    showMainApp();
-                } else {
-                    alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
+                // RREGULLIM: nëse të dhënat e mësimdhënësve NUK kanë mbaruar së ngarkuari ende nga
+                // cloud (rrjet i ngadaltë, pajisje e ngadaltë) - profili mund të mos gjendet edhe
+                // pse EKZISTON, thjesht ende s'ka mbërritur. Prit deri në 3 sekonda (duke
+                // rikontrolluar çdo 300ms) para se të tregosh gabim - kështu hyrja funksionon
+                // normalisht edhe në lidhje më të ngadalta.
+                function tryFindTeacherProfile(attemptsLeft) {
+                    var teacher = systemData.teachers.find(function(t) { return t.username === u; });
+                    if (teacher) {
+                        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+                        showMainApp();
+                    } else if (attemptsLeft > 0 && !window.cloudDataFullyLoaded) {
+                        setTimeout(function() { tryFindTeacherProfile(attemptsLeft - 1); }, 300);
+                    } else {
+                        alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
+                    }
                 }
+                tryFindTeacherProfile(10);
             }).catch(function(err) {
                 console.log("ℹ️ Hyrja e sigurt s'u aplikua (" + err.code + ") - duke provuar rrugën e vjetër...");
                 performLoginLegacyCheck(u, p);
@@ -11766,21 +11777,23 @@ if (systemData.classes && systemData.classes.length > 0) {
                 return className.replace(/\b(IX|VIII|VII|VI)-(\d+)\b/g, function(m, roman, num) { return map[roman] + '/' + num; });
             }
 
-            function buildSheetTable(data, shift, teacherIdsSubset, skipHeader) {
-                var html = '<table>';
-                if (!skipHeader) {
-                    html += '<thead><tr><th rowspan="2" style="text-align:left;"></th>';
-                    data.days.forEach(function(day, dayIdx) {
-                        html += '<th colspan="' + data.hours.length + '"' + (dayIdx > 0 ? ' style="border-left:3px solid #000;"' : '') + '>' + dayLabels[day] + '</th>';
+            function buildSheetTable(data, shift, teacherIdsSubset) {
+                // NJË TABELË E VETME, E VAZHDUESHME - shfletuesi (printuesi) e ndan vetë në faqe
+                // dhe e PËRSËRIT header-in natyrshëm në secilën - kjo garanton përputhje TË
+                // PËRSOSUR mes faqeve, pasi është fjalë për fjalë e njëjta tabelë (jo dy tabela
+                // të ndara që përpiqemi t'i përputhim artificialisht, siç provuam më parë pa
+                // sukses të plotë).
+                var html = '<table><thead><tr><th rowspan="2" style="text-align:left; width:210px;"></th>';
+                data.days.forEach(function(day, dayIdx) {
+                    html += '<th colspan="' + data.hours.length + '"' + (dayIdx > 0 ? ' style="border-left:3px solid #000;"' : '') + '>' + dayLabels[day] + '</th>';
+                });
+                html += '<th rowspan="2" style="width:60px; font-size:15px;">TOTALI</th></tr><tr>';
+                data.days.forEach(function(day, dayIdx) {
+                    data.hours.forEach(function(h, hIdx) {
+                        html += '<th style="font-weight:normal;' + (hIdx === 0 && dayIdx > 0 ? ' border-left:3px solid #000;' : '') + '">' + h + '</th>';
                     });
-                    html += '<th rowspan="2">TOTALI</th></tr><tr>';
-                    data.days.forEach(function(day, dayIdx) {
-                        data.hours.forEach(function(h, hIdx) {
-                            html += '<th style="font-weight:normal;' + (hIdx === 0 && dayIdx > 0 ? ' border-left:3px solid #000;' : '') + '">' + h + '</th>';
-                        });
-                    });
-                    html += '</tr></thead>';
-                }
+                });
+                html += '</tr></thead>';
                 html += '<tbody>';
                 teacherIdsSubset.forEach(function(tid) {
                     var row = data.rows[tid];
@@ -11796,7 +11809,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                                 (blocked ? '' : (cell ? toArabicSlash(cell.className) : '')) + '</td>';
                         });
                     });
-                    html += '<td style="font-weight:bold;">' + row.total + '</td></tr>';
+                    html += '<td style="font-weight:bold; font-size:15px;">' + row.total + '</td></tr>';
                 });
                 html += '</tbody></table>';
                 return html;
@@ -11867,32 +11880,17 @@ if (systemData.classes && systemData.classes.length > 0) {
                 // se të kalohet në tjetrën. Fletët PASUESE (2+) NUK e përsërisin fare header-in
                 // (ditët/orët) - fillojnë direkt me të dhëna, DHE me 0 marzhë (shih CSS-në
                 // "@page :first" më poshtë) - kështu mund të bashkohen fizikisht me fletën e parë.
-                var pageHeightPx = 206 * 3.7795; // ~lartësia e brendshme e A4 pejsazh me 2mm marzhë (fleta e parë)
-                var pageHeightPxNoMargin = 210 * 3.7795; // fletët pasuese - 0 marzhë, lartësi e plotë
-                var titleHeightPx = 30;
-                var headerRowsHeightPx = 2 * 36; // 2 rreshta titulli tabele (ditë + orë) - VETËM fleta e parë i ka
-                var dataRowHeightPx = 34; // ~27px font + padding "5px 2px" + kufi (matur nga testimi real)
-                var rowsOnFirstSheet = Math.max(1, Math.floor((pageHeightPx - titleHeightPx - headerRowsHeightPx) / dataRowHeightPx));
-                var rowsOnLaterSheets = Math.max(1, Math.floor(pageHeightPxNoMargin / dataRowHeightPx)); // pa titull, PA header, 0 marzhë
-
-                var groups = [];
-                var remaining = teacherIds.slice();
-                var firstGroupSize = Math.min(rowsOnFirstSheet, remaining.length);
-                groups.push(remaining.splice(0, firstGroupSize));
-                while (remaining.length > 0) {
-                    var nextSize = Math.min(rowsOnLaterSheets, remaining.length);
-                    groups.push(remaining.splice(0, nextSize));
-                }
-
-                groups.forEach(function(group, groupIdx) {
-                    var isVeryFirstSheetOfDoc = isFirstSheet;
-                    var isLaterSheet = groupIdx > 0;
-                    pagesHtml += '<div class="' + (isLaterSheet ? 'later-sheet' : 'first-sheet') + '"' +
-                        (isVeryFirstSheetOfDoc ? '' : ' style="page-break-before:always;"') + '>' +
-                        (groupIdx === 0 ? '<h1 style="text-align:center;">' + titleBase + '</h1>' : '') +
-                        buildSheetTable(data, shift, group, isLaterSheet) + '</div>';
-                    isFirstSheet = false;
-                });
+                // RREGULLIM PËRFUNDIMTAR: në vend që të ndahet MANUALISHT në "fletë" të veçanta
+                // (çka krijonte gjithmonë probleme përputhjeje mes tyre, pavarësisht sa u
+                // provua), tani është THJESHT NJË TABELË E VETME, E VAZHDUESHME - shfletuesi
+                // (printuesi) vendos VETË ku ndahet faqja, duke e PËRSËRITUR header-in natyrshëm
+                // në çdo faqe (sjellje standarde shfletuesish për tabela shumë-faqëshe) - kjo
+                // GARANTON përputhje të përsosur, sepse është FJALË PËR FJALË e njëjta tabelë,
+                // jo dy tabela të ndara që duhet të përputhen artificialisht.
+                pagesHtml += '<div' + (isFirstSheet ? '' : ' style="page-break-before:always;"') + '>' +
+                    '<h1 style="text-align:center;">' + titleBase + '</h1>' +
+                    buildSheetTable(data, shift, teacherIds, false) + '</div>';
+                isFirstSheet = false;
             });
 
             var printWindow = window.open('', '_blank');
@@ -11903,11 +11901,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 'table{width:100%; border-collapse:collapse; margin-top:2mm;}' +
                 'th, td{font-size:27px; padding:5px 2px; text-align:center; border:1px solid #333; white-space:nowrap;}' +
                 'th{background:#f2f2f2; color:#000; border:1px solid #333;}' +
+                'thead{display:table-header-group;}' + // përsërit header-in NATYRSHËM në çdo faqe
                 '@page{size:A4 landscape; margin:2mm;}' +
-                '@page firstsheet{margin:2mm;}' +
-                '@page latersheet{margin:0;}' +
-                '.first-sheet{page:firstsheet;}' +
-                '.later-sheet{page:latersheet;}' +
                 '</style></head><body>' + pagesHtml + '</body></html>');
             printWindow.document.close();
             printWindow.print();
