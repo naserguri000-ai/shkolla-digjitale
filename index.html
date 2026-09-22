@@ -11917,52 +11917,250 @@ if (systemData.classes && systemData.classes.length > 0) {
             pagesHtml = pagesHtml.replace(/<td/g, '<td contenteditable="true"');
 
             var toolbarHtml = '<div class="toolbar no-print" style="position:sticky; top:0; z-index:100; background:#0b4b6e; padding:8px 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; box-shadow:0 2px 6px rgba(0,0,0,0.3);">' +
-                '<button onclick="document.execCommand(\'bold\')" style="font-weight:bold; padding:6px 12px; cursor:pointer;" title="Bold">B</button>' +
-                '<button onclick="document.execCommand(\'italic\')" style="font-style:italic; padding:6px 12px; cursor:pointer;" title="Italic">I</button>' +
-                '<button onclick="document.execCommand(\'underline\')" style="text-decoration:underline; padding:6px 12px; cursor:pointer;" title="Nënvizim">U</button>' +
+                '<button onclick="tbUndo()" style="padding:6px 12px; cursor:pointer; background:#6d4c41; color:white; border:none; border-radius:4px;" title="Kthe mbrapa ndryshimin e fundit">↩️ Undo</button>' +
+                '<button onclick="tbSave()" style="padding:6px 12px; cursor:pointer; background:#00897b; color:white; border:none; border-radius:4px;" title="Ruaj gjendjen aktuale si file HTML (mund ta rihapësh më vonë)">💾 Ruaj</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="tbSelectRow()" style="padding:6px 12px; cursor:pointer; background:#1e88e5; color:white; border:none; border-radius:4px;" title="Zgjedh të gjithë rreshtin e qelizës aktuale">☰ Zgjedh Rreshtin</button>' +
+                '<button onclick="tbSelectColumn()" style="padding:6px 12px; cursor:pointer; background:#1e88e5; color:white; border:none; border-radius:4px;" title="Zgjedh të gjithë kolonën e qelizës aktuale">▥ Zgjedh Kolonën</button>' +
+                '<button onclick="tbSelectAll()" style="padding:6px 12px; cursor:pointer; background:#0277bd; color:white; border:none; border-radius:4px;" title="Zgjedh ÇDO qelizë, te TË GJITHA fletët">⛶ Selekto Komplet</button>' +
+                '<button onclick="tbClearSelection()" style="padding:6px 12px; cursor:pointer; background:#78909c; color:white; border:none; border-radius:4px;" title="Hiq zgjedhjen (kthehu te qeliza e vetme)">✕ Hiq Zgjedhjen</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<button onclick="tbApplyStyle(\'fontWeight\', \'bold\', true)" style="font-weight:bold; padding:6px 12px; cursor:pointer;" title="Bold">B</button>' +
+                '<button onclick="tbApplyStyle(\'fontStyle\', \'italic\', true)" style="font-style:italic; padding:6px 12px; cursor:pointer;" title="Italic">I</button>' +
+                '<button onclick="tbApplyStyle(\'textDecoration\', \'underline\', true)" style="text-decoration:underline; padding:6px 12px; cursor:pointer;" title="Nënvizim">U</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
                 '<button onclick="tbFontSize(1)" style="padding:6px 12px; cursor:pointer;" title="Rrit fontin">A+</button>' +
                 '<button onclick="tbFontSize(-1)" style="padding:6px 12px; cursor:pointer;" title="Zvogëlo fontin">A-</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
-                '<button onclick="document.execCommand(\'justifyLeft\')" style="padding:6px 12px; cursor:pointer;" title="Majtas">⇤</button>' +
-                '<button onclick="document.execCommand(\'justifyCenter\')" style="padding:6px 12px; cursor:pointer;" title="Qendër">⇔</button>' +
-                '<button onclick="document.execCommand(\'justifyRight\')" style="padding:6px 12px; cursor:pointer;" title="Djathtas">⇥</button>' +
+                '<button onclick="tbApplyStyle(\'textAlign\', \'left\')" style="padding:6px 12px; cursor:pointer;" title="Majtas">⇤</button>' +
+                '<button onclick="tbApplyStyle(\'textAlign\', \'center\')" style="padding:6px 12px; cursor:pointer;" title="Qendër">⇔</button>' +
+                '<button onclick="tbApplyStyle(\'textAlign\', \'right\')" style="padding:6px 12px; cursor:pointer;" title="Djathtas">⇥</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
-                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Sfondi: <input type="color" onchange="tbBgColor(this.value)" value="#ffffff"></label>' +
-                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Teksti: <input type="color" onchange="tbTextColor(this.value)" value="#000000"></label>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Sfondi: <input type="color" onchange="tbApplyStyle(\'backgroundColor\', this.value)" value="#ffffff"></label>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Teksti: <input type="color" onchange="tbApplyStyle(\'color\', this.value)" value="#000000"></label>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
                 '<button onclick="tbAddRow()" style="padding:6px 12px; cursor:pointer; background:#43a047; color:white; border:none; border-radius:4px;" title="Shto rresht poshtë qelizës aktuale">+ Rresht</button>' +
                 '<button onclick="tbDeleteRow()" style="padding:6px 12px; cursor:pointer; background:#e53935; color:white; border:none; border-radius:4px;" title="Fshi rreshtin e qelizës aktuale">− Rresht</button>' +
                 '<button onclick="tbAddCol()" style="padding:6px 12px; cursor:pointer; background:#43a047; color:white; border:none; border-radius:4px;" title="Shto kolonë pas qelizës aktuale">+ Kolonë</button>' +
                 '<button onclick="tbDeleteCol()" style="padding:6px 12px; cursor:pointer; background:#e53935; color:white; border:none; border-radius:4px;" title="Fshi kolonën e qelizës aktuale">− Kolonë</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
+                '<span style="color:white; font-size:12px;">Layout:</span>' +
+                '<button onclick="tbResizeColumn(-10)" style="padding:6px 10px; cursor:pointer;" title="Ngushto kolonën">◀ Kolonë</button>' +
+                '<button onclick="tbResizeColumn(10)" style="padding:6px 10px; cursor:pointer;" title="Zgjero kolonën">▶ Kolonë</button>' +
+                '<button onclick="tbResizeRow(-5)" style="padding:6px 10px; cursor:pointer;" title="Ngushto (ulë) rreshtin">▲ Rresht</button>' +
+                '<button onclick="tbResizeRow(5)" style="padding:6px 10px; cursor:pointer;" title="Zgjero (rrit) rreshtin">▼ Rresht</button>' +
+                '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
                 '<button onclick="window.print()" style="padding:6px 16px; cursor:pointer; background:#ff6f00; color:white; border:none; border-radius:4px; font-weight:bold;">🖨️ Printo</button>' +
                 '</div>';
 
             var toolbarScript = '<script>' +
                 'var tbLastCell = null;' +
-                'document.addEventListener("click", function(e) { var td = e.target.closest("td"); if (td) tbLastCell = td; });' +
-                'function tbFontSize(delta) {' +
-                '  if (!tbLastCell) return;' +
-                '  var current = parseInt(getComputedStyle(tbLastCell).fontSize) || 22;' +
-                '  tbLastCell.style.fontSize = Math.max(6, current + delta * 2) + "px";' +
+                'var tbSelectedCells = [];' + // zgjedhje rreshti/kolone - bosh do të thotë "vetëm tbLastCell"
+                'var tbUndoStack = [];' + // histori gjendjesh - për "↩️ Undo"
+                'document.addEventListener("click", function(e) {' +
+                '  var td = e.target.closest("td");' +
+                '  if (td) { tbLastCell = td; if (tbSelectedCells.indexOf(td) === -1) tbClearSelection(); }' +
+                '});' +
+                // Ruan gjendjen AKTUALE (para një ndryshimi) te "tbUndoStack" - thirret NGA VETË
+                // funksionet e ndryshimit, PARA se ta bëjnë ndryshimin - kështu "↩️ Undo" mund ta
+                // rikthejë gjendjen paraprake, saktësisht si Ctrl+Z.
+                'function tbSaveUndoState() {' +
+                '  var container = document.querySelector(".tb-print-container");' +
+                '  tbUndoStack.push(container.innerHTML);' +
+                '  if (tbUndoStack.length > 30) tbUndoStack.shift();' + // kufizim - jo memorie e pafundme
                 '}' +
-                'function tbBgColor(color) { if (tbLastCell) tbLastCell.style.backgroundColor = color; }' +
-                'function tbTextColor(color) { if (tbLastCell) tbLastCell.style.color = color; }' +
+                'function tbUndo() {' +
+                '  if (tbUndoStack.length === 0) { alert("S\'ka më asgjë për të kthyer mbrapa."); return; }' +
+                '  var container = document.querySelector(".tb-print-container");' +
+                '  container.innerHTML = tbUndoStack.pop();' +
+                '  tbLastCell = null; tbSelectedCells = [];' +
+                '}' +
+                // Ruan gjendjen AKTUALE (me të gjitha ndryshimet) si file HTML i ri, të cilin mund
+                // ta rihapësh më vonë (edhe pa internet) për ta vazhduar ose printuar sërish.
+                'function tbSave() {' +
+                '  var html = "<html><head><title>Orari i Mësimdhënësve (i ruajtur)</title>" +' +
+                '    document.head.innerHTML.replace(/<title>.*?<\\/title>/, "") +' +
+                '    "</head><body>" + document.body.innerHTML + "</body></html>";' +
+                '  var blob = new Blob([html], { type: "text/html" });' +
+                '  var url = URL.createObjectURL(blob);' +
+                '  var a = document.createElement("a");' +
+                '  a.href = url;' +
+                '  a.download = "orari-mesimdhenesve-ruajtur.html";' +
+                '  document.body.appendChild(a);' +
+                '  a.click();' +
+                '  document.body.removeChild(a);' +
+                '  URL.revokeObjectURL(url);' +
+                '}' +
+                'function tbHighlight(cells, on) {' +
+                '  cells.forEach(function(c) { c.style.outline = on ? "3px solid #1e88e5" : ""; });' +
+                '}' +
+                'function tbClearSelection() { tbHighlight(tbSelectedCells, false); tbSelectedCells = []; }' +
+                'function tbSelectRow() {' +
+                '  if (!tbLastCell) return;' +
+                '  tbClearSelection();' +
+                '  var tr = tbLastCell.closest("tr");' +
+                '  tbSelectedCells = Array.prototype.slice.call(tr.querySelectorAll("td"));' +
+                '  tbHighlight(tbSelectedCells, true);' +
+                '}' +
+                'function tbSelectColumn() {' +
+                '  if (!tbLastCell) return;' +
+                '  tbClearSelection();' +
+                '  var table = tbLastCell.closest("table");' +
+                '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
+                '  tbSelectedCells = [];' +
+                '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
+                '    if (row.children[colIdx]) tbSelectedCells.push(row.children[colIdx]);' +
+                '  });' +
+                '  tbHighlight(tbSelectedCells, true);' +
+                '}' +
+                // "Selekto Komplet" - zgjedh ÇDO qelizë të dhënash, te TË GJITHA fletët/tabelat
+                // njëkohësisht - kështu një veprim i vetëm (p.sh. rrit fontin) vlen për krejt
+                // Orarin, jo vetëm për fletën aktuale.
+                'function tbSelectAll() {' +
+                '  tbClearSelection();' +
+                '  var allCells = document.querySelectorAll(".tb-print-container table tbody td");' +
+                '  tbSelectedCells = Array.prototype.slice.call(allCells);' +
+                '  tbHighlight(tbSelectedCells, true);' +
+                '}' +
+                // "tbApplyStyle" - vepron te TË GJITHA qelizat e zgjedhura (rresht/kolonë) nëse ka
+                // zgjedhje aktive, PËRNDRYSHE vetëm te qeliza e fundit e klikuar - kështu E NJËJTA
+                // vegël funksionon si për një qelizë të vetme, ashtu edhe për tërë rreshtin/kolonën.
+                'function tbApplyStyle(prop, value, toggle) {' +
+                '  var targets = tbSelectedCells.length > 0 ? tbSelectedCells : (tbLastCell ? [tbLastCell] : []);' +
+                '  if (targets.length === 0) return;' +
+                '  tbSaveUndoState();' +
+                '  targets.forEach(function(cell) {' +
+                '    if (toggle) { cell.style[prop] = (cell.style[prop] === value) ? "" : value; }' +
+                '    else { cell.style[prop] = value; }' +
+                '  });' +
+                '}' +
+                'function tbFontSize(delta) {' +
+                '  var targets = tbSelectedCells.length > 0 ? tbSelectedCells : (tbLastCell ? [tbLastCell] : []);' +
+                '  if (targets.length === 0) return;' +
+                '  tbSaveUndoState();' +
+                '  targets.forEach(function(cell) {' +
+                '    var current = parseInt(getComputedStyle(cell).fontSize) || 22;' +
+                '    cell.style.fontSize = Math.max(6, current + delta * 2) + "px";' +
+                '  });' +
+                '}' +
+                // "Layout" - zgjeron/ngushton TË GJITHA qelizat e kolonës/rreshtit të qelizës
+                // aktuale (jo vetëm një qelizë të vetme, pasi një kolonë/rresht funksionon si NJË
+                // e tërë në HTML - të gjitha qelizat e saj duhet të ndryshojnë njëkohësisht që
+                // efekti të duket).
+                // Vendos gjerësinë e KOLONËS me indeks "colIdx" te NJË tabelë specifike (edhe
+                // "colgroup" edhe qelizat) - funksion ndihmës i përbashkët, përdoret nga butonat
+                // DHE nga tërheqja me miun.
+                'function tbSetColumnWidthOnTable(table, colIdx, newWidth) {' +
+                '  var colgroup = table.querySelector("colgroup");' +
+                '  if (colgroup) {' +
+                '    var cols = colgroup.querySelectorAll("col");' +
+                '    var runningIdx = 0;' +
+                '    for (var i = 0; i < cols.length; i++) {' +
+                '      var span = parseInt(cols[i].getAttribute("span")) || 1;' +
+                '      if (colIdx >= runningIdx && colIdx < runningIdx + span) {' +
+                '        if (span > 1) {' +
+                '          var individualCols = [];' +
+                '          for (var s = 0; s < span; s++) { individualCols.push(document.createElement("col")); }' +
+                '          individualCols[colIdx - runningIdx].style.width = newWidth + "px";' +
+                '          cols[i].replaceWith.apply(cols[i], individualCols);' +
+                '        } else { cols[i].style.width = newWidth + "px"; }' +
+                '        break;' +
+                '      }' +
+                '      runningIdx += span;' +
+                '    }' +
+                '  }' +
+                '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
+                '    var cell = row.children[colIdx];' +
+                '    if (cell) cell.style.width = newWidth + "px";' +
+                '  });' +
+                '}' +
+                // RREGULLIM I RËNDËSISHËM: kolona "colIdx" ndryshohet te TË GJITHA fletët/tabelat
+                // NJËKOHËSISHT (jo vetëm te ajo ku ndodhi tërheqja) - kështu struktura unike e
+                // Orarit (vijat ndarëse të ditëve, etj.) MBETET E PËRPUTHUR mes fletëve, siç
+                // kërkohet, edhe pas ndryshimit të gjerësisë.
+                'function tbResizeColumnAllTables(colIdx, newWidth) {' +
+                '  newWidth = Math.max(10, newWidth);' +
+                '  var tables = document.querySelectorAll(".tb-print-container table");' +
+                '  Array.prototype.forEach.call(tables, function(t) { tbSetColumnWidthOnTable(t, colIdx, newWidth); });' +
+                '}' +
+                'function tbResizeColumn(deltaPx) {' +
+                '  if (!tbLastCell) return;' +
+                '  tbSaveUndoState();' +
+                '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
+                '  var newWidth = tbLastCell.getBoundingClientRect().width + deltaPx;' +
+                '  tbResizeColumnAllTables(colIdx, newWidth);' +
+                '}' +
+                'function tbResizeRow(deltaPx) {' +
+                '  if (!tbLastCell) return;' +
+                '  tbSaveUndoState();' +
+                '  var tr = tbLastCell.closest("tr");' +
+                '  var current = tr.getBoundingClientRect().height;' +
+                '  Array.prototype.forEach.call(tr.querySelectorAll("td"), function(cell) {' +
+                '    cell.style.height = Math.max(8, current + deltaPx) + "px";' +
+                '  });' +
+                '}' +
+                // TËRHEQJE ME MIUN (si Excel) - kliko dhe zvarrit pikërisht mbi vijën ndarëse
+                // (buzën e djathtë të një kolone, ose buzën e poshtme të një rreshti) - kursori
+                // ndryshon në shenjë rregullimi kur je afër vijës, dhe lëshimi i miut e zbaton
+                // ndryshimin (te kolona - në TË GJITHA fletët; te rreshti - vetëm në fletën aktuale).
+                'var tbDragMode = null, tbDragStartPos = 0, tbDragStartSize = 0, tbDragColIdx = -1, tbDragRow = null;' +
+                'var EDGE_ZONE = 6;' + // px afërsi nga buza për ta konsideruar "mbi vijën"
+                'document.addEventListener("mousemove", function(e) {' +
+                '  if (tbDragMode === "col") {' +
+                '    var delta = e.clientX - tbDragStartPos;' +
+                '    tbResizeColumnAllTables(tbDragColIdx, tbDragStartSize + delta);' +
+                '    return;' +
+                '  }' +
+                '  if (tbDragMode === "row") {' +
+                '    var deltaR = e.clientY - tbDragStartPos;' +
+                '    var newH = Math.max(8, tbDragStartSize + deltaR);' +
+                '    Array.prototype.forEach.call(tbDragRow.querySelectorAll("td"), function(cell) { cell.style.height = newH + "px"; });' +
+                '    return;' +
+                '  }' +
+                '  var td = e.target.closest("td, th");' +
+                '  if (!td) { document.body.style.cursor = ""; return; }' +
+                '  var rect = td.getBoundingClientRect();' +
+                '  if (rect.right - e.clientX < EDGE_ZONE) { document.body.style.cursor = "col-resize"; }' +
+                '  else if (rect.bottom - e.clientY < EDGE_ZONE) { document.body.style.cursor = "row-resize"; }' +
+                '  else { document.body.style.cursor = ""; }' +
+                '});' +
+                'document.addEventListener("mousedown", function(e) {' +
+                '  var td = e.target.closest("td, th");' +
+                '  if (!td) return;' +
+                '  var rect = td.getBoundingClientRect();' +
+                '  if (rect.right - e.clientX < EDGE_ZONE) {' +
+                '    tbSaveUndoState();' +
+                '    tbDragMode = "col";' +
+                '    tbDragStartPos = e.clientX;' +
+                '    tbDragStartSize = rect.width;' +
+                '    tbDragColIdx = Array.prototype.indexOf.call(td.parentNode.children, td);' +
+                '    e.preventDefault();' +
+                '  } else if (rect.bottom - e.clientY < EDGE_ZONE) {' +
+                '    tbSaveUndoState();' +
+                '    tbDragMode = "row";' +
+                '    tbDragStartPos = e.clientY;' +
+                '    tbDragRow = td.closest("tr");' +
+                '    tbDragStartSize = tbDragRow.getBoundingClientRect().height;' +
+                '    e.preventDefault();' +
+                '  }' +
+                '});' +
+                'document.addEventListener("mouseup", function() { tbDragMode = null; tbDragRow = null; });' +
                 'function tbAddRow() {' +
                 '  if (!tbLastCell) return;' +
+                '  tbSaveUndoState();' +
                 '  var tr = tbLastCell.closest("tr");' +
                 '  var newTr = tr.cloneNode(true);' +
-                '  Array.prototype.forEach.call(newTr.querySelectorAll("td"), function(td) { td.textContent = ""; });' +
+                '  Array.prototype.forEach.call(newTr.querySelectorAll("td"), function(td) { td.textContent = ""; td.style.outline = ""; });' +
                 '  tr.parentNode.insertBefore(newTr, tr.nextSibling);' +
                 '}' +
                 'function tbDeleteRow() {' +
                 '  if (!tbLastCell) return;' +
                 '  var tr = tbLastCell.closest("tr");' +
-                '  if (confirm("Fshi këtë rresht?")) { tr.parentNode.removeChild(tr); tbLastCell = null; }' +
+                '  if (confirm("Fshi këtë rresht?")) { tbSaveUndoState(); tr.parentNode.removeChild(tr); tbLastCell = null; tbClearSelection(); }' +
                 '}' +
                 'function tbAddCol() {' +
                 '  if (!tbLastCell) return;' +
+                '  tbSaveUndoState();' +
                 '  var table = tbLastCell.closest("table");' +
                 '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
                 '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
@@ -11970,18 +12168,20 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '    var newCell = document.createElement(cell.tagName);' +
                 '    newCell.setAttribute("contenteditable", "true");' +
                 '    newCell.style.cssText = cell.style.cssText;' +
+                '    newCell.style.outline = "";' +
                 '    if (cell.nextSibling) row.insertBefore(newCell, cell.nextSibling); else row.appendChild(newCell);' +
                 '  });' +
                 '}' +
                 'function tbDeleteCol() {' +
                 '  if (!tbLastCell) return;' +
                 '  if (!confirm("Fshi këtë kolonë (te të gjitha rreshtat)?")) return;' +
+                '  tbSaveUndoState();' +
                 '  var table = tbLastCell.closest("table");' +
                 '  var colIdx = Array.prototype.indexOf.call(tbLastCell.parentNode.children, tbLastCell);' +
                 '  Array.prototype.forEach.call(table.querySelectorAll("tr"), function(row) {' +
                 '    if (row.children[colIdx]) row.removeChild(row.children[colIdx]);' +
                 '  });' +
-                '  tbLastCell = null;' +
+                '  tbLastCell = null; tbClearSelection();' +
                 '}' +
                 '<\/script>';
 
@@ -11999,7 +12199,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '.first-sheet{page:firstsheet;}' +
                 '.later-sheet{page:latersheet;}' +
                 '@media print { .no-print{display:none !important;} }' +
-                '</style></head><body>' + toolbarHtml + pagesHtml + toolbarScript + '</body></html>');
+                '</style></head><body>' + toolbarHtml + '<div class="tb-print-container">' + pagesHtml + '</div>' + toolbarScript + '</body></html>');
             printWindow.document.close();
         }
 
