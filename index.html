@@ -2845,34 +2845,50 @@
             }
 
             var syntheticEmail = getSyntheticEmail(u);
-            firebase.auth().signInWithEmailAndPassword(syntheticEmail, p).then(function() {
-                console.log("✅ Hyrje E SIGURT (llogari e vërtetë Firebase) për:", u);
-                if (u === 'admin') {
-                    currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
-                    showMainApp();
-                    return;
-                }
-                // RREGULLIM: më parë riprova ndalonte sapo "cloudDataFullyLoaded" bëhej true, EDHE
-                // NËSE profili ende mungonte - kjo dështonte specifikisht në Incognito/InPrivate
-                // (ngarkim më i ngadaltë, pa cache lokal). Tani riprovohet THJESHT deri në 20 herë
-                // (8 sekonda gjithsej), pavarësisht nga ai flag - kohë e mjaftueshme edhe për
-                // ngarkimet më të ngadalta.
-                function tryFindTeacherProfile(attemptsLeft) {
-                    var teacher = systemData.teachers.find(function(t) { return t.username === u; });
-                    if (teacher) {
-                        currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+            // RREGULLIM SHTESË: sjellje "herë funksionon, herë jo" me TË NJËJTAT kredenciale
+            // tregon problem KOHOR/RRJETI (jo kredenciale të gabuara - ato do të dështonin
+            // GJITHMONË). Tani vetë HYRJA (jo vetëm gjetja e profilit më pas) riprovohet deri në 3
+            // herë PËR GABIME RRJETI specifikisht - kredencialet e gabuara (invalid-login-
+            // credentials) NUK riprovohen, pasi ai është gabim i VËRTETË, jo i përkohshëm.
+            function attemptSignIn(attemptsLeft) {
+                firebase.auth().signInWithEmailAndPassword(syntheticEmail, p).then(function() {
+                    console.log("✅ Hyrje E SIGURT (llogari e vërtetë Firebase) për:", u);
+                    if (u === 'admin') {
+                        currentUser = { id: 'admin', name: 'Administratori', role: 'admin' };
                         showMainApp();
-                    } else if (attemptsLeft > 0) {
-                        setTimeout(function() { tryFindTeacherProfile(attemptsLeft - 1); }, 400);
-                    } else {
-                        alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
+                        return;
                     }
-                }
-                tryFindTeacherProfile(20);
-            }).catch(function(err) {
-                console.log("ℹ️ Hyrja e sigurt s'u aplikua (" + err.code + ") - duke provuar rrugën e vjetër...");
-                performLoginLegacyCheck(u, p);
-            });
+                    // RREGULLIM: më parë riprova ndalonte sapo "cloudDataFullyLoaded" bëhej true, EDHE
+                    // NËSE profili ende mungonte - kjo dështonte specifikisht në Incognito/InPrivate
+                    // (ngarkim më i ngadaltë, pa cache lokal). Tani riprovohet THJESHT deri në 20 herë
+                    // (8 sekonda gjithsej), pavarësisht nga ai flag - kohë e mjaftueshme edhe për
+                    // ngarkimet më të ngadalta.
+                    function tryFindTeacherProfile(attemptsLeft2) {
+                        var teacher = systemData.teachers.find(function(t) { return t.username === u; });
+                        if (teacher) {
+                            currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
+                            showMainApp();
+                        } else if (attemptsLeft2 > 0) {
+                            setTimeout(function() { tryFindTeacherProfile(attemptsLeft2 - 1); }, 400);
+                        } else {
+                            alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
+                        }
+                    }
+                    tryFindTeacherProfile(20);
+                }).catch(function(err) {
+                    var isNetworkIssue = err.code === 'auth/network-request-failed' ||
+                        err.code === 'auth/timeout' || err.code === 'auth/too-many-requests' ||
+                        err.code === 'auth/internal-error';
+                    if (isNetworkIssue && attemptsLeft > 0) {
+                        console.log("⏳ Gabim rrjeti (" + err.code + ") - duke riprovuar hyrjen... (" + attemptsLeft + " mbetur)");
+                        setTimeout(function() { attemptSignIn(attemptsLeft - 1); }, 1000);
+                        return;
+                    }
+                    console.log("ℹ️ Hyrja e sigurt s'u aplikua (" + err.code + ") - duke provuar rrugën e vjetër...");
+                    performLoginLegacyCheck(u, p);
+                });
+            }
+            attemptSignIn(3);
         }
 
         function performLoginLegacyCheck(u, p) {
