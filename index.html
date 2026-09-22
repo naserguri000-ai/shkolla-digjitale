@@ -2863,18 +2863,26 @@
                     // (ngarkim më i ngadaltë, pa cache lokal). Tani riprovohet THJESHT deri në 20 herë
                     // (8 sekonda gjithsej), pavarësisht nga ai flag - kohë e mjaftueshme edhe për
                     // ngarkimet më të ngadalta.
+                    // RREGULLIM SHTES\u00cb: "systemData.teachers.find(...)" do t\u00eb hidhte gabim t\u00eb
+                    // papërpunuar nëse "systemData" vetë s'ishte gati ende (jo vetëm bosh, por
+                    // krejt e papërcaktuar) - kjo e ndërpriste TËRË zinxhirin e riprovës në heshtje,
+                    // pa dalë as vetë mesazhi i gabimit (thjesht dukej sikur "s'ndodh asgjë"). Tani
+                    // kontrollohet në mënyrë të sigurt, DHE dritarja u zgjat në 20 sekonda (50 herë
+                    // × 400ms) - shumë më e gjatë se çdo vonesë e arsyeshme rrjeti.
                     function tryFindTeacherProfile(attemptsLeft2) {
-                        var teacher = systemData.teachers.find(function(t) { return t.username === u; });
+                        var teacher = (window.systemData && systemData.teachers) ?
+                            systemData.teachers.find(function(t) { return t.username === u; }) : null;
                         if (teacher) {
                             currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
                             showMainApp();
                         } else if (attemptsLeft2 > 0) {
+                            if (attemptsLeft2 === 50) showNotification("⏳ Duke u lidhur, ju lutem prisni...", 20000);
                             setTimeout(function() { tryFindTeacherProfile(attemptsLeft2 - 1); }, 400);
                         } else {
                             alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
                         }
                     }
-                    tryFindTeacherProfile(20);
+                    tryFindTeacherProfile(50);
                 }).catch(function(err) {
                     var isNetworkIssue = err.code === 'auth/network-request-failed' ||
                         err.code === 'auth/timeout' || err.code === 'auth/too-many-requests' ||
