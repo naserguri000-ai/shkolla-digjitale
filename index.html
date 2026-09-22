@@ -2165,14 +2165,19 @@
                 if (i >= accounts.length) {
                     secondaryAuth.signOut().finally(function() {
                         console.log('--- REZULTATI I MIGRIMIT ---\n' + results.join('\n'));
-                        var okCount = results.filter(function(r) { return r.indexOf('✅') !== -1; }).length;
-                        var summary = okCount + " nga " + accounts.length + " u migruan me sukses.";
-                        var problems = results.filter(function(r) { return r.indexOf('❌') !== -1; });
-                        var msg = "🔒 Migrimi përfundoi! " + summary;
-                        if (problems.length > 0) {
-                            msg += "\n⚠️ Probleme (shih Console F12 për listën e plotë): " + problems.slice(0, 3).join(', ');
+                        var okCount = results.filter(function(r) { return r.indexOf('✅') !== -1 || r.indexOf('VERIFIKUAR') !== -1; }).length;
+                        var stuckAccounts = results.filter(function(r) { return r.indexOf('E NGECUR') !== -1; });
+                        var otherProblems = results.filter(function(r) { return r.indexOf('❌') !== -1 && r.indexOf('E NGECUR') === -1; });
+                        var msg = "🔒 Migrimi përfundoi! " + okCount + " nga " + accounts.length + " funksionojnë.";
+                        if (stuckAccounts.length > 0) {
+                            msg += "\n\n🔴 " + stuckAccounts.length + " LLOGARI TË NGECURA (kërkojnë veprim):\n" +
+                                stuckAccounts.map(function(r) { return r.split(':')[0]; }).join(', ') +
+                                "\n\nPër secilën: jepi username KREJT TË RI (kurrë të përdorur më parë) te 👨‍🏫 Mësimdhënësit → ✏️ Ndrysho.";
                         }
-                        showNotification(msg, 20000);
+                        if (otherProblems.length > 0) {
+                            msg += "\n\n⚠️ Probleme të tjera: " + otherProblems.slice(0, 3).join(', ');
+                        }
+                        alert(msg); // alert() në vend të showNotification, që admini të mos e humbë listën e plotë
                     });
                     return;
                 }
@@ -2182,13 +2187,27 @@
                     processNext(i + 1);
                 }).catch(function(err) {
                     if (err.code === 'auth/email-already-in-use') {
-                        results.push(acc.label + ': ℹ️ ekzistonte tashmë (kaluar)');
+                        // RREGULLIM I RËNDËSISHËM: "ekziston tashmë" NUK do të thotë fjalëkalimi
+                        // përputhet - mund të jetë llogari E VJETËR, "e ngecur" (si rasti i
+                        // "kujdestari-vi4"). VERIFIKO duke provuar hyrjen me fjalëkalimin AKTUAL -
+                        // vetëm KËSHTU dimë me siguri nëse llogaria vërtet funksionon apo jo.
+                        secondaryAuth.signInWithEmailAndPassword(acc.email, acc.password).then(function() {
+                            results.push(acc.label + ': ℹ️ ekzistonte tashmë, VERIFIKUAR (funksionon)');
+                            secondaryAuth.signOut().finally(function() { processNext(i + 1); });
+                        }).catch(function(verifyErr) {
+                            // Llogaria ekziston POR fjalëkalimi s'përputhet - "e ngecur", duhet
+                            // fshirë manualisht te Firebase Console (Authentication) dhe migrimi
+                            // rrijegur, ose t'i jepet username i ri (siç bëmë me kujdestari-vi4).
+                            results.push(acc.label + ': ❌ LLOGARI E NGECUR (ekziston por fjalëkalimi s\'përputhet - ' + verifyErr.code + ')');
+                            processNext(i + 1);
+                        });
                     } else if (err.code === 'auth/operation-not-allowed') {
                         results.push(acc.label + ": ❌ 'Email/Password' s'është aktivizuar te Firebase Console!");
+                        processNext(i + 1);
                     } else {
                         results.push(acc.label + ': ❌ ' + err.code + ' - ' + err.message);
+                        processNext(i + 1);
                     }
-                    processNext(i + 1);
                 });
             }
             processNext(0);
