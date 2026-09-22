@@ -2095,6 +2095,29 @@
             return clean + '@shfmu-eminduraku-kacanik.local';
         }
 
+        // Krijon NJË llogari të VËRTETË Firebase (email+fjalëkalim), për RAST TË VETËM (jo
+        // migrim me shumicë si më poshtë) - përdoret kur ADMINI NDRYSHON username-in e një
+        // mësimdhënësi EKZISTUES, që llogaria e re Firebase të krijohet AUTOMATIKISHT (përndryshe
+        // llogaria e VJETËR mbetet e lidhur me email-in e VJETËR, dhe kujdestari s'mund të hyjë më
+        // me username-in e ri - pikërisht defekti që e shkaktoi "Gabim në lidhje me serverin").
+        function createFirebaseAuthForSingleTeacher(username, password, label) {
+            if (!username || !password) return;
+            var secondaryApp;
+            try {
+                secondaryApp = firebase.apps.find(function(a) { return a.name === 'SingleAccountApp'; }) ||
+                    firebase.initializeApp(firebaseConfig, 'SingleAccountApp');
+            } catch (e) { return; }
+            var secondaryAuth = secondaryApp.auth();
+            secondaryAuth.createUserWithEmailAndPassword(getSyntheticEmail(username), password).then(function() {
+                secondaryAuth.signOut();
+                showNotification("✅ Llogaria Firebase e " + label + " u rikrijua me username-in e ri!");
+            }).catch(function(err) {
+                secondaryAuth.signOut();
+                if (err.code === 'auth/email-already-in-use') return; // ekziston tashmë, s'ka problem
+                showNotification("⚠️ Llogaria e " + label + " s'u rikrijua automatikisht (" + err.code + ") - përdor '🔒 Siguria e Sistemit' manualisht.", 10000);
+            });
+        }
+
         // Krijon llogari të VËRTETA Firebase për administratorin dhe çdo mësimdhënës me
         // username+fjalëkalim, duke përdorur fjalëkalimet EKZISTUESE (askush s'i ndryshon).
         // Përdor një instancë DYTËSORE të Firebase (jo kryesoren) që të mos e ç'kyçë
@@ -3901,10 +3924,20 @@ if (systemData.classes && systemData.classes.length > 0) {
                     var oldClass = systemData.classes.find(function(c) { return c.id === t.classId; });
                     if (oldClass) oldClass.teacherId = null;
 
+                    // RREGULLIM: kur username-i NDRYSHON, llogaria E VJETËR Firebase mbetet e
+                    // lidhur me username-in e vjetër - pa këtë, kujdestari s'do të mund të hynte
+                    // më me username-in e ri (saktësisht defekti që shkaktoi "Gabim në server").
+                    var usernameChanged = (t.username !== username);
+                    var oldUsername = t.username;
+
                     t.name = name;
                     t.username = username;
                     t.password = password;
                     t.classId = classId;
+
+                    if (usernameChanged && username && password) {
+                        createFirebaseAuthForSingleTeacher(username, password, name);
+                    }
 
                     var newClass = systemData.classes.find(function(c) { return c.id === classId; });
                     if (newClass) newClass.teacherId = t.id;
