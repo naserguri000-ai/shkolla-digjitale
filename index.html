@@ -2852,23 +2852,23 @@
                     showMainApp();
                     return;
                 }
-                // RREGULLIM: nëse të dhënat e mësimdhënësve NUK kanë mbaruar së ngarkuari ende nga
-                // cloud (rrjet i ngadaltë, pajisje e ngadaltë) - profili mund të mos gjendet edhe
-                // pse EKZISTON, thjesht ende s'ka mbërritur. Prit deri në 3 sekonda (duke
-                // rikontrolluar çdo 300ms) para se të tregosh gabim - kështu hyrja funksionon
-                // normalisht edhe në lidhje më të ngadalta.
+                // RREGULLIM: më parë riprova ndalonte sapo "cloudDataFullyLoaded" bëhej true, EDHE
+                // NËSE profili ende mungonte - kjo dështonte specifikisht në Incognito/InPrivate
+                // (ngarkim më i ngadaltë, pa cache lokal). Tani riprovohet THJESHT deri në 20 herë
+                // (8 sekonda gjithsej), pavarësisht nga ai flag - kohë e mjaftueshme edhe për
+                // ngarkimet më të ngadalta.
                 function tryFindTeacherProfile(attemptsLeft) {
                     var teacher = systemData.teachers.find(function(t) { return t.username === u; });
                     if (teacher) {
                         currentUser = { id: teacher.id, name: teacher.name, role: 'teacher', classId: teacher.classId };
                         showMainApp();
-                    } else if (attemptsLeft > 0 && !window.cloudDataFullyLoaded) {
-                        setTimeout(function() { tryFindTeacherProfile(attemptsLeft - 1); }, 300);
+                    } else if (attemptsLeft > 0) {
+                        setTimeout(function() { tryFindTeacherProfile(attemptsLeft - 1); }, 400);
                     } else {
                         alert("⚠️ Llogaria u vërtetua, por s'u gjet profili përkatës. Kontaktoni administratorin.");
                     }
                 }
-                tryFindTeacherProfile(10);
+                tryFindTeacherProfile(20);
             }).catch(function(err) {
                 console.log("ℹ️ Hyrja e sigurt s'u aplikua (" + err.code + ") - duke provuar rrugën e vjetër...");
                 performLoginLegacyCheck(u, p);
