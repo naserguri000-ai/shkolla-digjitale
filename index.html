@@ -3416,7 +3416,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 html +=
                     '<div style="padding:20px; text-align:center; background:#f8f9fa; border-radius:12px;">⚠️ Nuk ka kujdestarë të regjistruar. <br><button class="btn btn-admin" style="margin-top:10px;" onclick="openTeacherModal()">Shto Kujdestar të Ri</button></div>';
             } else {
-                systemData.teachers.forEach(function(t) {
+                getTeachersSortedByClass().forEach(function(t) {
                     var classObj = systemData.classes.find(function(c) { return c.id === t.classId; });
                     html += '<div class="teacher-item">' +
                         '<div><strong>👨‍🏫 ' + t.name + '</strong><br><span style="font-size:11px;">🔑 ' +
@@ -3444,6 +3444,35 @@ if (systemData.classes && systemData.classes.length > 0) {
             setTimeout(function() {
                 setupTableNavigation();
             }, 300);
+        }
+
+        // ==================== RENDITJA E KUJDESTARËVE SIPAS KLASËS (shtuar 22.9.2026) ====================
+        // Rendit kujdestarët sipas klasës që menaxhojnë: VI → VII → VIII → IX, dhe brenda
+        // secilës sipas paraleles (1, 2, 3...). Kupton edhe "IX-1", "9/1", "IX/2", "9-3" etj.
+        // Kujdestarët pa klasë dalin në fund. NUK e ndryshon renditjen e ruajtur në cloud -
+        // kthen vetëm një kopje të renditur për shfaqje.
+        function parseClassOrderKey(className) {
+            var romans = { 'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,'IX':9,'X':10,'XI':11,'XII':12 };
+            var name = String(className || '').trim().toUpperCase();
+            var m = name.match(/^(XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I|\d+)\s*[-\/.\s]*\s*(\d+)?/);
+            if (!m) return { grade: 999, section: 999, name: name };
+            var grade = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : romans[m[1]];
+            var section = m[2] ? parseInt(m[2], 10) : 0;
+            return { grade: grade || 999, section: section, name: name };
+        }
+        function getTeachersSortedByClass() {
+            var list = (systemData && Array.isArray(systemData.teachers)) ? systemData.teachers.slice() : [];
+            function keyFor(t) {
+                var cls = (systemData.classes || []).find(function(c) { return c.id === t.classId; });
+                return cls ? parseClassOrderKey(cls.className) : { grade: 10000, section: 0, name: '' };
+            }
+            return list.sort(function(a, b) {
+                var ka = keyFor(a), kb = keyFor(b);
+                if (ka.grade !== kb.grade) return ka.grade - kb.grade;
+                if (ka.section !== kb.section) return ka.section - kb.section;
+                if (ka.name !== kb.name) return ka.name < kb.name ? -1 : 1;
+                return String(a.name || '').localeCompare(String(b.name || ''), 'sq');
+            });
         }
 
         function renderArchiveSection() {
@@ -4107,6 +4136,34 @@ if (systemData.classes && systemData.classes.length > 0) {
         }
 
         // ==================== FUNKSIONET E FLETËKALIMEVE ====================
+        // ==================== RAPORT (KTHYES) - FAQJA E 2-TË E FLETËKALIMIT (23.9.2026) ====================
+        // Formulari printohet BOSH si faqja e dytë e çdo fletëkalimi. Nxënësi e dorëzon te
+        // shkolla e re; drejtoria e asaj shkolle e plotëson me dorë dhe e kthen këtu si dëshmi
+        // se nxënësi është pranuar. Stilet janë inline (prefiks "rrb-") që të mos përzihen me
+        // stilet e fletëkalimit.
+        function getBlankReturnReportPageHtml() {
+            function line(mm) {
+                return '<span style="display:inline-block; width:' + mm + 'mm; border-bottom:1px solid #000; height:1.1em; vertical-align:baseline;"></span>';
+            }
+            var p = 'margin:0; line-height:3; text-align:left;';
+            return '<div class="rrb-page" style="page-break-before:always; break-before:page; font-family:Calibri, Arial, sans-serif; font-size:15px; color:#000; padding:12mm 13mm 0; box-sizing:border-box; max-width:210mm; margin:0 auto; background:white;">' +
+                '<div style="font-size:14px; line-height:1.9;">Komuna e Kaçanikut<br><strong>Municipality of Kaçanik</strong></div>' +
+                '<div style="text-align:right; margin-top:7mm; font-size:14px; line-height:2.2;"><strong>Kodi i shkollës:</strong> ' + line(35) +
+                '<br>Nr. ' + line(18) + ' data: ' + line(30) + '</div>' +
+                '<h2 style="text-align:center; font-size:19px; margin:10mm 0; font-weight:bold; color:#000;">Raport (kthyes) për regjistrimin e nxënësit me fletëkalim</h2>' +
+                '<p style="' + p + '">Nxënësi-sja ' + line(68) + ' në bazë të fletëkalimit nr. ' + line(22) + '</p>' +
+                '<p style="' + p + '">të datës ' + line(30) + ' u regjistrua në klasën ' + line(30) + ', në paralelen e ' + line(20) + '</p>' +
+                '<p style="' + p + '">më datë ' + line(30) + ' në shkollën fillore ' + line(75) + '</p>' +
+                '<p style="' + p + '">në ' + line(60) + ' Komuna ' + line(60) + '.</p>' +
+                '<p style="' + p + '">Nxënësi-sja është regjistruar në librin amë nr. ' + line(30) + '. Mësuesi-ja i-e këtij-kësaj</p>' +
+                '<p style="' + p + '">nxënësi-se është: ' + line(85) + '.</p>' +
+                '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:28mm;">' +
+                '<div>Mësuesi-ja e klasës:<div style="border-bottom:1px solid #000; width:55mm; height:12mm;"></div><div style="border-bottom:1px solid #000; width:55mm; height:10mm;"></div></div>' +
+                '<div style="margin-top:14mm;">V.V.</div>' +
+                '<div>Drejtori:<div style="border-bottom:1px solid #000; width:55mm; height:22mm;"></div></div>' +
+                '</div></div>';
+        }
+
         function openTranscriptForCurrentClass() {
             console.log("📜 openTranscriptForCurrentClass u thirr!");
 
@@ -5274,6 +5331,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                         </div>
                     </div>
                 </div>
+                ${getBlankReturnReportPageHtml()}
                 <script>
                     // Shkallëzim automatik - detyron GJITHNJË gjithçka të hyjë në 1 faqe A4. RREGULLIM:
                     // "transform:scale()" NUK e ndryshon planin real të faqosjes (shfletuesi ende e
@@ -8655,6 +8713,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">' +
                 '<label style="flex:1; min-width:150px;">Profili shkollor (Drejtimi)<br><input id="smiaProfiliShkollor" value="' + escapeHtml(smiaClass.profiliShkollor) + '" style="width:100%; padding:5px;"></label>' +
                 '<label style="flex:1; min-width:150px;">Gjuhë e dytë zyrtare<br><input id="smiaGjuhaDyte" value="' + escapeHtml(smiaClass.gjuhaDyte) + '" style="width:100%; padding:5px;"></label>' +
+                '<label style="flex:1; min-width:150px;">Ndërrimi i paraleles<br><select id="smiaNdrrimiParaleles" style="width:100%; padding:5px;">' +
+                ['Paradite', 'Pasdite', 'Të dy ndërrimet'].map(function(o) {
+                    return '<option value="' + o + '"' + (getSmiaShiftLabel(cls, smiaClass) === o ? ' selected' : '') + '>' + o + '</option>';
+                }).join('') + '</select></label>' +
                 '</div>' +
                 '<div style="margin-top:8px;">' +
                 '<label style="margin-right:15px;"><input type="checkbox" id="smiaKlaseKombinuar" ' + (smiaClass.klaseKombinuar ? 'checked' : '') + '> Klasë e kombinuar</label>' +
@@ -8689,13 +8751,97 @@ if (systemData.classes && systemData.classes.length > 0) {
             html += '</tbody></table></div>' +
                 '<button class="btn btn-success" style="margin-top:10px;" onclick="saveSmiaStudentData(\'' + classId + '\')">💾 Ruaj Detajet e Nxënësve</button>' +
                 '<button class="btn btn-info" style="margin-top:10px; margin-left:6px;" onclick="printSmiaReport(\'' + classId + '\')">🖨️ Printo Regjistrin</button>';
+            html += '<div style="margin-top:18px;"><strong>📊 Totalet sipas kategorive</strong>' +
+                '<div style="font-size:11px; color:#666; margin:2px 0 6px;">Përditësohen menjëherë sapo ndryshoni një fushë më sipër.</div>' +
+                '<div id="smiaTotalsContainer">' + buildSmiaTotalsHtml(cls, collectSmiaRecords(cls, classId, false), false) + '</div></div>';
             container.innerHTML = html;
+            // Totalet rifreskohen live kur ndryshon ndonjë fushë e nxënësve (edhe para ruajtjes)
+            container.onchange = function(e) {
+                if (!e.target.classList || !e.target.classList.contains('smia-student-field')) return;
+                var tc = document.getElementById('smiaTotalsContainer');
+                if (tc) tc.innerHTML = buildSmiaTotalsHtml(cls, collectSmiaRecords(cls, classId, true), false);
+            };
+        }
+
+        // ==================== SMIA - NDËRRIMI + TOTALET (shtuar 23.9.2026) ====================
+        // Ndërrimi: nëse s'është zgjedhur ende, merret automatikisht nga ndërrimi i orarit të
+        // klasës (getClassShift). Ruhet te smiaClassData - NUK e ndryshon orarin.
+        function getSmiaShiftLabel(cls, smiaClass) {
+            if (smiaClass && smiaClass.ndrrimiParaleles) return smiaClass.ndrrimiParaleles;
+            return getClassShift(cls) === 'pasdite' ? 'Pasdite' : 'Paradite';
+        }
+        var SMIA_TOTAL_FIELDS = [
+            { key: 'age', label: 'Mosha' },
+            { key: 'ethnicity', label: 'Përkatësia etnike' },
+            { key: 'travelDistance', label: 'Largësia e udhëtimit' },
+            { key: 'disabilityType', label: 'Lloji i dëmtimit' },
+            { key: 'familySituation', label: 'Gjendja familjare' },
+            { key: 'socialAssistance', label: 'Ndihma sociale' },
+            { key: 'registeredType', label: 'I ri / Përsëritës' },
+            { key: 'incomeFromAbroad', label: 'Të ardhur nga jashtë' }
+        ];
+        function collectSmiaRecords(cls, classId, fromDom) {
+            var byId = {};
+            cls.students.forEach(function(s) {
+                var sd = getSmiaStudentData(classId, s.id);
+                var rec = { gender: s.gender };
+                SMIA_TOTAL_FIELDS.forEach(function(f) { rec[f.key] = sd[f.key]; });
+                byId[s.id] = rec;
+            });
+            if (fromDom) {
+                document.querySelectorAll('#smiaContentContainer .smia-student-field').forEach(function(el) {
+                    var r = byId[el.dataset.studentId];
+                    if (r) r[el.dataset.field] = el.value;
+                });
+            }
+            return cls.students.map(function(s) { return byId[s.id]; });
+        }
+        function buildSmiaTotalsHtml(cls, records, forPrint) {
+            var html = forPrint ? '' : '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px;">';
+            SMIA_TOTAL_FIELDS.forEach(function(f) {
+                var groups = {}, order = [];
+                records.forEach(function(r) {
+                    var v = String(r[f.key] == null ? '' : r[f.key]).trim() || 'Pa plotësuar';
+                    if (!groups[v]) { groups[v] = { M: 0, F: 0, T: 0 }; order.push(v); }
+                    groups[v].T++;
+                    if (r.gender === 'M') groups[v].M++;
+                    else if (r.gender === 'F') groups[v].F++;
+                });
+                order.sort(function(a, b) {
+                    if (a === 'Pa plotësuar') return 1;
+                    if (b === 'Pa plotësuar') return -1;
+                    var na = parseFloat(a), nb = parseFloat(b);
+                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                    return a.localeCompare(b, 'sq');
+                });
+                var sumM = 0, sumF = 0, sumT = 0;
+                var c = 'padding:3px; border:1px solid #ccc; text-align:center;';
+                var t = '<table style="width:100%; border-collapse:collapse; font-size:12px;' + (forPrint ? ' margin-bottom:10px;' : '') + '">' +
+                    '<thead><tr><th colspan="4" style="background:#0b4b6e; color:white; padding:4px; border:1px solid #0b4b6e; -webkit-print-color-adjust:exact; print-color-adjust:exact;">' + escapeHtml(f.label) + '</th></tr>' +
+                    '<tr style="background:#e3f2fd;"><th style="' + c + ' text-align:left;">Kategoria</th><th style="' + c + '">M</th><th style="' + c + '">F</th><th style="' + c + '">Gjithsej</th></tr></thead><tbody>';
+                order.forEach(function(v) {
+                    var g = groups[v];
+                    sumM += g.M; sumF += g.F; sumT += g.T;
+                    t += '<tr' + (v === 'Pa plotësuar' ? ' style="color:#999; font-style:italic;"' : '') + '>' +
+                        '<td style="' + c + ' text-align:left;">' + escapeHtml(v) + '</td>' +
+                        '<td style="' + c + '">' + g.M + '</td><td style="' + c + '">' + g.F + '</td>' +
+                        '<td style="' + c + ' font-weight:bold;">' + g.T + '</td></tr>';
+                });
+                if (order.length === 0) t += '<tr><td colspan="4" style="' + c + ' color:#999;">Nuk ka nxënës</td></tr>';
+                t += '<tr style="background:#f5f5f5; font-weight:bold;"><td style="' + c + ' text-align:left;">Totali</td>' +
+                    '<td style="' + c + '">' + sumM + '</td><td style="' + c + '">' + sumF + '</td><td style="' + c + '">' + sumT + '</td></tr></tbody></table>';
+                html += forPrint ? '<div style="display:inline-block; width:32%; vertical-align:top; margin:0 0.5% 8px;">' + t + '</div>' : '<div>' + t + '</div>';
+            });
+            if (!forPrint) html += '</div>';
+            return html;
         }
 
         function saveSmiaClassData(classId) {
             var smiaClass = getSmiaClassData(classId);
             smiaClass.profiliShkollor = document.getElementById('smiaProfiliShkollor').value;
             smiaClass.gjuhaDyte = document.getElementById('smiaGjuhaDyte').value;
+            var shiftEl = document.getElementById('smiaNdrrimiParaleles');
+            if (shiftEl) smiaClass.ndrrimiParaleles = shiftEl.value;
             smiaClass.klaseKombinuar = document.getElementById('smiaKlaseKombinuar').checked;
             smiaClass.klaseNevojaVeçanta = document.getElementById('smiaKlaseNevojaVecanta').checked;
             saveToLocal();
@@ -8714,6 +8860,9 @@ if (systemData.classes && systemData.classes.length > 0) {
             _suppressNextRemoteRefresh = true;
             forcePushToCloud(function(ok) {
                 showNotification(ok ? '✅ Detajet e nxënësve u ruajtën në cloud!' : '⚠️ U ruajt lokalisht, cloud dështoi.');
+                var cls2 = systemData.classes.find(function(c) { return c.id === classId; });
+                var tc = document.getElementById('smiaTotalsContainer');
+                if (cls2 && tc) tc.innerHTML = buildSmiaTotalsHtml(cls2, collectSmiaRecords(cls2, classId, false), false);
             });
         }
 
@@ -8732,6 +8881,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<table><tr><th>Klasa</th><td>' + escapeHtml(classNameParts[0]) + '</td><th>Paralelja</th><td>' + escapeHtml(classNameParts[1] || '') + '</td></tr>' +
                 '<tr><th>Kujdestari i klasës</th><td colspan="3">' + (homeroom ? escapeHtml(homeroom.name) : '') + '</td></tr>' +
                 '<tr><th>Profili shkollor (Drejtimi)</th><td>' + escapeHtml(smiaClass.profiliShkollor) + '</td><th>Gjuhë e dytë zyrtare</th><td>' + escapeHtml(smiaClass.gjuhaDyte) + '</td></tr>' +
+                '<tr><th>Ndërrimi i paraleles</th><td colspan="3">' + escapeHtml(getSmiaShiftLabel(cls, smiaClass)) + '</td></tr>' +
                 '<tr><th>Klasë e kombinuar</th><td>' + (smiaClass.klaseKombinuar ? 'Po' : 'Jo') + '</td><th>Klasë me nevoja të veçanta</th><td>' + (smiaClass.klaseNevojaVeçanta ? 'Po' : 'Jo') + '</td></tr>' +
                 '<tr><th>Numri i nxënësve</th><td colspan="3">Gjithsej: ' + cls.students.length + ' | M: ' + males + ' | F: ' + females + '</td></tr></table>';
 
@@ -8745,7 +8895,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                     '</td><td>' + escapeHtml(sd.familySituation) + '</td><td>' + escapeHtml(sd.socialAssistance) +
                     '</td><td>' + escapeHtml(sd.registeredType) + '</td><td>' + escapeHtml(sd.incomeFromAbroad) + '</td></tr>';
             });
-            html += '</tbody></table></body></html>';
+            html += '</tbody></table>';
+            html += '<h3 style="margin:10px 0 6px;">Totalet sipas kategorive</h3>' +
+                buildSmiaTotalsHtml(cls, collectSmiaRecords(cls, classId, false), true);
+            html += '</body></html>';
 
             var w = window.open('', '_blank');
             w.document.write(html);
@@ -12053,8 +12206,10 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '<button onclick="tbApplyStyle(\'textAlign\', \'center\')" style="padding:6px 12px; cursor:pointer;" title="Qendër">⇔</button>' +
                 '<button onclick="tbApplyStyle(\'textAlign\', \'right\')" style="padding:6px 12px; cursor:pointer;" title="Djathtas">⇥</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
-                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Sfondi: <input type="color" onchange="tbApplyStyle(\'backgroundColor\', this.value)" value="#ffffff"></label>' +
-                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Teksti: <input type="color" onchange="tbApplyStyle(\'color\', this.value)" value="#000000"></label>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Sfondi: <input type="color" id="tbBgColor" onchange="tbApplyStyle(\'backgroundColor\', this.value)" value="#ffffff"></label>' +
+                '<button onclick="tbApplyStyle(\'backgroundColor\', document.getElementById(\'tbBgColor\').value)" style="padding:4px 8px; cursor:pointer;" title="Zbato përsëri ngjyrën e sfondit te qelizat e zgjedhura">🖌️</button>' +
+                '<label style="color:white; font-size:12px; display:flex; align-items:center; gap:3px;">Teksti: <input type="color" id="tbTextColor" onchange="tbApplyStyle(\'color\', this.value)" value="#000000"></label>' +
+                '<button onclick="tbApplyStyle(\'color\', document.getElementById(\'tbTextColor\').value)" style="padding:4px 8px; cursor:pointer;" title="Zbato përsëri ngjyrën e tekstit te qelizat e zgjedhura">🖌️</button>' +
                 '<span style="width:1px; height:24px; background:#fff; opacity:0.3;"></span>' +
                 '<button onclick="tbAddRow()" style="padding:6px 12px; cursor:pointer; background:#43a047; color:white; border:none; border-radius:4px;" title="Shto rresht poshtë qelizës aktuale">+ Rresht</button>' +
                 '<button onclick="tbDeleteRow()" style="padding:6px 12px; cursor:pointer; background:#e53935; color:white; border:none; border-radius:4px;" title="Fshi rreshtin e qelizës aktuale">− Rresht</button>' +
@@ -12075,7 +12230,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 'var tbSelectedCells = [];' + // zgjedhje rreshti/kolone - bosh do të thotë "vetëm tbLastCell"
                 'var tbUndoStack = [];' + // histori gjendjesh - për "↩️ Undo"
                 'document.addEventListener("click", function(e) {' +
-                '  var td = e.target.closest("td");' +
+                '  var td = e.target.closest("td, th");' +
                 '  if (td) { tbLastCell = td; if (tbSelectedCells.indexOf(td) === -1) tbClearSelection(); }' +
                 '});' +
                 // Ruan gjendjen AKTUALE (para një ndryshimi) te "tbUndoStack" - thirret NGA VETË
@@ -12116,7 +12271,7 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '  if (!tbLastCell) return;' +
                 '  tbClearSelection();' +
                 '  var tr = tbLastCell.closest("tr");' +
-                '  tbSelectedCells = Array.prototype.slice.call(tr.querySelectorAll("td"));' +
+                '  tbSelectedCells = Array.prototype.slice.call(tr.querySelectorAll("td, th"));' +
                 '  tbHighlight(tbSelectedCells, true);' +
                 '}' +
                 'function tbSelectColumn() {' +
@@ -12316,6 +12471,8 @@ if (systemData.classes && systemData.classes.length > 0) {
                 '.first-sheet{page:firstsheet;}' +
                 '.later-sheet{page:latersheet;}' +
                 '@media print { .no-print{display:none !important;} }' +
+                // Ngjyrat e sfondit printohen gjithmonë - pa pasur nevojë për "Background graphics"
+                'th, td{-webkit-print-color-adjust:exact; print-color-adjust:exact;}' +
                 '</style></head><body>' + toolbarHtml + '<div class="tb-print-container">' + pagesHtml + '</div>' + toolbarScript + '</body></html>');
             printWindow.document.close();
         }
@@ -12783,7 +12940,7 @@ if (systemData.classes && systemData.classes.length > 0) {
             if (!requireAdmin()) return;
             var select = document.getElementById('passwordTeacherSelect');
             select.innerHTML = '<option value="">-- Zgjidhni kujdestarin --</option>';
-            systemData.teachers.forEach(function(t) {
+            getTeachersSortedByClass().forEach(function(t) {
                 select.innerHTML += '<option value="' + t.id + '">' + t.name + ' (' + t.username +
                 ')</option>';
             });
@@ -18945,7 +19102,7 @@ function renderAdminDashboard() {
     if (systemData.teachers.length === 0) {
         html += '<div style="padding:20px; text-align:center; background:#f8f9fa; border-radius:12px;">⚠️ Nuk ka kujdestarë të regjistruar. <br><button class="btn btn-admin" style="margin-top:10px;" onclick="openTeacherModal()">Shto Kujdestar të Ri</button></div>';
     } else {
-        systemData.teachers.forEach(function(t) {
+        getTeachersSortedByClass().forEach(function(t) {
             var classObj = systemData.classes.find(function(c) { return c.id === t.classId; });
             html += '<div class="teacher-item">' +
                 '<div><strong>👨‍🏫 ' + t.name + '</strong><br><span style="font-size:11px;">🔑 ' + t.username + '</span></div>' +
