@@ -1,0 +1,17 @@
+{
+  "name": "Sistemi i Menaxhimit Shkollor - SHFMU \"Emin Duraku\"",
+  "short_name": "Emin Duraku",
+  "description": "Notat, mungesat, vlerësimet, dëftesat dhe raportet e SHFMU \"Emin Duraku\" Kaçanik",
+  "lang": "sq",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a2f44",
+  "theme_color": "#0a2f44",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
